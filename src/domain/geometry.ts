@@ -126,10 +126,14 @@ export function containsPolygon(outer: Polygon, inner: Polygon): boolean {
 export function clipLine(polygon: Polygon, from: Point, direction: Point): Interval | null {
   let start = -Infinity;
   let end = Infinity;
-  for (const [a, b] of edges(polygon)) {
-    const edge = subtract(b, a);
-    const offset = cross(edge, subtract(from, a));
-    const rate = cross(edge, direction);
+  // Hot path for line of sight: plain arithmetic, no allocations.
+  for (let i = 0; i < polygon.length; i++) {
+    const a = polygon[i] as Point;
+    const b = polygon[(i + 1) % polygon.length] as Point;
+    const edgeX = b.x - a.x;
+    const edgeY = b.y - a.y;
+    const offset = edgeX * (from.y - a.y) - edgeY * (from.x - a.x);
+    const rate = edgeX * direction.y - edgeY * direction.x;
     if (Math.abs(rate) < EPSILON) {
       if (offset < 0) {
         return null;

@@ -1,4 +1,5 @@
 import {
+  add,
   boundsOverlap,
   clipLine,
   clipSegment,
@@ -67,54 +68,93 @@ export function isInCover(point: Point, terrain: readonly PlacedTerrain[]): bool
   );
 }
 
+/** A clear straight line, in inches. */
+export interface Lane {
+  readonly from: Point;
+  readonly to: Point;
+  readonly length: number;
+}
+
 /**
  * The longest straight line inside `area` that no terrain stops and that stays out of the
  * `excluded` polygons (the deployment zones). Lines are sampled every 15 degrees and 2 inches.
  */
+export function findLongestClearLane(
+  area: Polygon,
+  obstacles: readonly SightObstacle[],
+  excluded: readonly Polygon[],
+): Lane | null {
+  return clearLanes(area, obstacles, excluded).reduce<Lane | null>(
+    (longest, lane) => (lane.length > (longest?.length ?? 0) ? lane : longest),
+    null,
+  );
+}
+
+/** The longest clear stretch on each sampled line. */
+export function clearLanes(
+  area: Polygon,
+  obstacles: readonly SightObstacle[],
+  excluded: readonly Polygon[],
+): Lane[] {
+  const stoppers = [...obstacles.map((obstacle) => obstacle.polygon), ...excluded];
+  const lanes: Lane[] = [];
+  for (let angle = 0; angle < 180; angle += LANE_ANGLE_STEP) {
+    const direction = rotate({ x: 1, y: 0 }, angle);
+    const normal = rotate({ x: 0, y: 1 }, angle);
+    const reach = stoppers.map((polygon) => ({ polygon, across: projection(polygon, normal) }));
+    for (const offset of laneOffsets(projection(area, normal))) {
+      const origin = scale(normal, offset);
+      const span = clipLine(area, origin, direction);
+      if (span !== null) {
+        const stopped = reach
+          .filter(({ across }) => across.start <= offset && offset <= across.end)
+          .flatMap(({ polygon }) => clipLine(polygon, origin, direction) ?? []);
+        const gap = longestGap(span, stopped);
+        lanes.push({
+          from: add(origin, scale(direction, gap.start)),
+          to: add(origin, scale(direction, gap.end)),
+          length: gap.end - gap.start,
+        });
+      }
+    }
+  }
+  return lanes;
+}
+
+/** How far the polygon reaches along `axis`. */
+function projection(polygon: Polygon, axis: Point): Interval {
+  const values = polygon.map((corner) => dot(corner, axis));
+  return { start: Math.min(...values), end: Math.max(...values) };
+}
+
+/** Offsets of parallel lines `LANE_SPACING` apart, covering the whole range. */
+function laneOffsets(range: Interval): number[] {
+  const offsets: number[] = [];
+  for (let offset = range.start + LANE_SPACING / 2; offset < range.end; offset += LANE_SPACING) {
+    offsets.push(offset);
+  }
+  return offsets;
+}
+
 export function longestClearLane(
   area: Polygon,
   obstacles: readonly SightObstacle[],
   excluded: readonly Polygon[],
 ): number {
-  const stoppers = [...obstacles.map((obstacle) => obstacle.polygon), ...excluded];
-  let longest = 0;
-  for (let angle = 0; angle < 180; angle += LANE_ANGLE_STEP) {
-    for (const [origin, direction] of sampledLines(area, angle)) {
-      const span = clipLine(area, origin, direction);
-      if (span !== null) {
-        const stopped = stoppers.flatMap((polygon) => clipLine(polygon, origin, direction) ?? []);
-        longest = Math.max(longest, longestGap(span, stopped));
-      }
-    }
-  }
-  return longest;
-}
-
-/** Parallel lines at one angle, `LANE_SPACING` apart, covering the whole area. */
-function sampledLines(area: Polygon, angle: number): [Point, Point][] {
-  const direction = rotate({ x: 1, y: 0 }, angle);
-  const normal = rotate({ x: 0, y: 1 }, angle);
-  const offsets = area.map((corner) => dot(corner, normal));
-  const lines: [Point, Point][] = [];
-  const last = Math.max(...offsets);
-  for (
-    let offset = Math.min(...offsets) + LANE_SPACING / 2;
-    offset < last;
-    offset += LANE_SPACING
-  ) {
-    lines.push([scale(normal, offset), direction]);
-  }
-  return lines;
+  return findLongestClearLane(area, obstacles, excluded)?.length ?? 0;
 }
 
 /** The longest part of `span` that none of the `stopped` intervals cover. */
-export function longestGap(span: Interval, stopped: readonly Interval[]): number {
+export function longestGap(span: Interval, stopped: readonly Interval[]): Interval {
   const sorted = [...stopped].sort((a, b) => a.start - b.start);
-  let longest = 0;
+  let longest: Interval = { start: span.start, end: span.start };
   let freeFrom = span.start;
-  for (const interval of sorted) {
-    longest = Math.max(longest, Math.min(interval.start, span.end) - freeFrom);
+  for (const interval of [...sorted, { start: span.end, end: span.end }]) {
+    const freeTo = Math.min(interval.start, span.end);
+    if (freeTo - freeFrom > longest.end - longest.start) {
+      longest = { start: freeFrom, end: freeTo };
+    }
     freeFrom = Math.max(freeFrom, interval.end);
   }
-  return Math.max(longest, span.end - freeFrom);
+  return longest;
 }

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { rectangle, type Polygon } from './geometry';
 import {
+  findLongestClearLane,
   hasLineOfSight,
   isInCover,
   longestClearLane,
@@ -72,7 +73,7 @@ describe('isInCover', () => {
 
 describe('longestGap', () => {
   it('returns the whole span when nothing is stopped', () => {
-    expect(longestGap({ start: 0, end: 10 }, [])).toBe(10);
+    expect(longestGap({ start: 0, end: 10 }, [])).toEqual({ start: 0, end: 10 });
   });
 
   it('finds the longest free part between stopped intervals', () => {
@@ -80,7 +81,7 @@ describe('longestGap', () => {
       { start: 6, end: 7 },
       { start: 2, end: 3 },
     ];
-    expect(longestGap({ start: 0, end: 10 }, stopped)).toBe(3);
+    expect(longestGap({ start: 0, end: 10 }, stopped)).toEqual({ start: 3, end: 6 });
   });
 
   it('handles overlapping and out-of-span intervals', () => {
@@ -89,7 +90,7 @@ describe('longestGap', () => {
       { start: 3, end: 5 },
       { start: 12, end: 20 },
     ];
-    expect(longestGap({ start: 0, end: 10 }, stopped)).toBe(5);
+    expect(longestGap({ start: 0, end: 10 }, stopped)).toEqual({ start: 5, end: 10 });
   });
 });
 
@@ -106,6 +107,13 @@ describe('longestClearLane', () => {
     const centreWall = terrain(rectangle(29, 12, 31, 32), 'blocks');
     // What is left is the diagonal of one 29 x 20 half, 35.2" at most.
     expect(longestClearLane(board, sightObstacles([centreWall]), zones)).toBeLessThan(35.3);
+  });
+
+  it('says where the lane runs', () => {
+    const lane = findLongestClearLane(board, [], zones);
+    expect(lane?.from.y).toBeGreaterThanOrEqual(12);
+    expect(lane?.to.y).toBeLessThanOrEqual(32);
+    expect(lane?.length).toBeCloseTo(longestClearLane(board, [], zones));
   });
 
   it('is not cut by terrain that does not affect line of sight', () => {
