@@ -1,0 +1,8 @@
+dist
+coverage
+.firebase
+.emulator-data
+package-lock.json
+
+# Hand-written docs
+*.md

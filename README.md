@@ -44,38 +44,54 @@ Terrain Forge is a web app that generates a battlefield layout for tabletop warg
 ## Getting started
 
 ### Prerequisites
-- [Node.js](https://nodejs.org/) (LTS)
-- A [Firebase](https://firebase.google.com/) project with Authentication and Firestore enabled
-- [Firebase CLI](https://firebase.google.com/docs/cli): `npm install -g firebase-tools`
+- [Node.js](https://nodejs.org/) 22.12 or newer (24 LTS recommended, see `.nvmrc`)
+- For local emulators: [Firebase CLI](https://firebase.google.com/docs/cli) (`npm install -g firebase-tools`) and Java 21 or newer
+- For a real backend: a [Firebase](https://firebase.google.com/) project with Authentication and Firestore enabled
 
 ### Setup
 1. Clone the repository:
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/Woblin/terrain-forge.git
    cd terrain-forge
    ```
 2. Install dependencies:
    ```bash
    npm install
    ```
-3. Create a `.env.local` file in the project root with your Firebase configuration, found in the Firebase console under *Project settings → Your apps*:
+3. Copy the example environment file:
    ```bash
-   VITE_FIREBASE_API_KEY=...
-   VITE_FIREBASE_AUTH_DOMAIN=...
-   VITE_FIREBASE_PROJECT_ID=...
-   VITE_FIREBASE_STORAGE_BUCKET=...
-   VITE_FIREBASE_MESSAGING_SENDER_ID=...
-   VITE_FIREBASE_APP_ID=...
+   cp .env.example .env.local
    ```
-4. Start the development server:
+   The example values work with the local emulators, no Firebase project needed. To use a real project, replace them with the config from the Firebase console under *Project settings → Your apps* and set `VITE_USE_EMULATORS=false`. Never commit `.env.local`.
+4. Start the emulators (Auth, Firestore, and the Emulator UI on http://127.0.0.1:4000) in one terminal:
+   ```bash
+   npm run emulators
+   ```
+5. Start the development server in another:
    ```bash
    npm run dev
    ```
 
+### Scripts
+
+| Script | What it does |
+| --- | --- |
+| `npm run dev` | Start the Vite dev server |
+| `npm run build` | Type-check and build to `dist/` |
+| `npm run preview` | Serve the production build locally |
+| `npm run typecheck` | Run the TypeScript compiler without emitting |
+| `npm run lint` | Run ESLint |
+| `npm run format` / `format:check` | Format with Prettier / check formatting |
+| `npm test` / `test:watch` | Run Vitest once / in watch mode |
+| `npm run emulators` | Start the Firebase emulators, saving data to `.emulator-data/` |
+| `npm run check` | Typecheck, lint, format check and tests (what CI runs) |
+
 ### Deploy
+Deploys are done manually by the maintainer:
 ```bash
 npm run build
 firebase login
+firebase use <your-project-id>
 firebase deploy
 ```
 
