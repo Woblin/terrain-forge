@@ -1,0 +1,51 @@
+import { initializeApp, type FirebaseApp } from 'firebase/app';
+import { connectAuthEmulator, getAuth, type Auth } from 'firebase/auth';
+import { connectFirestoreEmulator, getFirestore, type Firestore } from 'firebase/firestore';
+import { z } from 'zod';
+
+export interface FirebaseServices {
+  app: FirebaseApp;
+  auth: Auth;
+  db: Firestore;
+}
+
+const envSchema = z.object({
+  VITE_FIREBASE_API_KEY: z.string().min(1),
+  VITE_FIREBASE_AUTH_DOMAIN: z.string().min(1),
+  VITE_FIREBASE_PROJECT_ID: z.string().min(1),
+  VITE_FIREBASE_STORAGE_BUCKET: z.string().min(1),
+  VITE_FIREBASE_MESSAGING_SENDER_ID: z.string().min(1),
+  VITE_FIREBASE_APP_ID: z.string().min(1),
+  VITE_USE_EMULATORS: z.enum(['true', 'false']).optional(),
+});
+
+type FirebaseEnv = z.infer<typeof envSchema>;
+
+export function parseFirebaseEnv(env: Record<string, unknown>): FirebaseEnv {
+  const result = envSchema.safeParse(env);
+  if (!result.success) {
+    const missing = result.error.issues.map((issue) => issue.path.join('.')).join(', ');
+    throw new Error(`Firebase configuration is missing or invalid: ${missing}. Check .env.local.`);
+  }
+  return result.data;
+}
+
+export function initFirebase(env: FirebaseEnv): FirebaseServices {
+  const app = initializeApp({
+    apiKey: env.VITE_FIREBASE_API_KEY,
+    authDomain: env.VITE_FIREBASE_AUTH_DOMAIN,
+    projectId: env.VITE_FIREBASE_PROJECT_ID,
+    storageBucket: env.VITE_FIREBASE_STORAGE_BUCKET,
+    messagingSenderId: env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+    appId: env.VITE_FIREBASE_APP_ID,
+  });
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  if (env.VITE_USE_EMULATORS === 'true') {
+    connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true });
+    connectFirestoreEmulator(db, '127.0.0.1', 8080);
+  }
+
+  return { app, auth, db };
+}

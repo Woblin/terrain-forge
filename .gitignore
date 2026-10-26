@@ -1,0 +1,31 @@
+# Dependencies
+node_modules/
+
+# Yarn (keep releases/plugins if ever added; ignore caches)
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+!.yarn/versions
+.pnp.*
+
+# Build and test output
+dist/
+coverage/
+*.tsbuildinfo
+
+# Environment (only .env.example is committed)
+.env.local
+.env.*.local
+
+# Firebase
+.firebase/
+.emulator-data/
+firebase-debug.log*
+firestore-debug.log*
+ui-debug.log*
+
+# Logs and OS files
+*.log
+.DS_Store

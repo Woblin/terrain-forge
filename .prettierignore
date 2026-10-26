@@ -1,0 +1,9 @@
+dist
+coverage
+.firebase
+.emulator-data
+yarn.lock
+.yarn
+
+# Hand-written docs
+*.md

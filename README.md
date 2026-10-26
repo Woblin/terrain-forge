@@ -44,38 +44,55 @@ Terrain Forge is a web app that generates a battlefield layout for tabletop warg
 ## Getting started
 
 ### Prerequisites
-- [Node.js](https://nodejs.org/) (LTS)
-- A [Firebase](https://firebase.google.com/) project with Authentication and Firestore enabled
-- [Firebase CLI](https://firebase.google.com/docs/cli): `npm install -g firebase-tools`
+- [Node.js](https://nodejs.org/) 22.12 or newer (24 LTS recommended, see `.nvmrc`)
+- [Yarn](https://yarnpkg.com/) 4, through Corepack (bundled with Node 22 and 24): run `corepack enable` once. The exact Yarn version is pinned in `package.json`.
+- For local emulators: [Firebase CLI](https://firebase.google.com/docs/cli) (`npm install -g firebase-tools`) and Java 21 or newer
+- For a real backend: a [Firebase](https://firebase.google.com/) project with Authentication and Firestore enabled
 
 ### Setup
 1. Clone the repository:
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/Woblin/terrain-forge.git
    cd terrain-forge
    ```
 2. Install dependencies:
    ```bash
-   npm install
+   yarn install
    ```
-3. Create a `.env.local` file in the project root with your Firebase configuration, found in the Firebase console under *Project settings → Your apps*:
+3. Copy the example environment file:
    ```bash
-   VITE_FIREBASE_API_KEY=...
-   VITE_FIREBASE_AUTH_DOMAIN=...
-   VITE_FIREBASE_PROJECT_ID=...
-   VITE_FIREBASE_STORAGE_BUCKET=...
-   VITE_FIREBASE_MESSAGING_SENDER_ID=...
-   VITE_FIREBASE_APP_ID=...
+   cp .env.example .env.local
    ```
-4. Start the development server:
+   The example values work with the local emulators, no Firebase project needed. To use a real project, replace them with the config from the Firebase console under *Project settings → Your apps* and set `VITE_USE_EMULATORS=false`. Never commit `.env.local`.
+4. Start the emulators (Auth, Firestore, and the Emulator UI on http://127.0.0.1:4000) in one terminal:
    ```bash
-   npm run dev
+   yarn emulators
+   ```
+5. Start the development server in another:
+   ```bash
+   yarn dev
    ```
 
+### Scripts
+
+| Script | What it does |
+| --- | --- |
+| `yarn dev` | Start the Vite dev server |
+| `yarn build` | Type-check and build to `dist/` |
+| `yarn preview` | Serve the production build locally |
+| `yarn typecheck` | Run the TypeScript compiler without emitting |
+| `yarn lint` | Run ESLint |
+| `yarn format` / `format:check` | Format with Prettier / check formatting |
+| `yarn test` / `test:watch` | Run Vitest once / in watch mode |
+| `yarn emulators` | Start the Firebase emulators, saving data to `.emulator-data/` |
+| `yarn validate` | Typecheck, lint, format check and tests (what CI runs) |
+
 ### Deploy
+Deploys are done manually by the maintainer:
 ```bash
-npm run build
+yarn build
 firebase login
+firebase use <your-project-id>
 firebase deploy
 ```
 
