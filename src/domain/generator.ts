@@ -16,6 +16,8 @@ import { footprintArea, type PlacedTerrain, type Placement, type TerrainPiece } 
 export const GENERATOR_VERSION = 1;
 
 const CANDIDATE_COUNT = 16;
+/** With a small collection, at least this share of it must make it onto the board. */
+const SMALL_COLLECTION_MIN_SHARE = 0.8;
 
 export interface GenerationRequest {
   readonly board: Board;
@@ -119,7 +121,8 @@ function tooLargeWarnings(
 
 /**
  * When the whole collection covers less of the board than the preset asks for, the coverage
- * minimum drops to what the collection can cover, and the player is told.
+ * minimum drops to what the collection can cover, less some room for pieces that find no legal
+ * spot, and the player is told.
  */
 function balanceForCollection(
   balance: BalanceRules,
@@ -135,7 +138,10 @@ function balanceForCollection(
   warnings.push(
     `Your terrain covers ${percent(coverage)} of this board; ${percent(balance.coverage.min)} or more plays better.`,
   );
-  return { ...balance, coverage: { ...balance.coverage, min: coverage } };
+  return {
+    ...balance,
+    coverage: { ...balance.coverage, min: coverage * SMALL_COLLECTION_MIN_SHARE },
+  };
 }
 
 function percent(share: number): string {
