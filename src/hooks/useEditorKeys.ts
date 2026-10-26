@@ -2,6 +2,8 @@ import { useEffect, useRef, type RefObject } from 'react';
 import type { Point } from '../domain/geometry';
 
 export interface EditorKeyActions {
+  /** Piece keys are left to the browser (for example to scroll) while nothing is selected. */
+  readonly hasSelection: boolean;
   readonly undo: () => void;
   readonly redo: () => void;
   /** Moves the selected piece by this many inches. */
@@ -19,7 +21,8 @@ const TURN_STEP = 15;
 
 /**
  * Keyboard shortcuts for the editor. Undo and redo work anywhere except in text fields; keys that
- * act on the selected piece only work while the board or nothing else has focus.
+ * act on the selected piece only work while a piece is selected and the board or nothing else has
+ * focus.
  */
 export function useEditorKeys(board: RefObject<Element | null>, actions: EditorKeyActions): void {
   const latest = useRef(actions);
@@ -67,7 +70,7 @@ function historyKey(event: KeyboardEvent, actions: EditorKeyActions): boolean {
 }
 
 function pieceKey(event: KeyboardEvent, actions: EditorKeyActions): boolean {
-  if (event.ctrlKey || event.metaKey || event.altKey) {
+  if (!actions.hasSelection || event.ctrlKey || event.metaKey || event.altKey) {
     return false;
   }
   const step = event.shiftKey ? FINE_NUDGE_STEP : NUDGE_STEP;

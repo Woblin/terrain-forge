@@ -5,6 +5,7 @@ import { fairnessInputFor } from '../domain/boardAnalysis';
 import { checkBoard } from '../domain/boardChecks';
 import { canRedo, canUndo, type BoardPiece, type PieceUpdate } from '../domain/editor';
 import { resolveGameSetup, type GameSetup } from '../domain/gameSetup';
+import { prepareCollection } from '../domain/generator';
 import { add, type Point } from '../domain/geometry';
 import { pieceById } from '../domain/layoutTerrain';
 import { findMirrorTwin, withTwin } from '../domain/mirror';
@@ -67,7 +68,6 @@ export function BoardPage() {
   const [notice, setNotice] = useState(() => linkNotice(initialLink));
   const [editor, dispatch] = useLayoutEditor();
   const { status, generate } = useGenerator();
-  const [warnings, setWarnings] = useState<readonly string[]>([]);
   const [snap, setSnap] = useState(true);
   const [movePairs, setMovePairs] = useState(true);
   const [showPhotos, setShowPhotos] = useState(true);
@@ -116,6 +116,11 @@ export function BoardPage() {
     [setup, shownPieces],
   );
   const analysis = useBoardAnalysis(fairnessInput);
+  const warnings = useMemo(
+    () =>
+      setup === undefined ? [] : prepareCollection(COLLECTION, setup.board, setup.preset).warnings,
+    [setup],
+  );
   const problems = useMemo(
     () =>
       setup === undefined
@@ -138,7 +143,6 @@ export function BoardPage() {
     });
     if (result?.ok === true) {
       dispatch({ type: 'generated', layout: result.layout });
-      setWarnings(result.warnings);
     }
   }
 
@@ -152,9 +156,6 @@ export function BoardPage() {
     void runGeneration(choice, seed);
   });
   useEffect(() => {
-    // Starting the first generation hands work to the board worker, an outside system; the
-    // generator's own status is what changes synchronously here.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     generateFirstBoard();
   }, []);
 
@@ -202,6 +203,7 @@ export function BoardPage() {
   }
 
   useEditorKeys(svgRef, {
+    hasSelection: selected !== undefined,
     undo: () => {
       dispatch({ type: 'undo' });
     },

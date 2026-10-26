@@ -129,7 +129,9 @@ export function PhotoCropper({ piece, image, saving, error, onSave, onCancel }: 
       aria-labelledby={titleId}
       onCancel={(event) => {
         event.preventDefault();
-        onCancel();
+        if (!saving) {
+          onCancel();
+        }
       }}
       className="m-auto max-w-[calc(100vw-2rem)] rounded-lg bg-stone-800 p-0 text-stone-100 backdrop:bg-black/70"
     >
@@ -218,8 +220,9 @@ export function PhotoCropper({ piece, image, saving, error, onSave, onCancel }: 
         <div className="flex justify-end gap-2">
           <button
             type="button"
+            disabled={saving}
             onClick={onCancel}
-            className="rounded border border-stone-500 px-3 py-1.5 hover:bg-stone-700"
+            className="rounded border border-stone-500 px-3 py-1.5 hover:bg-stone-700 disabled:opacity-50"
           >
             Cancel
           </button>

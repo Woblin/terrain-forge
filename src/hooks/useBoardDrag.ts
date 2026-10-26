@@ -40,6 +40,7 @@ type Gesture =
   | {
       readonly kind: 'move';
       readonly key: string;
+      readonly piece: TerrainPiece;
       readonly pointerId: number;
       readonly startClient: Point;
       readonly grabOffset: Point;
@@ -98,6 +99,7 @@ export function useBoardDrag(
     gesture.current = {
       kind: 'move',
       key,
+      piece: pieceById(settings.collection, piece.placement.pieceId),
       pointerId: event.pointerId,
       startClient: { x: event.clientX, y: event.clientY },
       grabOffset: { x: position.x - point.x, y: position.y - point.y },
@@ -127,6 +129,9 @@ export function useBoardDrag(
 
   function updatesFor(current: Gesture, point: Point, free: boolean): PieceUpdate[] {
     const snap = settings.snap && !free;
+    // Off the board only the dragged piece is removed, so its twin stays where it is.
+    const twin =
+      current.kind === 'move' && !onBoard(point, settings.board) ? undefined : current.twin;
     const update =
       current.kind === 'move'
         ? moveUpdate(current, point, snap)
@@ -135,7 +140,7 @@ export function useBoardDrag(
             position: current.position,
             rotation: rotationFor(current, point, snap),
           };
-    return withTwin(update, current.twin, settings.board);
+    return withTwin(update, twin, settings.board);
   }
 
   function moveUpdate(
@@ -148,26 +153,33 @@ export function useBoardDrag(
       return { key: current.key, position: raw, rotation: current.rotation };
     }
     const gridded = snapToGrid(raw, gridStep(settings.unit));
+    const placement = { pieceId: current.piece.id, position: gridded, rotation: current.rotation };
     const position = snapToEdgeMargin(
       gridded,
-      boundsAt(current.key, gridded, current.rotation),
+      polygonBounds(placeFootprint(current.piece.footprint, placement)),
       settings.board,
       settings.edgeMargin,
     );
     return { key: current.key, position, rotation: current.rotation };
   }
 
-  function boundsAt(key: string, position: Point, rotation: number) {
-    const placement = settings.pieces.find((piece) => piece.key === key)?.placement;
-    const pieceId = placement?.pieceId ?? '';
-    const piece = pieceById(settings.collection, pieceId);
-    return polygonBounds(placeFootprint(piece.footprint, { pieceId, position, rotation }));
+  /** The gesture for this pointer, or null; a gesture ends if its piece left the board meanwhile. */
+  function gestureFor(event: PointerEvent): Gesture | null {
+    const current = gesture.current;
+    if (current?.pointerId !== event.pointerId) {
+      return null;
+    }
+    if (!settings.pieces.some((piece) => piece.key === current.key)) {
+      cancel();
+      return null;
+    }
+    return current;
   }
 
   function onPointerMove(event: PointerEvent<SVGSVGElement>): void {
-    const current = gesture.current;
+    const current = gestureFor(event);
     const point = toBoardPoint(svg.current, event);
-    if (current?.pointerId !== event.pointerId || point === null) {
+    if (current === null || point === null) {
       return;
     }
     if (current.kind === 'move' && !current.moved) {
@@ -182,8 +194,8 @@ export function useBoardDrag(
   }
 
   function onPointerUp(event: PointerEvent<SVGSVGElement>): void {
-    const current = gesture.current;
-    if (current?.pointerId !== event.pointerId) {
+    const current = gestureFor(event);
+    if (current === null) {
       return;
     }
     gesture.current = null;

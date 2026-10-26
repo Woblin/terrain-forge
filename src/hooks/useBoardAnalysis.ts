@@ -29,6 +29,7 @@ export function useBoardAnalysis(input: FairnessInput | null): BoardAnalysisStat
     () => () => {
       if (timer.current !== null) {
         window.clearTimeout(timer.current);
+        timer.current = null;
       }
     },
     [],
