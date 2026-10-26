@@ -70,14 +70,10 @@ export function generateLayout(request: GenerationRequest): GenerationResult {
   if (pieces.every((piece) => piece.quantity <= 0)) {
     return { ok: false, reason: 'Your terrain collection is empty. Add some pieces first.' };
   }
-  const usable = expandCollection(
-    pieces.filter((piece) => fitsOnBoard(piece, board, preset.edgeMargin)),
-  );
+  const { usable, balance, warnings } = prepareCollection(pieces, board, preset);
   if (usable.length === 0) {
     return { ok: false, reason: 'None of your terrain pieces fit on this board.' };
   }
-  const warnings = tooLargeWarnings(pieces, board, preset.edgeMargin);
-  const balance = balanceForCollection(preset.balance, usable, board, warnings);
   const random = createRandom(seed);
   const candidates = Array.from({ length: CANDIDATE_COUNT }, () =>
     buildCandidate(usable, request, balance, random),
@@ -99,6 +95,27 @@ export function generateLayout(request: GenerationRequest): GenerationResult {
     report: best.report,
     warnings,
   };
+}
+
+/** The pieces the generator can use on a board, and the balance rules they are measured by. */
+export interface PreparedCollection {
+  /** One entry per physical piece that fits on the board. */
+  readonly usable: readonly TerrainPiece[];
+  readonly balance: BalanceRules;
+  readonly warnings: readonly string[];
+}
+
+export function prepareCollection(
+  pieces: readonly TerrainPiece[],
+  board: Board,
+  preset: GameSystemPreset,
+): PreparedCollection {
+  const usable = expandCollection(
+    pieces.filter((piece) => fitsOnBoard(piece, board, preset.edgeMargin)),
+  );
+  const warnings = tooLargeWarnings(pieces, board, preset.edgeMargin);
+  const balance = balanceForCollection(preset.balance, usable, board, warnings);
+  return { usable, balance, warnings };
 }
 
 /** Whether the piece fits inside the edge margin, either way round. */

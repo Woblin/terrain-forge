@@ -59,7 +59,7 @@ export interface FairnessInput {
 }
 
 /** Spacing of the sample points used for line of sight inside each zone. */
-const ZONE_SAMPLE_SPACING = 3;
+export const ZONE_SAMPLE_SPACING = 3;
 /** Spacing of the sample points along each zone's front edge. */
 const FRONT_EDGE_SAMPLE_SPACING = 1;
 
@@ -134,15 +134,31 @@ export function measureHiddenDeployment(
   deployment: DeploymentMap,
   obstacles: readonly SightObstacle[],
 ): PerPlayer {
+  const { samples, hidden } = hiddenDeploymentPoints(deployment, obstacles);
+  return perPlayer((player) => {
+    const own = samples[player];
+    return own.length === 0 ? 0 : hidden[player].length / own.length;
+  });
+}
+
+/** The sample points R1 uses in each zone, and those that no point in the enemy zone can see. */
+export interface HiddenDeploymentPoints {
+  readonly samples: Readonly<Record<PlayerId, readonly Point[]>>;
+  readonly hidden: Readonly<Record<PlayerId, readonly Point[]>>;
+}
+
+export function hiddenDeploymentPoints(
+  deployment: DeploymentMap,
+  obstacles: readonly SightObstacle[],
+): HiddenDeploymentPoints {
   const samples = perPlayerPoints((player) =>
     deployableSamples(deployment.zones[player], obstacles),
   );
-  return perPlayer((player) => {
-    const own = samples[player];
+  const hidden = perPlayerPoints((player) => {
     const enemy = samples[enemyOf(player)];
-    const hidden = own.filter((p) => !enemy.some((e) => hasLineOfSight(e, p, obstacles)));
-    return own.length === 0 ? 0 : hidden.length / own.length;
+    return samples[player].filter((p) => !enemy.some((e) => hasLineOfSight(e, p, obstacles)));
   });
+  return { samples, hidden };
 }
 
 function perPlayerPoints(sample: (player: PlayerId) => Point[]): Record<PlayerId, Point[]> {

@@ -2,9 +2,11 @@ import { describe, expect, it } from 'vitest';
 import { longEdgeDeployment, mirrorPoint, type Board } from './board';
 import { containsPolygon, polygonBounds, polygonDistance, rectangle } from './geometry';
 import {
+  boardViolations,
   canPair,
   expandCollection,
   isLegal,
+  placePiece,
   pairPieces,
   placeUnits,
   unitArea,
@@ -133,5 +135,42 @@ describe('placeUnits', () => {
     });
     const first = preferLeft[0]?.placement.position.x ?? Infinity;
     expect(first).toBeLessThan(placed[0]?.placement.position.x ?? 0);
+  });
+});
+
+describe('boardViolations', () => {
+  const ruin = piece('ruin', 6, 4, 10);
+  const at = (x: number, y: number, rotation = 0) =>
+    placePiece(ruin, { pieceId: 'ruin', position: { x, y }, rotation });
+
+  it('agrees with isLegal for a piece added to a legal board', () => {
+    const random = createRandom(9);
+    const placed = [at(20, 22), at(40, 22, 45)];
+    expect(boardViolations(placed, rules).flat()).toEqual([]);
+    for (let i = 0; i < 300; i++) {
+      const candidate = at(random() * 60, random() * 44, Math.floor(random() * 24) * 15);
+      const violations = boardViolations([...placed, candidate], rules);
+      expect(violations.at(-1)?.length === 0).toBe(isLegal([candidate], placed, rules));
+    }
+  });
+
+  it('names the piece that is too close on both sides', () => {
+    const violations = boardViolations([at(20, 22), at(27, 22)], rules);
+    expect(violations).toEqual([
+      [{ kind: 'tooClose', other: 1, distance: 1 }],
+      [{ kind: 'tooClose', other: 0, distance: 1 }],
+    ]);
+  });
+
+  it('flags pieces outside the playable area', () => {
+    expect(boardViolations([at(2, 22)], rules)).toEqual([[{ kind: 'offBoard' }]]);
+  });
+
+  it('flags every piece in a zone holding too many', () => {
+    expect(boardViolations([at(10, 5), at(30, 5), at(30, 22)], rules)).toEqual([
+      [{ kind: 'zoneCrowded', player: 'A' }],
+      [{ kind: 'zoneCrowded', player: 'A' }],
+      [],
+    ]);
   });
 });
