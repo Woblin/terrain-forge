@@ -74,7 +74,7 @@ export const PRESETS: readonly GameSystemPreset[] = [
     defaultBoard: { width: 60, depth: 44 },
     minGap: 3,
     reach: 6,
-    balance: { ...SHARED_BALANCE, maxClearLane: 30, coverage: { min: 0.25, max: 0.35 } },
+    balance: { ...SHARED_BALANCE, maxClearLane: 48, coverage: { min: 0.25, max: 0.35 } },
     ...SHARED_SETTINGS,
   },
   {
@@ -83,7 +83,7 @@ export const PRESETS: readonly GameSystemPreset[] = [
     defaultBoard: { width: 60, depth: 44 },
     minGap: 3,
     reach: 5,
-    balance: { ...SHARED_BALANCE, maxClearLane: 36, coverage: { min: 0.2, max: 0.3 } },
+    balance: { ...SHARED_BALANCE, maxClearLane: 48, coverage: { min: 0.2, max: 0.3 } },
     ...SHARED_SETTINGS,
   },
   {
@@ -92,7 +92,7 @@ export const PRESETS: readonly GameSystemPreset[] = [
     defaultBoard: { width: 72, depth: 48 },
     minGap: 3,
     reach: 6,
-    balance: { ...SHARED_BALANCE, maxClearLane: 36, coverage: { min: 0.25, max: 0.35 } },
+    balance: { ...SHARED_BALANCE, maxClearLane: 58, coverage: { min: 0.25, max: 0.35 } },
     ...SHARED_SETTINGS,
   },
   {
@@ -101,7 +101,7 @@ export const PRESETS: readonly GameSystemPreset[] = [
     defaultBoard: { width: 72, depth: 48 },
     minGap: 4,
     reach: 8,
-    balance: { ...SHARED_BALANCE, maxClearLane: 48, coverage: { min: 0.15, max: 0.25 } },
+    balance: { ...SHARED_BALANCE, maxClearLane: 58, coverage: { min: 0.15, max: 0.25 } },
     ...SHARED_SETTINGS,
   },
 ];
