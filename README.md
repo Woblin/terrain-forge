@@ -45,6 +45,7 @@ Terrain Forge is a web app that generates a battlefield layout for tabletop warg
 
 ### Prerequisites
 - [Node.js](https://nodejs.org/) 22.12 or newer (24 LTS recommended, see `.nvmrc`)
+- [Yarn](https://yarnpkg.com/) 4, through Corepack (bundled with Node 22 and 24): run `corepack enable` once. The exact Yarn version is pinned in `package.json`.
 - For local emulators: [Firebase CLI](https://firebase.google.com/docs/cli) (`npm install -g firebase-tools`) and Java 21 or newer
 - For a real backend: a [Firebase](https://firebase.google.com/) project with Authentication and Firestore enabled
 
@@ -56,7 +57,7 @@ Terrain Forge is a web app that generates a battlefield layout for tabletop warg
    ```
 2. Install dependencies:
    ```bash
-   npm install
+   yarn install
    ```
 3. Copy the example environment file:
    ```bash
@@ -65,31 +66,31 @@ Terrain Forge is a web app that generates a battlefield layout for tabletop warg
    The example values work with the local emulators, no Firebase project needed. To use a real project, replace them with the config from the Firebase console under *Project settings → Your apps* and set `VITE_USE_EMULATORS=false`. Never commit `.env.local`.
 4. Start the emulators (Auth, Firestore, and the Emulator UI on http://127.0.0.1:4000) in one terminal:
    ```bash
-   npm run emulators
+   yarn emulators
    ```
 5. Start the development server in another:
    ```bash
-   npm run dev
+   yarn dev
    ```
 
 ### Scripts
 
 | Script | What it does |
 | --- | --- |
-| `npm run dev` | Start the Vite dev server |
-| `npm run build` | Type-check and build to `dist/` |
-| `npm run preview` | Serve the production build locally |
-| `npm run typecheck` | Run the TypeScript compiler without emitting |
-| `npm run lint` | Run ESLint |
-| `npm run format` / `format:check` | Format with Prettier / check formatting |
-| `npm test` / `test:watch` | Run Vitest once / in watch mode |
-| `npm run emulators` | Start the Firebase emulators, saving data to `.emulator-data/` |
-| `npm run check` | Typecheck, lint, format check and tests (what CI runs) |
+| `yarn dev` | Start the Vite dev server |
+| `yarn build` | Type-check and build to `dist/` |
+| `yarn preview` | Serve the production build locally |
+| `yarn typecheck` | Run the TypeScript compiler without emitting |
+| `yarn lint` | Run ESLint |
+| `yarn format` / `format:check` | Format with Prettier / check formatting |
+| `yarn test` / `test:watch` | Run Vitest once / in watch mode |
+| `yarn emulators` | Start the Firebase emulators, saving data to `.emulator-data/` |
+| `yarn validate` | Typecheck, lint, format check and tests (what CI runs) |
 
 ### Deploy
 Deploys are done manually by the maintainer:
 ```bash
-npm run build
+yarn build
 firebase login
 firebase use <your-project-id>
 firebase deploy
