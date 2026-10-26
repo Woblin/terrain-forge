@@ -164,7 +164,7 @@ function removed(state: EditorState, key: string): EditorState {
 }
 
 function selected(state: EditorState, key: string | null): EditorState {
-  if (key !== null && !hasPiece(state.present, key)) {
+  if (key === state.selected || (key !== null && !hasPiece(state.present, key))) {
     return state;
   }
   return { ...state, selected: key };
