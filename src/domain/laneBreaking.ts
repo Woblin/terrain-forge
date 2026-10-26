@@ -1,7 +1,7 @@
 import { PLAYERS, type Board, type DeploymentMap } from './board';
-import { rectangle, type Polygon } from './geometry';
+import type { Polygon } from './geometry';
 import { clearLanes, sightObstacles } from './lineOfSight';
-import type { PlacedPiece, SpotChoice } from './placement';
+import { playableArea, type PlacedPiece, type SpotChoice } from './placement';
 import type { TerrainEffects } from './terrain';
 
 export interface LaneSetup {
@@ -20,7 +20,7 @@ const SPOTS_PER_UNIT = 12;
  * terrain may stand, since a lane there could never be blocked.
  */
 export function laneArea(board: Board, edgeMargin: number): Polygon {
-  return rectangle(edgeMargin, edgeMargin, board.width - edgeMargin, board.depth - edgeMargin);
+  return playableArea(board, edgeMargin);
 }
 
 /** Picks, for each unit, the spot that leaves the least lane length over the limit (R5). */

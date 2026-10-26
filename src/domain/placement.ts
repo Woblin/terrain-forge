@@ -5,6 +5,7 @@ import {
   PLAYERS,
   type Board,
   type DeploymentMap,
+  type PlayerId,
 } from './board';
 import {
   add,
@@ -222,9 +223,17 @@ function randomRotation(random: RandomSource): number {
 }
 
 function placed(piece: TerrainPiece, position: Point, rotation: number): PlacedPiece {
-  const placement = { pieceId: piece.id, position, rotation };
+  return placePiece(piece, { pieceId: piece.id, position, rotation });
+}
+
+export function placePiece(piece: TerrainPiece, placement: Placement): PlacedPiece {
   const polygon = placeFootprint(piece.footprint, placement);
   return { piece, placement, polygon, bounds: polygonBounds(polygon) };
+}
+
+/** Where terrain may stand: the board without the strip along the table edge. */
+export function playableArea(board: Board, edgeMargin: number): Polygon {
+  return rectangle(edgeMargin, edgeMargin, board.width - edgeMargin, board.depth - edgeMargin);
 }
 
 /** Hard rules: on the board, apart from every other piece, and not crowding a zone. */
@@ -234,12 +243,7 @@ export function isLegal(
   rules: PlacementRules,
 ): boolean {
   const { board, edgeMargin, minGap } = rules;
-  const playable = rectangle(
-    edgeMargin,
-    edgeMargin,
-    board.width - edgeMargin,
-    board.depth - edgeMargin,
-  );
+  const playable = playableArea(board, edgeMargin);
   const onBoard = candidate.every(({ polygon }) => containsPolygon(playable, polygon));
   return (
     onBoard &&
@@ -268,4 +272,59 @@ function leavesZonesOpen(pieces: readonly PlacedPiece[], deployment: DeploymentM
       pieces.filter(({ polygon }) => containsPolygon(deployment.zones[player], polygon)).length <=
       MAX_PIECES_INSIDE_ZONE,
   );
+}
+
+/** A hard placement rule that a piece on the board breaks. */
+export type PlacementViolation =
+  | { readonly kind: 'offBoard' }
+  | { readonly kind: 'tooClose'; readonly other: number; readonly distance: number }
+  | { readonly kind: 'zoneCrowded'; readonly player: PlayerId };
+
+/**
+ * The hard rules from `isLegal` checked on a finished board: for each piece, in the same order,
+ * every rule it breaks. `other` is the index of the piece it stands too close to.
+ */
+export function boardViolations(
+  pieces: readonly PlacedPiece[],
+  rules: PlacementRules,
+): PlacementViolation[][] {
+  const playable = playableArea(rules.board, rules.edgeMargin);
+  const crowded = crowdedZones(pieces, rules.deployment);
+  return pieces.map((piece, i) => [
+    ...(containsPolygon(playable, piece.polygon) ? [] : [{ kind: 'offBoard' as const }]),
+    ...tooCloseTo(piece, i, pieces, rules.minGap),
+    ...crowded
+      .filter(({ inside }) => inside.has(i))
+      .map(({ player }) => ({ kind: 'zoneCrowded' as const, player })),
+  ]);
+}
+
+function tooCloseTo(
+  piece: PlacedPiece,
+  index: number,
+  pieces: readonly PlacedPiece[],
+  minGap: number,
+): PlacementViolation[] {
+  return pieces.flatMap((other, j) => {
+    if (j === index || !boundsOverlap(piece.bounds, other.bounds, minGap)) {
+      return [];
+    }
+    const gap = polygonDistance(piece.polygon, other.polygon);
+    return gap < minGap ? [{ kind: 'tooClose' as const, other: j, distance: gap }] : [];
+  });
+}
+
+/** Zones with more pieces fully inside them than allowed, and which pieces those are. */
+function crowdedZones(
+  pieces: readonly PlacedPiece[],
+  deployment: DeploymentMap,
+): { player: PlayerId; inside: Set<number> }[] {
+  return PLAYERS.flatMap((player) => {
+    const inside = new Set(
+      pieces.flatMap(({ polygon }, i) =>
+        containsPolygon(deployment.zones[player], polygon) ? [i] : [],
+      ),
+    );
+    return inside.size > MAX_PIECES_INSIDE_ZONE ? [{ player, inside }] : [];
+  });
 }

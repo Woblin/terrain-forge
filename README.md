@@ -97,8 +97,8 @@ firebase deploy
 ```
 
 ## Roadmap
-- [ ] Battlefield generation algorithm with balance rules
-- [ ] Board editor (drag and drop, rotate, add, remove)
+- [x] Battlefield generation algorithm with balance rules
+- [x] Board editor (drag and drop, rotate, add, remove)
 - [ ] Terrain library
 - [ ] Firebase Authentication
 - [ ] Save and load battlefields
