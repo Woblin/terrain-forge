@@ -26,7 +26,10 @@ export function SavedBoardsPage() {
   const [asking, setAsking] = useState<Asking | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const { opened, setOpened } = session;
-  const unsaved = hasUnsavedChanges(opened, session.editor.present);
+  const { present } = session.editor;
+  const unsaved = hasUnsavedChanges(opened, present);
+  // Opening a saved board replaces the board on the board page, with no undo.
+  const atRisk = unsaved || (opened === null && present?.edited === true);
   const { boards } = savedBoards;
 
   function open(board: SavedBoard): void {
@@ -35,9 +38,6 @@ export function SavedBoardsPage() {
 
   function rename(board: SavedBoard, name: string): void {
     savedBoards.rename(board.id, name);
-    if (opened?.id === board.id) {
-      setOpened({ ...opened, name });
-    }
   }
 
   function remove(board: SavedBoard): void {
@@ -108,7 +108,7 @@ export function SavedBoardsPage() {
                     board={board}
                     unsaved={unsaved && opened?.id === board.id}
                     onOpen={() => {
-                      if (unsaved && opened?.id !== board.id) {
+                      if (atRisk && opened?.id !== board.id) {
                         setAsking({ kind: 'discard', board });
                       } else {
                         open(board);
@@ -183,7 +183,7 @@ export function SavedBoardsPage() {
       {asking?.kind === 'discard' && (
         <ConfirmDialog
           title="Leave your unsaved changes?"
-          message={`"${opened?.name ?? 'Your board'}" has changes that are not saved. Opening "${asking.board.name}" drops them.`}
+          message={`${opened === null ? 'The board on the board page is not saved' : `"${savedName(boards, opened.id) ?? opened.name}" has changes that are not saved`}. Opening "${asking.board.name}" replaces it.`}
           confirmLabel="Open anyway"
           busy={false}
           error={null}
@@ -197,6 +197,10 @@ export function SavedBoardsPage() {
       )}
     </div>
   );
+}
+
+function savedName(boards: readonly SavedBoard[], boardId: string): string | undefined {
+  return boards.find((board) => board.id === boardId)?.name;
 }
 
 function countText(count: number): string {

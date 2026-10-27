@@ -12,6 +12,7 @@ import {
   layoutFingerprint,
   libraryHasTerrain,
   photoFits,
+  placedTerrain,
   SAVED_BOARD_LIMITS,
   savedBoardContent,
 } from './savedBoard';
@@ -132,6 +133,11 @@ describe('saved terrain and the library', () => {
     expect(changedPieces([ruin], [{ ...ruin, name: 'Renamed' }])).toEqual([ruin]);
     expect(changedPieces([ruin], [{ ...ruin, quantity: 1 }])).toEqual([ruin]);
     expect(libraryHasTerrain([ruin], [])).toBe(false);
+  });
+
+  it('pick out the pieces that stand on the board', () => {
+    const spare: TerrainPiece = { ...ruin, id: 'spare' };
+    expect(placedTerrain([ruin, spare, forest], layout.placements)).toEqual([ruin, forest]);
   });
 
   it('use a library photo only for the same piece with the same footprint', () => {

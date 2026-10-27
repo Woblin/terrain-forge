@@ -1,8 +1,7 @@
 import { z } from 'zod';
 import { RULE_IDS } from '../domain/fairness';
-import { LIBRARY_LIMITS } from '../domain/library';
 import { SAVED_BOARD_LIMITS, type SavedBoard, type SavedBoardContent } from '../domain/savedBoard';
-import { TERRAIN_TYPES } from '../domain/terrain';
+import { pieceFieldsSchema } from './terrainLibrarySchema';
 
 /** Bump when the shape of a saved board changes, and teach the reader the old shape. */
 export const BOARD_SCHEMA_VERSION = 1;
@@ -12,16 +11,9 @@ const MAX_ID_LENGTH = 40;
 /** Largest board side in inches; the Firestore rules use the same limit. */
 const MAX_BOARD_SIDE = 240;
 
-const side = z.number().min(LIBRARY_LIMITS.minSide).max(LIBRARY_LIMITS.maxSide);
 const id = z.string().min(1).max(MAX_ID_LENGTH);
 
-const pieceSchema = z.object({
-  id: z.string().min(1).max(100),
-  name: z.string().trim().min(1).max(LIBRARY_LIMITS.nameLength),
-  type: z.enum(TERRAIN_TYPES),
-  footprint: z.object({ kind: z.enum(['rect', 'ellipse']), width: side, depth: side }),
-  quantity: z.int().min(LIBRARY_LIMITS.minQuantity).max(LIBRARY_LIMITS.maxQuantity),
-});
+const pieceSchema = pieceFieldsSchema.extend({ id: z.string().min(1).max(100) });
 
 const placementSchema = z.object({
   pieceId: z.string().min(1).max(100),

@@ -8,11 +8,15 @@ export const PIECE_SCHEMA_VERSION = 1;
 const side = z.number().min(LIBRARY_LIMITS.minSide).max(LIBRARY_LIMITS.maxSide);
 
 /** A piece as it is stored in `users/{uid}/terrainPieces/{pieceId}`. Timestamps are not read. */
-const pieceDocumentSchema = z.object({
+/** What a piece is, as a library stores it and as a saved board keeps a copy of it. */
+export const pieceFieldsSchema = z.object({
   name: z.string().trim().min(1).max(LIBRARY_LIMITS.nameLength),
   type: z.enum(TERRAIN_TYPES),
   footprint: z.object({ kind: z.enum(['rect', 'ellipse']), width: side, depth: side }),
   quantity: z.int().min(LIBRARY_LIMITS.minQuantity).max(LIBRARY_LIMITS.maxQuantity),
+});
+
+const pieceDocumentSchema = pieceFieldsSchema.extend({
   image: z.object({ version: z.int().min(1), ratio: z.number().positive() }).nullable(),
   schemaVersion: z.literal(PIECE_SCHEMA_VERSION),
 });

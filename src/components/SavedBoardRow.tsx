@@ -37,7 +37,7 @@ export function SavedBoardRow({
             {board.passed ? 'Balance rules passed' : 'Some balance rules failed'}
           </span>
           {board.edited && <span>Edited by hand</span>}
-          <span>Saved {savedDate(board.savedAt)}</span>
+          <span>Changed {savedDate(board.savedAt)}</span>
           {unsaved && <span className="text-amber-300">Open with unsaved changes</span>}
         </p>
       </div>

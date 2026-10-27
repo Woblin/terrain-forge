@@ -1,5 +1,6 @@
 import {
   collection,
+  deleteDoc,
   doc,
   getDocs,
   onSnapshot,
@@ -120,9 +121,7 @@ export function createSavedBoardStore(db: Firestore, uid: string): SavedBoardSto
       );
     },
     remove(boardId) {
-      const batch = writeBatch(db);
-      batch.delete(doc(boards, boardId));
-      send(batch.commit(), 'Could not delete the board. It is back in your list.');
+      send(deleteDoc(doc(boards, boardId)), 'Could not delete the board. It is back in your list.');
     },
   };
 }

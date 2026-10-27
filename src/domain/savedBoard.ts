@@ -1,7 +1,7 @@
 import { currentLayout, type EditorSnapshot } from './editor';
 import type { Layout } from './generator';
 import { LIBRARY_LIMITS } from './library';
-import type { Footprint, TerrainPiece } from './terrain';
+import type { Footprint, Placement, TerrainPiece } from './terrain';
 
 export const SAVED_BOARD_LIMITS = {
   nameLength: 60,
@@ -30,7 +30,7 @@ export interface SavedBoardContent {
 /** A board in the player's account. */
 export interface SavedBoard extends SavedBoardContent {
   readonly id: string;
-  /** When it was last saved, in milliseconds since 1970. */
+  /** When it was last saved or renamed, in milliseconds since 1970. */
   readonly savedAt: number;
 }
 
@@ -128,6 +128,15 @@ export function changedPieces(
     const current = library.find((candidate) => candidate.id === piece.id);
     return current === undefined || !samePiece(piece, current);
   });
+}
+
+/** The pieces of the terrain that stand on the board. */
+export function placedTerrain(
+  terrain: readonly TerrainPiece[],
+  placements: readonly Placement[],
+): TerrainPiece[] {
+  const placed = new Set(placements.map((placement) => placement.pieceId));
+  return terrain.filter((piece) => placed.has(piece.id));
 }
 
 /** True when the library still holds every piece of the saved terrain, unchanged. */

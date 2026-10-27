@@ -7,10 +7,11 @@ import {
   canRedo,
   canUndo,
   countMissingNow,
+  currentLayout,
   type BoardPiece,
   type PieceUpdate,
 } from '../domain/editor';
-import type { RuleId } from '../domain/fairness';
+import { evaluateFairness, type RuleId } from '../domain/fairness';
 import { enabledRulesFor, startingPreset } from '../domain/gamePreferences';
 import { resolveGameSetup, type GameSetup } from '../domain/gameSetup';
 import { prepareCollection } from '../domain/generator';
@@ -29,6 +30,7 @@ import {
   layoutFingerprint,
   libraryHasTerrain,
   photoFits,
+  placedTerrain,
   savedBoardContent,
   type SavedBoard,
 } from '../domain/savedBoard';
@@ -212,6 +214,14 @@ export function BoardPage() {
   );
   const analysis = useBoardAnalysis(fairnessInput);
   const unsaved = hasUnsavedChanges(opened, present);
+  // The name the account has for the board, which also shows a refused rename undone.
+  const shownOpened =
+    opened === null
+      ? null
+      : {
+          ...opened,
+          name: savedBoards.boards.find((board) => board.id === opened.id)?.name ?? opened.name,
+        };
   useLeaveWarning(unsaved);
   const problems = useMemo(
     () =>
@@ -298,7 +308,10 @@ export function BoardPage() {
   /** Shows a saved board as it was saved, on the library's terrain when it is still the same. */
   function openSaved(board: SavedBoard): void {
     const { layout } = board;
-    const changed = changedPieces(board.pieces, ownCollection).length;
+    const changed = changedPieces(
+      placedTerrain(board.pieces, layout.placements),
+      ownCollection,
+    ).length;
     dispatch({ type: 'loaded', layout, edited: board.edited });
     setChoice({ presetId: layout.presetId, deploymentId: layout.deploymentId });
     setSource(changed === 0 ? OWN : { kind: 'saved', pieces: board.pieces });
@@ -324,9 +337,11 @@ export function BoardPage() {
     if (present === null) {
       return 'There is no board to save yet.';
     }
-    const passed = analysis.analysis?.report.failedRules.length === 0;
+    // Measured now: the analysis on screen can be of the board before the last change.
+    const passed =
+      fairnessInput !== null && evaluateFairness(fairnessInput).failedRules.length === 0;
     const content = savedBoardContent(present, collection, name, passed);
-    const result = savedBoards.save(content, asCopy ? null : (opened?.id ?? null));
+    const result = savedBoards.save(content, asCopy ? null : (shownOpened?.id ?? null));
     if (!result.ok) {
       return result.message;
     }
@@ -341,7 +356,6 @@ export function BoardPage() {
   function renameBoard(name: string): void {
     if (opened !== null) {
       savedBoards.rename(opened.id, name);
-      setOpened({ ...opened, name });
     }
   }
 
@@ -386,15 +400,14 @@ export function BoardPage() {
   /** Takes pieces that left the library off the board, or starts over on other terrain. */
   const followCollection = useEffectEvent((seen: readonly TerrainPiece[] | null) => {
     session.setSeenCollection(collection);
-    const replaced = seen === replacedSeen.current;
-    replacedSeen.current = null;
-    if (seen === null || editor.present === null || replaced) {
+    if (seen === null || editor.present === null || seen === replacedSeen.current) {
       return;
     }
-    if (opened !== null && source.kind === 'own' && !libraryHasTerrain(seen, collection)) {
+    const used = placedTerrain(seen, currentLayout(editor.present).placements);
+    if (opened !== null && source.kind === 'own' && !libraryHasTerrain(used, collection)) {
       // A saved board keeps the terrain it was saved with.
       setSource({ kind: 'saved', pieces: seen });
-      setNotice(terrainChangedNotice(changedPieces(seen, collection).length));
+      setNotice(terrainChangedNotice(changedPieces(used, collection).length));
       return;
     }
     if (
@@ -421,10 +434,23 @@ export function BoardPage() {
       followCollection(seenCollection);
     }
   }, [seenCollection, collection]);
+  // Once the page's board is in place, every later change of terrain is followed.
+  useEffect(() => {
+    if (ready) {
+      replacedSeen.current = null;
+    }
+  }, [ready]);
 
   /** Terrain kept with the board that the library holds unchanged becomes the library's again. */
   const adoptLibrary = useEffectEvent(() => {
-    if (source.kind === 'saved' && libraryHasTerrain(source.pieces, ownCollection)) {
+    if (
+      source.kind === 'saved' &&
+      editor.present !== null &&
+      libraryHasTerrain(
+        placedTerrain(source.pieces, currentLayout(editor.present).placements),
+        ownCollection,
+      )
+    ) {
       setSource(OWN);
     }
   });
@@ -550,7 +576,7 @@ export function BoardPage() {
           />
           <SaveBoardControls
             access={savedBoards.access}
-            opened={opened}
+            opened={shownOpened}
             unsaved={unsaved}
             sending={savedBoards.saving}
             hasBoard={present !== null && savedBoards.status === 'ready'}
