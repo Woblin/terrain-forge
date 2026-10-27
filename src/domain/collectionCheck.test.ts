@@ -52,6 +52,17 @@ describe('checkCollection', () => {
     );
   });
 
+  it('only names what the rules that are on need sight blockers for', () => {
+    const fantasy = checkCollectionFor([forest], preset('warhammer-fantasy'));
+    const messages = fantasy.findings.map((finding) => finding.message).join(' ');
+    expect(messages).toContain('break up long firing lanes');
+    expect(messages).not.toContain('hide the deployment zones');
+    const noSight = checkCollectionFor([forest], preset('warhammer-40k'), ['coverage']);
+    expect(noSight.findings.map((finding) => finding.message).join(' ')).not.toContain(
+      'Nothing here blocks line of sight',
+    );
+  });
+
   it('names pieces that have no matching partner', () => {
     const odd = SAMPLE_COLLECTION.map((piece) =>
       piece.id === 'building' ? { ...piece, quantity: 3 } : piece,

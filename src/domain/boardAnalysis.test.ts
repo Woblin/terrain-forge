@@ -13,7 +13,7 @@ const SLOW_TEST_TIMEOUT = 60_000;
 
 function sampleInput(setup: GameSetup, placements: readonly Placement[]) {
   const { balance } = prepareCollection(SAMPLE_COLLECTION, setup.board, setup.preset);
-  return fairnessInputFor(setup, SAMPLE_COLLECTION, placements, balance);
+  return fairnessInputFor(setup, SAMPLE_COLLECTION, placements, balance, setup.preset.defaultRules);
 }
 
 function setupFor(presetId: string): GameSetup {
@@ -35,6 +35,7 @@ describe('the sample collection on every game system', () => {
         preset: setup.preset,
         deployment: setup.deployment,
         seed: 42,
+        enabledRules: setup.preset.defaultRules,
       });
       if (!result.ok) {
         throw new Error(result.reason);

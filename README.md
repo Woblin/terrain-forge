@@ -2,7 +2,7 @@
 
 Auto-generate tabletop wargame battlefields with balanced terrain placement.
 
-Terrain Forge is a web app that generates a battlefield layout for tabletop wargames such as **Warhammer 40,000**, **Age of Sigmar** and **One Page Rules**. The goal is a board that both players agree is fair and that is still fun to play on: no lopsided deployment zones and no empty shooting galleries, but enough variety to make every game feel different.
+Terrain Forge is a web app that generates a battlefield layout for tabletop wargames such as **Warhammer Fantasy**, **Warhammer 40,000**, **Age of Sigmar** and **One Page Rules**. The goal is a board that both players agree is fair and that is still fun to play on: no lopsided deployment zones and no empty shooting galleries, but enough variety to make every game feel different.
 
 > **Status:** Early development. Features below describe the planned scope of the project.
 

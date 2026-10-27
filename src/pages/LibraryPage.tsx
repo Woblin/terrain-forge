@@ -23,6 +23,7 @@ import { PieceForm } from '../components/PieceForm';
 import { PieceList } from '../components/PieceList';
 import { SaveStatus } from '../components/SaveStatus';
 import { useAuth } from '../hooks/authContext';
+import { useGamePreferences } from '../hooks/gamePreferencesContext';
 import { useTerrainLibrary } from '../hooks/libraryContext';
 import { usePhotoEditor } from '../hooks/usePhotoEditor';
 import { useUnits } from '../hooks/unitsContext';
@@ -39,6 +40,7 @@ interface OpenForm {
 /** The player's own terrain: add, change and remove pieces, and see if they are enough. */
 export function LibraryPage() {
   const { unit } = useUnits();
+  const { preferences } = useGamePreferences();
   const library = useTerrainLibrary();
   const auth = useAuth();
   const [form, setForm] = useState<OpenForm | null>(null);
@@ -194,7 +196,9 @@ export function LibraryPage() {
               }}
             />
           )}
-          {pieces.length > 0 && <CollectionCheck pieces={pieces} unit={unit} />}
+          {pieces.length > 0 && (
+            <CollectionCheck pieces={pieces} preferences={preferences} unit={unit} />
+          )}
           <p className="text-sm text-stone-400">
             {pieces.length === 0
               ? 'Until you add pieces, boards use the built-in sample set.'

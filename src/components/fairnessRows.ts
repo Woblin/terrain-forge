@@ -1,4 +1,4 @@
-import type { FairnessReport, PerPlayer, RuleId } from '../domain/fairness';
+import { RULE_IDS, type FairnessReport, type PerPlayer, type RuleId } from '../domain/fairness';
 import type { BalanceRules } from '../domain/presets';
 import { formatArea, formatLength, type LengthUnit } from '../domain/units';
 
@@ -10,15 +10,6 @@ export interface RuleRow {
   readonly values: readonly [string, string] | string;
   readonly limit: string;
 }
-
-export const RULE_ORDER: readonly RuleId[] = [
-  'hiddenDeployment',
-  'coverInReach',
-  'nearestCover',
-  'halfBoard',
-  'clearLane',
-  'coverage',
-];
 
 export const RULE_NAMES: Readonly<Record<RuleId, { code: string; name: string }>> = {
   hiddenDeployment: { code: 'R1', name: 'Hidden deployment' },
@@ -65,7 +56,7 @@ export function ruleRows(
       limit: `${percent(balance.coverage.min)} to ${percent(balance.coverage.max)}`,
     },
   };
-  return RULE_ORDER.map((id) => ({ id, ...RULE_NAMES[id], ...rows[id] }));
+  return RULE_IDS.map((id) => ({ id, ...RULE_NAMES[id], ...rows[id] }));
 }
 
 export function joinWithAnd(items: readonly string[]): string {

@@ -4,15 +4,18 @@ import { joinWithAnd, RULE_NAMES } from './fairnessRows';
 interface FairnessVerdictProps {
   report: FairnessReport;
   edited: boolean;
+  /** False when some rules are switched off. */
+  allRulesOn: boolean;
 }
 
 /** One line saying whether the board passes every balance rule, and which ones it breaks. */
-export function FairnessVerdict({ report, edited }: FairnessVerdictProps) {
+export function FairnessVerdict({ report, edited, allRulesOn }: FairnessVerdictProps) {
   const failed = report.failedRules.map((rule) => RULE_NAMES[rule].code);
   if (failed.length === 0) {
+    const rules = allRulesOn ? 'all rules' : 'all rules that are on';
     return (
       <p className="font-medium text-emerald-300">
-        ✓ {edited ? 'Edited, still passes all rules' : 'Passes all rules'}
+        ✓ {edited ? `Edited, still passes ${rules}` : `Passes ${rules}`}
       </p>
     );
   }

@@ -67,7 +67,7 @@ describe('piece links', () => {
     if (setup === undefined || decoded === null) {
       throw new Error('Missing setup or pieces');
     }
-    const request = { ...setup, preset: setup.preset, seed: 2024 };
+    const request = { ...setup, seed: 2024, enabledRules: setup.preset.defaultRules };
     const mine = generateLayout({ ...request, pieces: library });
     const theirs = generateLayout({ ...request, pieces: decoded });
     if (!mine.ok || !theirs.ok) {

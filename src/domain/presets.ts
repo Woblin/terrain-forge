@@ -1,4 +1,5 @@
 import type { Board } from './board';
+import { RULE_IDS, type RuleId } from './fairness';
 import type { TerrainEffects } from './terrain';
 
 export interface Range {
@@ -41,7 +42,18 @@ export interface GameSystemPreset {
   readonly reach: number;
   readonly terrainEffects: TerrainEffects;
   readonly balance: BalanceRules;
+  /** The balance rules that are on until the player switches them. */
+  readonly defaultRules: readonly RuleId[];
 }
+
+/** The game a player starts on, before they pick one. */
+export const DEFAULT_PRESET_ID = 'warhammer-fantasy';
+
+/**
+ * Neither Warhammer Fantasy nor One Page Rules asks for deployment zones hidden from the enemy:
+ * both deploy unit by unit in full view.
+ */
+const ALL_BUT_HIDDEN_DEPLOYMENT = RULE_IDS.filter((rule) => rule !== 'hiddenDeployment');
 
 const DEFAULT_TERRAIN_EFFECTS: TerrainEffects = {
   ruin: { los: 'blocks', cover: 'heavy' },
@@ -75,6 +87,7 @@ export const PRESETS: readonly GameSystemPreset[] = [
     minGap: 3,
     reach: 6,
     balance: { ...SHARED_BALANCE, maxClearLane: 48, coverage: { min: 0.25, max: 0.35 } },
+    defaultRules: RULE_IDS,
     ...SHARED_SETTINGS,
   },
   {
@@ -84,6 +97,7 @@ export const PRESETS: readonly GameSystemPreset[] = [
     minGap: 3,
     reach: 5,
     balance: { ...SHARED_BALANCE, maxClearLane: 48, coverage: { min: 0.2, max: 0.3 } },
+    defaultRules: RULE_IDS,
     ...SHARED_SETTINGS,
   },
   {
@@ -93,6 +107,7 @@ export const PRESETS: readonly GameSystemPreset[] = [
     minGap: 3,
     reach: 6,
     balance: { ...SHARED_BALANCE, maxClearLane: 58, coverage: { min: 0.25, max: 0.35 } },
+    defaultRules: ALL_BUT_HIDDEN_DEPLOYMENT,
     ...SHARED_SETTINGS,
   },
   {
@@ -102,10 +117,20 @@ export const PRESETS: readonly GameSystemPreset[] = [
     minGap: 4,
     reach: 8,
     balance: { ...SHARED_BALANCE, maxClearLane: 58, coverage: { min: 0.15, max: 0.25 } },
+    defaultRules: ALL_BUT_HIDDEN_DEPLOYMENT,
     ...SHARED_SETTINGS,
   },
 ];
 
 export function findPreset(id: string): GameSystemPreset | undefined {
   return PRESETS.find((preset) => preset.id === id);
+}
+
+/** The game a player starts on. */
+export function defaultPreset(): GameSystemPreset {
+  const preset = findPreset(DEFAULT_PRESET_ID);
+  if (preset === undefined) {
+    throw new Error(`The default game "${DEFAULT_PRESET_ID}" is not in the presets.`);
+  }
+  return preset;
 }

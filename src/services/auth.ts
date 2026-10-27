@@ -17,6 +17,7 @@ import {
 } from 'firebase/auth';
 import type { Firestore } from 'firebase/firestore';
 import type { AppUser, SignInMethod } from '../domain/account';
+import { deleteAccountPreferences } from './accountPreferences';
 import { authErrorMessage } from './authErrors';
 import { deleteLibrary } from './terrainLibrary';
 
@@ -117,10 +118,10 @@ export function deleteAccount(
     const user = signedIn(auth);
     await reauthenticate(user, proof);
     try {
-      await deleteLibrary(db, user.uid);
+      await Promise.all([deleteLibrary(db, user.uid), deleteAccountPreferences(db, user.uid)]);
     } catch (error) {
       throw new PlayerError(
-        'Could not delete your terrain, so the account was kept. Check your connection and try again.',
+        'Could not delete your terrain and settings, so the account was kept. Check your connection and try again.',
         { cause: error },
       );
     }

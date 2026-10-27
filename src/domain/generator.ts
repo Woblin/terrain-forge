@@ -1,6 +1,6 @@
 import { boardArea, type Board, type DeploymentMap } from './board';
 import { laneBreakingChoice } from './laneBreaking';
-import { evaluateFairness, type FairnessReport, type RuleId } from './fairness';
+import { evaluateFairness, inRuleOrder, type FairnessReport, type RuleId } from './fairness';
 import {
   expandCollection,
   pairPieces,
@@ -13,7 +13,7 @@ import { createRandom, randomBetween, shuffle, type RandomSource } from './rando
 import { footprintArea, type PlacedTerrain, type Placement, type TerrainPiece } from './terrain';
 
 /** Bump when a change makes the same seed give a different layout. */
-export const GENERATOR_VERSION = 1;
+export const GENERATOR_VERSION = 2;
 
 const CANDIDATE_COUNT = 16;
 /** With a small collection, at least this share of it must make it onto the board. */
@@ -25,6 +25,8 @@ export interface GenerationRequest {
   readonly preset: GameSystemPreset;
   readonly deployment: DeploymentMap;
   readonly seed: number;
+  /** The balance rules a board must pass. The others are measured but never fail it. */
+  readonly enabledRules: readonly RuleId[];
 }
 
 export interface Layout {
@@ -34,12 +36,15 @@ export interface Layout {
   readonly presetId: string;
   readonly deploymentId: string;
   readonly generatorVersion: number;
+  /** The balance rules that were on, in R1 to R6 order. */
+  readonly enabledRules: readonly RuleId[];
 }
 
 export type GenerationResult =
   | {
       readonly ok: true;
       readonly layout: Layout;
+      /** When no candidate passed every rule, the closest one, with its failures in here. */
       readonly report: FairnessReport;
       readonly warnings: readonly string[];
     }
@@ -50,21 +55,22 @@ interface Candidate {
   readonly report: FairnessReport;
 }
 
-const FAILURE_REASONS: Readonly<Record<RuleId, string>> = {
+/** What helps when the terrain cannot meet a rule. */
+export const RULE_ADVICE: Readonly<Record<RuleId, string>> = {
   hiddenDeployment:
-    'Could not hide enough of each deployment zone. Add terrain that blocks line of sight, such as ruins or buildings.',
-  coverInReach:
-    'Could not give both players the same cover near their zone. Pieces in matching pairs make this easier.',
-  nearestCover:
-    'Could not put cover equally close to both zones. Pieces in matching pairs make this easier.',
-  halfBoard:
-    'Could not split the terrain evenly between both halves. Pieces in matching pairs make this easier.',
+    'To hide more of each deployment zone, add terrain that blocks line of sight, such as ruins or buildings.',
+  coverInReach: 'For the same cover near both zones, add pieces in matching pairs.',
+  nearestCover: 'To put cover equally close to both zones, add pieces in matching pairs.',
+  halfBoard: 'To split the terrain evenly between both halves, add pieces in matching pairs.',
   clearLane:
-    'Could not break up every long firing lane. Add terrain that blocks line of sight, or larger pieces.',
-  coverage: 'Could not fit the right amount of terrain on this board. Try a different board size.',
+    'To break up long firing lanes, add terrain that blocks line of sight, or larger pieces.',
+  coverage: 'To cover more of the board, add more terrain, or larger pieces.',
 };
 
-/** Builds candidate layouts from the seed and returns the fairest one that passes every rule. */
+/**
+ * Builds candidate layouts from the seed and returns the fairest one that passes every rule that
+ * is on. When none passes, it returns the closest one, so a small collection still gets a board.
+ */
 export function generateLayout(request: GenerationRequest): GenerationResult {
   const { board, pieces, preset, deployment, seed } = request;
   if (pieces.every((piece) => piece.quantity <= 0)) {
@@ -78,10 +84,7 @@ export function generateLayout(request: GenerationRequest): GenerationResult {
   const candidates = Array.from({ length: CANDIDATE_COUNT }, () =>
     buildCandidate(usable, request, balance, random),
   );
-  const best = fairestPassing(candidates);
-  if (best === undefined) {
-    return { ok: false, reason: FAILURE_REASONS[mostCommonFailure(candidates)] };
-  }
+  const best = closest(candidates);
   return {
     ok: true,
     layout: {
@@ -91,6 +94,7 @@ export function generateLayout(request: GenerationRequest): GenerationResult {
       presetId: preset.id,
       deploymentId: deployment.id,
       generatorVersion: GENERATOR_VERSION,
+      enabledRules: inRuleOrder(request.enabledRules),
     },
     report: best.report,
     warnings,
@@ -171,7 +175,7 @@ function buildCandidate(
   balance: BalanceRules,
   random: RandomSource,
 ): Candidate {
-  const { board, preset, deployment } = request;
+  const { board, preset, deployment, enabledRules } = request;
   const area = boardArea(board);
   const units = pairPieces(shuffle(random, pieces));
   const target = randomBetween(random, balance.coverage.min, balance.coverage.max) * area;
@@ -181,11 +185,14 @@ function buildCandidate(
     edgeMargin: preset.edgeMargin,
     minGap: preset.minGap,
   };
-  const choice = laneBreakingChoice({
-    ...rules,
-    effects: preset.terrainEffects,
-    maxLane: balance.maxClearLane,
-  });
+  // Steering pieces into long lanes only pays off while R5 counts.
+  const choice = enabledRules.includes('clearLane')
+    ? laneBreakingChoice({
+        ...rules,
+        effects: preset.terrainEffects,
+        maxLane: balance.maxClearLane,
+      })
+    : undefined;
   const placed = placeUnits(
     units,
     { target, max: balance.coverage.max * area },
@@ -200,6 +207,7 @@ function buildCandidate(
     reach: preset.reach,
     edgeMargin: preset.edgeMargin,
     balance,
+    enabledRules,
   });
   return { pieces: placed, report };
 }
@@ -212,21 +220,19 @@ function toPlacedTerrain(piece: PlacedPiece, preset: GameSystemPreset): PlacedTe
   };
 }
 
-function fairestPassing(candidates: readonly Candidate[]): Candidate | undefined {
-  return candidates
-    .filter((candidate) => candidate.report.failedRules.length === 0)
-    .reduce<Candidate | undefined>(
-      (best, candidate) =>
-        best === undefined || candidate.report.imbalance < best.report.imbalance ? candidate : best,
-      undefined,
-    );
+/** The candidate that fails the fewest rules, and among those the most even one. */
+function closest(candidates: readonly Candidate[]): Candidate {
+  const [first, ...rest] = candidates;
+  if (first === undefined) {
+    throw new Error('The generator built no candidate boards.');
+  }
+  return rest.reduce(
+    (best, candidate) => (closerThan(candidate.report, best.report) ? candidate : best),
+    first,
+  );
 }
 
-function mostCommonFailure(candidates: readonly Candidate[]): RuleId {
-  const counts = new Map<RuleId, number>();
-  for (const rule of candidates.flatMap((candidate) => candidate.report.failedRules)) {
-    counts.set(rule, (counts.get(rule) ?? 0) + 1);
-  }
-  const [mostCommon] = [...counts.entries()].sort((a, b) => b[1] - a[1]);
-  return mostCommon?.[0] ?? 'coverage';
+function closerThan(a: FairnessReport, b: FairnessReport): boolean {
+  const failed = a.failedRules.length - b.failedRules.length;
+  return failed !== 0 ? failed < 0 : a.imbalance < b.imbalance;
 }

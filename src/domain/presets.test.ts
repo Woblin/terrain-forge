@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { findPreset, PRESETS } from './presets';
+import { RULE_IDS } from './fairness';
+import { DEFAULT_PRESET_ID, defaultPreset, findPreset, PRESETS } from './presets';
 import { TERRAIN_TYPES } from './terrain';
 
 describe('PRESETS', () => {
@@ -18,6 +19,28 @@ describe('PRESETS', () => {
     expect(coverage.min).toBeLessThan(coverage.max);
     expect(coverage.max).toBeLessThan(1);
     expect(maxClearLane).toBeLessThan(preset.defaultBoard.width);
+  });
+});
+
+describe('default rules', () => {
+  it.each(['warhammer-fantasy', 'one-page-rules'])(
+    '%s does not ask for hidden deployment',
+    (id) => {
+      expect(findPreset(id)?.defaultRules).toEqual(
+        RULE_IDS.filter((rule) => rule !== 'hiddenDeployment'),
+      );
+    },
+  );
+
+  it.each(['warhammer-40k', 'age-of-sigmar'])('%s uses every rule', (id) => {
+    expect(findPreset(id)?.defaultRules).toEqual(RULE_IDS);
+  });
+});
+
+describe('defaultPreset', () => {
+  it('is Warhammer Fantasy', () => {
+    expect(DEFAULT_PRESET_ID).toBe('warhammer-fantasy');
+    expect(defaultPreset().id).toBe(DEFAULT_PRESET_ID);
   });
 });
 
