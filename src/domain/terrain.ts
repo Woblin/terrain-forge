@@ -4,6 +4,15 @@ export const TERRAIN_TYPES = ['ruin', 'building', 'forest', 'obstacle', 'hill', 
 
 export type TerrainType = (typeof TERRAIN_TYPES)[number];
 
+export const TERRAIN_TYPE_NAMES: Readonly<Record<TerrainType, string>> = {
+  ruin: 'Ruin',
+  building: 'Building',
+  forest: 'Forest',
+  obstacle: 'Obstacle',
+  hill: 'Hill',
+  crater: 'Crater',
+};
+
 /** Size of a piece in inches, centred on the piece's own origin before rotation. */
 export type Footprint =
   | { readonly kind: 'rect'; readonly width: number; readonly depth: number }

@@ -17,9 +17,10 @@ import {
 } from './geometry';
 import {
   coverWeight,
+  findLongestClearLane,
   hasLineOfSight,
-  longestClearLane,
   sightObstacles,
+  type Lane,
   type SightObstacle,
 } from './lineOfSight';
 import { laneArea } from './laneBreaking';
@@ -63,26 +64,42 @@ export const ZONE_SAMPLE_SPACING = 3;
 /** Spacing of the sample points along each zone's front edge. */
 const FRONT_EDGE_SAMPLE_SPACING = 1;
 
+/** The fairness report with what R1 and R5 found, so the board can draw them. */
+export interface FairnessDetails {
+  readonly report: FairnessReport;
+  /** R5: the longest clear lane, or null when every line is blocked. */
+  readonly lane: Lane | null;
+  /** R1: the sample points in each zone that the enemy zone cannot see. */
+  readonly hidden: Readonly<Record<PlayerId, readonly Point[]>>;
+}
+
 export function evaluateFairness(input: FairnessInput): FairnessReport {
+  return explainFairness(input).report;
+}
+
+export function explainFairness(input: FairnessInput): FairnessDetails {
   const { board, deployment, terrain, reach, edgeMargin, balance } = input;
   const obstacles = sightObstacles(terrain);
+  const hiddenPoints = hiddenDeploymentPoints(deployment, obstacles);
+  const lane = findLongestClearLane(
+    laneArea(board, edgeMargin),
+    obstacles,
+    PLAYERS.map((player) => deployment.zones[player]),
+  );
   const measures = {
-    hiddenDeployment: measureHiddenDeployment(deployment, obstacles),
+    hiddenDeployment: hiddenShares(hiddenPoints),
     coverInReach: measureCoverInReach(deployment, terrain, reach),
     nearestCover: measureNearestCover(board, deployment, terrain),
     halfBoard: measureHalfBoard(deployment, terrain),
-    longestClearLane: longestClearLane(
-      laneArea(board, edgeMargin),
-      obstacles,
-      PLAYERS.map((player) => deployment.zones[player]),
-    ),
+    longestClearLane: lane?.length ?? 0,
     coverage: measureCoverage(board, terrain),
   };
-  return {
+  const report = {
     ...measures,
     failedRules: failedRules(measures, balance),
     imbalance: imbalance(measures, balance),
   };
+  return { report, lane, hidden: hiddenPoints.hidden };
 }
 
 type Measures = Omit<FairnessReport, 'failedRules' | 'imbalance'>;
@@ -130,11 +147,7 @@ function enemyOf(player: PlayerId): PlayerId {
 }
 
 /** R1 */
-export function measureHiddenDeployment(
-  deployment: DeploymentMap,
-  obstacles: readonly SightObstacle[],
-): PerPlayer {
-  const { samples, hidden } = hiddenDeploymentPoints(deployment, obstacles);
+function hiddenShares({ samples, hidden }: HiddenDeploymentPoints): PerPlayer {
   return perPlayer((player) => {
     const own = samples[player];
     return own.length === 0 ? 0 : hidden[player].length / own.length;

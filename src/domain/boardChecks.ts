@@ -23,6 +23,7 @@ export function checkBoard(
     placePiece(pieceById(collection, placement.pieceId), placement),
   );
   const violations = boardViolations(placed, rules);
+  const extra = extraCopies(pieces, collection);
   return new Map(
     pieces.flatMap((piece, i) => {
       const messages = (violations[i] ?? []).map((violation) =>
@@ -33,9 +34,34 @@ export function checkBoard(
           unit,
         ),
       );
+      const owned = extra.get(piece.key);
+      if (owned !== undefined) {
+        messages.push(`More copies than the ${String(owned)} in your library`);
+      }
       return messages.length === 0 ? [] : [[piece.key, messages] as const];
     }),
   );
+}
+
+/**
+ * Copies on the board beyond the quantity in the collection, which happens when the player lowers
+ * a quantity after placing pieces. Maps each extra copy's key to the quantity owned.
+ */
+function extraCopies(
+  pieces: readonly BoardPiece[],
+  collection: readonly TerrainPiece[],
+): ReadonlyMap<string, number> {
+  const seen = new Map<string, number>();
+  const extra = new Map<string, number>();
+  for (const { key, placement } of pieces) {
+    const count = (seen.get(placement.pieceId) ?? 0) + 1;
+    seen.set(placement.pieceId, count);
+    const { quantity } = pieceById(collection, placement.pieceId);
+    if (count > quantity) {
+      extra.set(key, quantity);
+    }
+  }
+  return extra;
 }
 
 export function describeViolation(

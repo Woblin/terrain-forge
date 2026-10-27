@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { BoardAnalysis } from '../domain/boardAnalysis';
 import type { FairnessInput } from '../domain/fairness';
+import { createLatestOnlyQueue, type LatestOnlyQueue } from '../services/latestOnlyQueue';
 import { useWorkerClient } from './useWorkerClient';
 
 /** Boards are analysed at most this often while a piece is being dragged. */
@@ -14,49 +15,52 @@ export interface BoardAnalysisState {
   readonly error: string | null;
 }
 
-/** Keeps a fairness analysis of the board up to date, worked out in the board worker. */
+/**
+ * Keeps a fairness analysis of the board up to date, worked out in the board worker. One
+ * analysis runs at a time; boards that change while it runs are skipped except the latest.
+ */
 export function useBoardAnalysis(input: FairnessInput | null): BoardAnalysisState {
   const client = useWorkerClient();
-  const latest = useRef<FairnessInput | null>(null);
-  const timer = useRef<number | null>(null);
+  const queue = useRef<LatestOnlyQueue<FairnessInput> | null>(null);
   const [result, setResult] = useState<{
     input: FairnessInput;
     analysis: BoardAnalysis;
   } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(
-    () => () => {
-      if (timer.current !== null) {
-        window.clearTimeout(timer.current);
-        timer.current = null;
-      }
-    },
-    [],
-  );
-
   useEffect(() => {
-    latest.current = input;
-    if (input === null || timer.current !== null) {
-      return;
-    }
-    timer.current = window.setTimeout(() => {
-      timer.current = null;
-      const requested = latest.current;
-      const worker = client.current;
-      if (requested === null || worker === null) {
-        return;
-      }
-      void worker.run({ kind: 'analyse', input: requested }).then((outcome) => {
+    const created = createLatestOnlyQueue(
+      async (requested: FairnessInput) => {
+        const worker = client.current;
+        if (worker === null) {
+          return;
+        }
+        const outcome = await worker.run({ kind: 'analyse', input: requested });
         if (outcome.status === 'done' && outcome.result.kind === 'analyse') {
           setResult({ input: requested, analysis: outcome.result.analysis });
           setError(null);
         } else if (outcome.status === 'failed') {
           setError(outcome.message);
         }
-      });
-    }, ANALYSIS_INTERVAL_MS);
-  }, [input, client]);
+      },
+      ANALYSIS_INTERVAL_MS,
+      (failure) => {
+        console.error('Board analysis failed.', failure);
+        setError('The fairness check stopped unexpectedly. Move a piece to try again.');
+      },
+    );
+    queue.current = created;
+    return () => {
+      created.dispose();
+      queue.current = null;
+    };
+  }, [client]);
+
+  useEffect(() => {
+    if (input !== null) {
+      queue.current?.push(input);
+    }
+  }, [input]);
 
   return {
     analysis: result?.analysis ?? null,

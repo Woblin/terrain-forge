@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { GENERATOR_VERSION } from './generator';
+import { SAMPLE_COLLECTION } from './sampleCollection';
 import { boardLinkSearch, parseBoardLink } from './shareLink';
 
 const link = {
@@ -7,6 +8,7 @@ const link = {
   deploymentId: 'long-edges',
   seed: 123456789,
   generatorVersion: GENERATOR_VERSION,
+  pieces: null,
 };
 
 describe('share links', () => {
@@ -51,5 +53,20 @@ describe('share links', () => {
     expect(
       parseBoardLink(boardLinkSearch({ ...link, generatorVersion: GENERATOR_VERSION + 1 })),
     ).toMatchObject({ kind: 'valid', versionMismatch: true });
+  });
+
+  it('carries a personal collection, and treats a link without one as the sample set', () => {
+    const search = boardLinkSearch({ ...link, pieces: SAMPLE_COLLECTION });
+    expect(search).toContain('&pieces=or6x1x4_br10x10x2_ce5x5x2_fe9x7x2_rr12x6x6_rr8x5x6');
+    const parsed = parseBoardLink(search);
+    expect(parsed.kind === 'valid' && parsed.link.pieces?.length).toBe(SAMPLE_COLLECTION.length);
+    expect(parseBoardLink(boardLinkSearch(link))).toMatchObject({ link: { pieces: null } });
+  });
+
+  it('rejects a collection it cannot read', () => {
+    expect(parseBoardLink('system=warhammer-40k&deploy=long-edges&seed=1&pieces=zz1x1x1')).toEqual({
+      kind: 'invalid',
+      reason: 'The terrain in this board link could not be read.',
+    });
   });
 });

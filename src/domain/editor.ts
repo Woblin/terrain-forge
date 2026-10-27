@@ -35,7 +35,12 @@ export interface PieceUpdate {
 }
 
 export type EditorAction =
-  | { readonly type: 'generated'; readonly layout: Layout }
+  | {
+      readonly type: 'generated';
+      readonly layout: Layout;
+      /** True when the board comes from other terrain, so undo cannot go back to the old one. */
+      readonly newHistory?: boolean;
+    }
   | { readonly type: 'placed'; readonly updates: readonly PieceUpdate[] }
   | {
       readonly type: 'added';
@@ -44,6 +49,7 @@ export type EditorAction =
       readonly rotation: number;
     }
   | { readonly type: 'removed'; readonly key: string }
+  | { readonly type: 'collectionChanged'; readonly pieceIds: ReadonlySet<string> }
   | { readonly type: 'selected'; readonly key: string | null }
   | { readonly type: 'undo' }
   | { readonly type: 'redo' };
@@ -62,13 +68,15 @@ export const INITIAL_EDITOR_STATE: EditorState = {
 export function editorReducer(state: EditorState, action: EditorAction): EditorState {
   switch (action.type) {
     case 'generated':
-      return generated(state, action.layout);
+      return generated(action.newHistory === true ? withoutHistory(state) : state, action.layout);
     case 'placed':
       return placed(state, action.updates);
     case 'added':
       return added(state, action.piece, action.position, action.rotation);
     case 'removed':
       return removed(state, action.key);
+    case 'collectionChanged':
+      return collectionChanged(state, action.pieceIds);
     case 'selected':
       return selected(state, action.key);
     case 'undo':
@@ -110,6 +118,11 @@ function generated(state: EditorState, layout: Layout): EditorState {
   }));
   const next = commit(state, { origin, pieces, edited: false });
   return { ...next, selected: null, nextKey: state.nextKey + placements.length };
+}
+
+/** An empty editor that keeps counting piece keys, so no key is ever used twice. */
+function withoutHistory(state: EditorState): EditorState {
+  return { ...INITIAL_EDITOR_STATE, nextKey: state.nextKey };
 }
 
 function placed(state: EditorState, updates: readonly PieceUpdate[]): EditorState {
@@ -161,6 +174,45 @@ function removed(state: EditorState, key: string): EditorState {
   const pieces = present.pieces.filter((piece) => piece.key !== key);
   const next = commit(state, { ...present, pieces, edited: true });
   return { ...next, selected: state.selected === key ? null : state.selected };
+}
+
+/**
+ * Drops pieces that are no longer in the collection from the board and from the undo history,
+ * so undo can never bring back a piece that does not exist. Not an undo step itself.
+ */
+function collectionChanged(state: EditorState, pieceIds: ReadonlySet<string>): EditorState {
+  if (state.present === null || missingAnywhere(state, pieceIds) === 0) {
+    return state;
+  }
+  const keep = (snapshot: EditorSnapshot): EditorSnapshot => ({
+    ...snapshot,
+    pieces: snapshot.pieces.filter((piece) => pieceIds.has(piece.placement.pieceId)),
+  });
+  const present = keep(state.present);
+  return {
+    ...state,
+    past: state.past.map(keep),
+    present,
+    future: state.future.map(keep),
+    selected: keepSelection(present, state.selected),
+  };
+}
+
+/** How many pieces anywhere in the editor's history are not in the collection. */
+function missingAnywhere(state: EditorState, pieceIds: ReadonlySet<string>): number {
+  const snapshots = state.present === null ? [] : [...state.past, state.present, ...state.future];
+  return snapshots.reduce(
+    (sum, snapshot) =>
+      sum + snapshot.pieces.filter((piece) => !pieceIds.has(piece.placement.pieceId)).length,
+    0,
+  );
+}
+
+/** How many pieces on the board now are not in the collection. */
+export function countMissingNow(state: EditorState, pieceIds: ReadonlySet<string>): number {
+  return (
+    state.present?.pieces.filter((piece) => !pieceIds.has(piece.placement.pieceId)).length ?? 0
+  );
 }
 
 function selected(state: EditorState, key: string | null): EditorState {

@@ -2,9 +2,76 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Deny everything by default. Each user can only read and write their own data.
-    match /users/{uid}/{document=**} {
-      allow read, write: if request.auth != null && request.auth.uid == uid;
+    // Everything not matched below is denied. Each collection is named on its own: rules add up,
+    // so a wildcard over users/{uid} would let any shape through whatever the checks below say.
+
+    function isOwner(uid) {
+      return request.auth != null && request.auth.uid == uid;
+    }
+
+    // A side of a footprint, in inches.
+    function validSide(value) {
+      return value is number && value >= 0.5 && value <= 36;
+    }
+
+    function validFootprint(footprint) {
+      return footprint is map
+        && footprint.keys().hasOnly(['kind', 'width', 'depth'])
+        && footprint.kind in ['rect', 'ellipse']
+        && validSide(footprint.width)
+        && validSide(footprint.depth);
+    }
+
+    function validImageRef(image) {
+      return image == null
+        || (image is map
+          && image.keys().hasOnly(['version', 'ratio'])
+          && image.version is int && image.version >= 1
+          && image.ratio is number && image.ratio > 0);
+    }
+
+    function validPiece(piece) {
+      return piece.keys().hasOnly(
+          ['name', 'type', 'footprint', 'quantity', 'image', 'schemaVersion', 'createdAt', 'updatedAt'])
+        && piece.keys().hasAll(
+          ['name', 'type', 'footprint', 'quantity', 'image', 'schemaVersion', 'createdAt', 'updatedAt'])
+        && piece.name is string && piece.name.size() >= 1 && piece.name.size() <= 40
+        && piece.type in ['ruin', 'building', 'forest', 'obstacle', 'hill', 'crater']
+        && validFootprint(piece.footprint)
+        && piece.quantity is int && piece.quantity >= 1 && piece.quantity <= 20
+        && validImageRef(piece.image)
+        && piece.schemaVersion == 1
+        && piece.updatedAt == request.time;
+    }
+
+    // One document per terrain piece in the player's library.
+    match /users/{uid}/terrainPieces/{pieceId} {
+      allow read, delete: if isOwner(uid);
+      allow create: if isOwner(uid)
+        && validPiece(request.resource.data)
+        && request.resource.data.createdAt == request.time;
+      allow update: if isOwner(uid)
+        && validPiece(request.resource.data)
+        && request.resource.data.createdAt == resource.data.createdAt;
+    }
+
+    // One low-resolution photo per terrain piece, at most 150 KB.
+    match /users/{uid}/terrainImages/{pieceId} {
+      allow read, delete: if isOwner(uid);
+      allow create, update: if isOwner(uid)
+        && request.resource.data.keys().hasOnly(
+          ['data', 'mimeType', 'width', 'height', 'ratio', 'updatedAt'])
+        && request.resource.data.keys().hasAll(
+          ['data', 'mimeType', 'width', 'height', 'ratio', 'updatedAt'])
+        && request.resource.data.data is bytes
+        && request.resource.data.data.size() <= 150 * 1024
+        && request.resource.data.mimeType in ['image/webp', 'image/jpeg']
+        && request.resource.data.width is int
+        && request.resource.data.width >= 1 && request.resource.data.width <= 384
+        && request.resource.data.height is int
+        && request.resource.data.height >= 1 && request.resource.data.height <= 384
+        && request.resource.data.ratio is number && request.resource.data.ratio > 0
+        && request.resource.data.updatedAt == request.time;
     }
   }
 }

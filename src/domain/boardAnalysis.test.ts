@@ -1,14 +1,20 @@
 import { describe, expect, it } from 'vitest';
 import { analyseBoard, fairnessInputFor } from './boardAnalysis';
 import { deploymentsFor, resolveGameSetup, type GameSetup } from './gameSetup';
-import { generateLayout } from './generator';
+import { generateLayout, prepareCollection } from './generator';
 import { containsPoint } from './geometry';
 import { pieceById } from './layoutTerrain';
 import { boardViolations, placePiece } from './placement';
 import { PRESETS } from './presets';
 import { SAMPLE_COLLECTION } from './sampleCollection';
+import type { Placement } from './terrain';
 
 const SLOW_TEST_TIMEOUT = 60_000;
+
+function sampleInput(setup: GameSetup, placements: readonly Placement[]) {
+  const { balance } = prepareCollection(SAMPLE_COLLECTION, setup.board, setup.preset);
+  return fairnessInputFor(setup, SAMPLE_COLLECTION, placements, balance);
+}
 
 function setupFor(presetId: string): GameSetup {
   const setup = resolveGameSetup(presetId, 'long-edges');
@@ -39,7 +45,7 @@ describe('the sample collection on every game system', () => {
       );
       const rules = { ...setup, edgeMargin: setup.preset.edgeMargin, minGap: setup.preset.minGap };
       expect(boardViolations(placed, rules).flat()).toEqual([]);
-      const analysis = analyseBoard(fairnessInputFor(setup, SAMPLE_COLLECTION, placements));
+      const analysis = analyseBoard(sampleInput(setup, placements));
       expect(analysis.report).toEqual(result.report);
       expect(analysis.lane?.length).toBeCloseTo(result.report.longestClearLane);
     },
@@ -50,7 +56,7 @@ describe('the sample collection on every game system', () => {
 describe('analyseBoard', () => {
   it('returns the hidden points inside each zone', () => {
     const setup = setupFor('warhammer-40k');
-    const empty = analyseBoard(fairnessInputFor(setup, SAMPLE_COLLECTION, []));
+    const empty = analyseBoard(sampleInput(setup, []));
     expect(empty.hidden.A).toEqual([]);
     expect(empty.lane?.length).toBeGreaterThan(50);
     const wallOfRuins = [6, 18, 30, 42, 54].map((x) => ({
@@ -58,7 +64,7 @@ describe('analyseBoard', () => {
       position: { x, y: 22 },
       rotation: 0,
     }));
-    const wall = analyseBoard(fairnessInputFor(setup, SAMPLE_COLLECTION, wallOfRuins));
+    const wall = analyseBoard(sampleInput(setup, wallOfRuins));
     expect(wall.hidden.A.length).toBeGreaterThan(0);
     expect(wall.hidden.A.every((p) => containsPoint(setup.deployment.zones.A, p))).toBe(true);
     expect(wall.report.hiddenDeployment.A).toBeGreaterThan(0);
@@ -66,7 +72,7 @@ describe('analyseBoard', () => {
 
   it('throws for a piece that is not in the collection', () => {
     expect(() =>
-      fairnessInputFor(setupFor('warhammer-40k'), SAMPLE_COLLECTION, [
+      sampleInput(setupFor('warhammer-40k'), [
         { pieceId: 'missing', position: { x: 1, y: 1 }, rotation: 0 },
       ]),
     ).toThrow('Terrain piece "missing" is not in the collection.');

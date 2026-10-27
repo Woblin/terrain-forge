@@ -84,6 +84,7 @@ Terrain Forge is a web app that generates a battlefield layout for tabletop warg
 | `yarn lint` | Run ESLint |
 | `yarn format` / `format:check` | Format with Prettier / check formatting |
 | `yarn test` / `test:watch` | Run Vitest once / in watch mode |
+| `yarn test:rules` | Test `firestore.rules` against the Firestore emulator (needs the Firebase CLI and Java) |
 | `yarn emulators` | Start the Firebase emulators, saving data to `.emulator-data/` |
 | `yarn validate` | Typecheck, lint, format check and tests (what CI runs) |
 
@@ -99,7 +100,7 @@ firebase deploy
 ## Roadmap
 - [x] Battlefield generation algorithm with balance rules
 - [x] Board editor (drag and drop, rotate, add, remove)
-- [ ] Terrain library
+- [x] Terrain library (kept in memory until sign-in arrives)
 - [ ] Firebase Authentication
 - [ ] Save and load battlefields
 - [ ] Presets for popular game systems
