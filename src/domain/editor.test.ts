@@ -34,6 +34,7 @@ function layout(seed: number, count = 2): Layout {
     presetId: 'warhammer-40k',
     deploymentId: 'long-edges',
     generatorVersion: 1,
+    enabledRules: ['coverage'],
   };
 }
 

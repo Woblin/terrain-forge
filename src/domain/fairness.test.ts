@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { longEdgeDeployment, mirrorPoint, type Board } from './board';
 import {
   evaluateFairness,
+  RULE_IDS,
+  type RuleId,
   measureCoverage,
   measureCoverInReach,
   measureHalfBoard,
@@ -59,7 +61,7 @@ const lopsidedLayout: PlacedTerrain[] = [
   ruin({ x: 40, y: 6 }, 10, 6),
 ];
 
-function evaluate(terrain: readonly PlacedTerrain[]) {
+function evaluate(terrain: readonly PlacedTerrain[], enabledRules: readonly RuleId[] = RULE_IDS) {
   return evaluateFairness({
     board,
     deployment,
@@ -67,6 +69,7 @@ function evaluate(terrain: readonly PlacedTerrain[]) {
     reach: 6,
     edgeMargin: 1,
     balance,
+    enabledRules,
   });
 }
 
@@ -109,6 +112,29 @@ describe('a lopsided layout', () => {
     expect(report.coverInReach.A).toBeGreaterThan(report.coverInReach.B);
     expect(report.halfBoard.A).toBeGreaterThan(report.halfBoard.B);
     expect(report.imbalance).toBeGreaterThan(1);
+  });
+});
+
+describe('rules that are switched off', () => {
+  const all = evaluate(lopsidedLayout);
+  const halfOnly = evaluate(lopsidedLayout, ['halfBoard']);
+
+  it('never fail a board', () => {
+    expect(halfOnly.failedRules).toEqual(['halfBoard']);
+    expect(evaluate(lopsidedLayout, []).failedRules).toEqual([]);
+  });
+
+  it('are still measured', () => {
+    expect(halfOnly.coverInReach).toEqual(all.coverInReach);
+    expect(halfOnly.hiddenDeployment).toEqual(all.hiddenDeployment);
+  });
+
+  it('do not count in the imbalance score', () => {
+    expect(halfOnly.imbalance).toBeLessThan(all.imbalance);
+    expect(halfOnly.imbalance).toBeCloseTo(
+      relativeDifference(all.halfBoard) / balance.halfBoardMaxDifference,
+    );
+    expect(evaluate(lopsidedLayout, ['clearLane', 'coverage']).imbalance).toBe(0);
   });
 });
 

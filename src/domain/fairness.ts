@@ -30,6 +30,31 @@ import type { PlacedTerrain } from './terrain';
 export type RuleId =
   'hiddenDeployment' | 'coverInReach' | 'nearestCover' | 'halfBoard' | 'clearLane' | 'coverage';
 
+/** Every balance rule, in the order R1 to R6. */
+export const RULE_IDS: readonly RuleId[] = [
+  'hiddenDeployment',
+  'coverInReach',
+  'nearestCover',
+  'halfBoard',
+  'clearLane',
+  'coverage',
+];
+
+/** The short code each rule is known by, R1 to R6. */
+export const RULE_CODES: Readonly<Record<RuleId, string>> = {
+  hiddenDeployment: 'R1',
+  coverInReach: 'R2',
+  nearestCover: 'R3',
+  halfBoard: 'R4',
+  clearLane: 'R5',
+  coverage: 'R6',
+};
+
+/** The rules in R1 to R6 order, with any repeats dropped. */
+export function inRuleOrder(rules: readonly RuleId[]): RuleId[] {
+  return RULE_IDS.filter((rule) => rules.includes(rule));
+}
+
 export type PerPlayer = Readonly<Record<PlayerId, number>>;
 
 export interface FairnessReport {
@@ -45,8 +70,12 @@ export interface FairnessReport {
   readonly longestClearLane: number;
   /** R6: share of the board covered by terrain. */
   readonly coverage: number;
+  /** The rules that are switched on and fail. A rule that is off never fails. */
   readonly failedRules: readonly RuleId[];
-  /** Sum of the R1 to R4 differences, each divided by its tolerance. 0 is perfectly even. */
+  /**
+   * Sum of the R1 to R4 differences, each divided by its tolerance, for the rules that are on.
+   * 0 is perfectly even.
+   */
   readonly imbalance: number;
 }
 
@@ -57,6 +86,8 @@ export interface FairnessInput {
   readonly reach: number;
   readonly edgeMargin: number;
   readonly balance: BalanceRules;
+  /** The rules that count. The others are still measured, but never fail a board. */
+  readonly enabledRules: readonly RuleId[];
 }
 
 /** Spacing of the sample points used for line of sight inside each zone. */
@@ -78,7 +109,7 @@ export function evaluateFairness(input: FairnessInput): FairnessReport {
 }
 
 export function explainFairness(input: FairnessInput): FairnessDetails {
-  const { board, deployment, terrain, reach, edgeMargin, balance } = input;
+  const { board, deployment, terrain, reach, edgeMargin, balance, enabledRules } = input;
   const obstacles = sightObstacles(terrain);
   const hiddenPoints = hiddenDeploymentPoints(deployment, obstacles);
   const lane = findLongestClearLane(
@@ -96,8 +127,8 @@ export function explainFairness(input: FairnessInput): FairnessDetails {
   };
   const report = {
     ...measures,
-    failedRules: failedRules(measures, balance),
-    imbalance: imbalance(measures, balance),
+    failedRules: failedRules(measures, balance).filter((rule) => enabledRules.includes(rule)),
+    imbalance: imbalance(measures, balance, enabledRules),
   };
   return { report, lane, hidden: hiddenPoints.hidden };
 }
@@ -119,13 +150,23 @@ function failedRules(measures: Measures, balance: BalanceRules): RuleId[] {
   return (Object.keys(broken) as RuleId[]).filter((rule) => broken[rule]);
 }
 
-function imbalance(measures: Measures, balance: BalanceRules): number {
-  return (
-    difference(measures.hiddenDeployment) / balance.hiddenDeploymentMaxDifference +
-    relativeDifference(measures.coverInReach) / balance.coverInReachMaxDifference +
-    difference(measures.nearestCover) / balance.nearestCoverMaxDifference +
-    relativeDifference(measures.halfBoard) / balance.halfBoardMaxDifference
-  );
+function imbalance(
+  measures: Measures,
+  balance: BalanceRules,
+  enabledRules: readonly RuleId[],
+): number {
+  const parts: readonly (readonly [RuleId, number])[] = [
+    [
+      'hiddenDeployment',
+      difference(measures.hiddenDeployment) / balance.hiddenDeploymentMaxDifference,
+    ],
+    ['coverInReach', relativeDifference(measures.coverInReach) / balance.coverInReachMaxDifference],
+    ['nearestCover', difference(measures.nearestCover) / balance.nearestCoverMaxDifference],
+    ['halfBoard', relativeDifference(measures.halfBoard) / balance.halfBoardMaxDifference],
+  ];
+  return parts
+    .filter(([rule]) => enabledRules.includes(rule))
+    .reduce((sum, [, part]) => sum + part, 0);
 }
 
 export function difference(values: PerPlayer): number {

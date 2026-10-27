@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { RULE_IDS, type RuleId } from './fairness';
 import { GENERATOR_VERSION } from './generator';
 import { SAMPLE_COLLECTION } from './sampleCollection';
 import { boardLinkSearch, parseBoardLink } from './shareLink';
@@ -9,6 +10,7 @@ const link = {
   seed: 123456789,
   generatorVersion: GENERATOR_VERSION,
   pieces: null,
+  enabledRules: null,
 };
 
 describe('share links', () => {
@@ -18,6 +20,32 @@ describe('share links', () => {
       `system=warhammer-40k&deploy=long-edges&seed=021I3V9&v=${String(GENERATOR_VERSION)}`,
     );
     expect(parseBoardLink(search)).toEqual({ kind: 'valid', link, versionMismatch: false });
+  });
+
+  it('carries the rules that are off', () => {
+    const enabledRules: RuleId[] = ['coverInReach', 'nearestCover', 'coverage'];
+    const withRules = { ...link, enabledRules };
+    const search = boardLinkSearch(withRules);
+    expect(search).toContain('&off=R1%2CR4%2CR5');
+    expect(parseBoardLink(search)).toEqual({
+      kind: 'valid',
+      link: withRules,
+      versionMismatch: false,
+    });
+  });
+
+  it('writes an empty list when every rule is on', () => {
+    const allOn = { ...link, enabledRules: RULE_IDS };
+    const search = boardLinkSearch(allOn);
+    expect(search).toContain('&off=');
+    expect(parseBoardLink(search)).toMatchObject({ link: { enabledRules: RULE_IDS } });
+  });
+
+  it('rejects an unknown rule', () => {
+    expect(parseBoardLink('system=warhammer-40k&deploy=long-edges&seed=1&off=R9')).toEqual({
+      kind: 'invalid',
+      reason: 'This board link names a balance rule Terrain Forge does not know.',
+    });
   });
 
   it('accepts a leading question mark and a missing version', () => {

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { boardPolygon, longEdgeDeployment, standardDeployments } from './board';
 import { containsPolygon, polygonDistance } from './geometry';
+import { RULE_IDS } from './fairness';
 import { GENERATOR_VERSION, generateLayout, type GenerationRequest } from './generator';
 import { findPreset, PRESETS, type GameSystemPreset } from './presets';
 import { placeFootprint, type TerrainPiece } from './terrain';
@@ -69,6 +70,7 @@ function request(overrides: Partial<GenerationRequest> = {}): GenerationRequest 
     preset: warhammer40k,
     deployment: longEdgeDeployment(board, warhammer40k.zoneDepth),
     seed: 1,
+    enabledRules: warhammer40k.defaultRules,
     ...overrides,
   };
 }
@@ -157,6 +159,7 @@ describe('generateLayout presets', () => {
         preset: gamePreset,
         deployment: longEdgeDeployment(presetBoard, gamePreset.zoneDepth),
         seed: 5,
+        enabledRules: gamePreset.defaultRules,
       });
       expect(result.ok ? result.report.failedRules : result.reason).toEqual([]);
     },
@@ -178,7 +181,7 @@ describe('generateLayout failures and warnings', () => {
   });
 
   it(
-    'explains what is missing when nothing blocks line of sight',
+    'still makes a board when nothing blocks line of sight, and reports the rules it breaks',
     () => {
       const barricades: TerrainPiece[] = [
         {
@@ -190,10 +193,11 @@ describe('generateLayout failures and warnings', () => {
         },
       ];
       const result = generateLayout(request({ pieces: barricades }));
-      expect(result.ok).toBe(false);
       if (!result.ok) {
-        expect(result.reason).toMatch(/blocks line of sight/);
+        throw new Error(result.reason);
       }
+      expect(result.layout.placements.length).toBeGreaterThan(0);
+      expect(result.report.failedRules).toContain('hiddenDeployment');
     },
     SLOW_TEST_TIMEOUT,
   );
@@ -230,6 +234,91 @@ describe('generateLayout failures and warnings', () => {
   );
 });
 
+describe('generateLayout rule switches', () => {
+  it(
+    'records the rules that were on, in R1 to R6 order',
+    () => {
+      const result = generateLayout(request({ enabledRules: ['coverage', 'hiddenDeployment'] }));
+      expect(result.ok && result.layout.enabledRules).toEqual(['hiddenDeployment', 'coverage']);
+    },
+    SLOW_TEST_TIMEOUT,
+  );
+
+  it(
+    'never fails a board on a rule that is off',
+    () => {
+      const walls: TerrainPiece[] = [
+        {
+          id: 'wall',
+          name: 'Wall',
+          type: 'obstacle',
+          footprint: { kind: 'rect', width: 8, depth: 2 },
+          quantity: 40,
+        },
+      ];
+      const enabledRules = RULE_IDS.filter(
+        (rule) => rule !== 'hiddenDeployment' && rule !== 'clearLane',
+      );
+      const result = generateLayout(request({ pieces: walls, enabledRules }));
+      if (!result.ok) {
+        throw new Error(result.reason);
+      }
+      expect(result.report.failedRules).not.toContain('hiddenDeployment');
+      expect(result.report.failedRules).not.toContain('clearLane');
+    },
+    SLOW_TEST_TIMEOUT,
+  );
+
+  it(
+    'with every rule off, places terrain and passes',
+    () => {
+      const result = generateLayout(request({ enabledRules: [] }));
+      if (!result.ok) {
+        throw new Error(result.reason);
+      }
+      expect(result.layout.placements.length).toBeGreaterThan(0);
+      expect(result.report.failedRules).toEqual([]);
+      expect(result.report.imbalance).toBe(0);
+    },
+    SLOW_TEST_TIMEOUT,
+  );
+
+  it(
+    'gives a different board once a rule is switched off',
+    () => {
+      const all = generateLayout(request({ seed: 7 }));
+      const noLanes = generateLayout(
+        request({ seed: 7, enabledRules: RULE_IDS.filter((rule) => rule !== 'clearLane') }),
+      );
+      expect(all.ok && noLanes.ok).toBe(true);
+      expect(all.ok && all.layout.placements).not.toEqual(noLanes.ok && noLanes.layout.placements);
+    },
+    SLOW_TEST_TIMEOUT,
+  );
+});
+
+describe('generateLayout with too little terrain', () => {
+  it(
+    'returns the closest board, with the rules it breaks',
+    () => {
+      const few = [
+        ruinPiece('ruin-small', 'Small ruin', 8, 5, 1),
+        ruinPiece('ruin', 'Ruin', 6, 4, 1),
+      ];
+      const result = generateLayout(request({ pieces: few }));
+      if (!result.ok) {
+        throw new Error(result.reason);
+      }
+      expect(result.layout.placements.length).toBeGreaterThan(0);
+      expect(result.report.failedRules.length).toBeGreaterThan(0);
+      expect(result.warnings).toEqual([
+        expect.stringMatching(/^Your terrain covers \d+% of this board/),
+      ]);
+    },
+    SLOW_TEST_TIMEOUT,
+  );
+});
+
 describe('generateLayout regression', () => {
   it(
     'keeps seed 2024 stable; bump GENERATOR_VERSION if this changes on purpose',
@@ -258,7 +347,7 @@ describe('generateLayout regression', () => {
             "barricade 1.65,19.21 90",
             "barricade 58.35,24.79 270",
           ],
-          "version": 1,
+          "version": 2,
         }
       `);
     },

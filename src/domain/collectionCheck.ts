@@ -1,4 +1,5 @@
 import { boardArea, type Board } from './board';
+import type { RuleId } from './fairness';
 import { prepareCollection } from './generator';
 import { pairPieces } from './placement';
 import { PRESETS, type GameSystemPreset, type Range } from './presets';
@@ -22,23 +23,26 @@ export interface PresetCheck {
   readonly findings: readonly CollectionFinding[];
 }
 
+/** `rulesFor` gives the balance rules that are on for each game. */
 export function checkCollection(
   pieces: readonly TerrainPiece[],
+  rulesFor: (preset: GameSystemPreset) => readonly RuleId[] = (preset) => preset.defaultRules,
   presets: readonly GameSystemPreset[] = PRESETS,
 ): PresetCheck[] {
-  return presets.map((preset) => checkCollectionFor(pieces, preset));
+  return presets.map((preset) => checkCollectionFor(pieces, preset, rulesFor(preset)));
 }
 
 export function checkCollectionFor(
   pieces: readonly TerrainPiece[],
   preset: GameSystemPreset,
+  enabledRules: readonly RuleId[] = preset.defaultRules,
 ): PresetCheck {
   const board = preset.defaultBoard;
   const { usable, warnings } = prepareCollection(pieces, board, preset);
   const findings = [
     ...emptyFindings(pieces, usable),
     ...warnings.map((message) => ({ level: 'warning' as const, message })),
-    ...sightFindings(usable, preset),
+    ...sightFindings(usable, preset, enabledRules),
     ...unpairedFindings(usable),
   ];
   return {
@@ -68,17 +72,26 @@ function emptyFindings(
 function sightFindings(
   usable: readonly TerrainPiece[],
   preset: GameSystemPreset,
+  enabledRules: readonly RuleId[],
 ): CollectionFinding[] {
   const blocks = usable.some((piece) => preset.terrainEffects[piece.type].los === 'blocks');
-  return usable.length === 0 || blocks
+  const missed = sightNeeds(enabledRules);
+  return usable.length === 0 || blocks || missed.length === 0
     ? []
     : [
         {
           level: 'problem',
-          message:
-            'Nothing here blocks line of sight, so boards are unlikely to hide the deployment zones or break up long firing lanes. Add terrain that blocks line of sight, such as ruins or buildings.',
+          message: `Nothing here blocks line of sight, so boards are unlikely to ${missed.join(' or ')}. Add terrain that blocks line of sight, such as ruins or buildings.`,
         },
       ];
+}
+
+/** What the rules that are on need terrain that blocks line of sight for. */
+function sightNeeds(enabledRules: readonly RuleId[]): string[] {
+  return [
+    ...(enabledRules.includes('hiddenDeployment') ? ['hide the deployment zones'] : []),
+    ...(enabledRules.includes('clearLane') ? ['break up long firing lanes'] : []),
+  ];
 }
 
 /** The generator mirrors matching pairs through the centre, so pairs make fair boards easier. */

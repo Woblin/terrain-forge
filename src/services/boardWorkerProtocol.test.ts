@@ -23,6 +23,7 @@ describe('handleRequest', () => {
           preset: setup.preset,
           deployment: setup.deployment,
           seed: 5,
+          enabledRules: setup.preset.defaultRules,
         },
       },
     });
@@ -39,13 +40,20 @@ describe('handleRequest', () => {
       SAMPLE_COLLECTION,
       [{ pieceId: 'building', position: { x: 30, y: 22 }, rotation: 0 }],
       balance,
+      setup.preset.defaultRules,
     );
     const reply = handleRequest({ id: 4, task: { kind: 'analyse', input } });
     expect(reply).toMatchObject({ id: 4, ok: true, result: { kind: 'analyse' } });
   });
 
   it('turns a thrown error into an error reply', () => {
-    const input = fairnessInputFor(setup, SAMPLE_COLLECTION, [], balance);
+    const input = fairnessInputFor(
+      setup,
+      SAMPLE_COLLECTION,
+      [],
+      balance,
+      setup.preset.defaultRules,
+    );
     const broken = { ...input, terrain: null } as unknown as typeof input;
     const reply = handleRequest({ id: 5, task: { kind: 'analyse', input: broken } });
     expect(reply).toMatchObject({ id: 5, ok: false });
