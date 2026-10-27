@@ -80,5 +80,24 @@ service cloud.firestore {
         && request.resource.data.ratio is number && request.resource.data.ratio > 0
         && request.resource.data.updatedAt == request.time;
     }
+
+    // The player's game settings: the game a new board starts on, and the balance rules they
+    // switched off for each game. Game ids are not listed here, so a new game needs no rules
+    // change; the app checks the values when it reads them.
+    match /users/{uid}/settings/preferences {
+      allow read, delete: if isOwner(uid);
+      allow create, update: if canSave(uid)
+        && request.resource.data.keys().hasOnly(
+          ['defaultPresetId', 'rulesOff', 'schemaVersion', 'updatedAt'])
+        && request.resource.data.keys().hasAll(
+          ['defaultPresetId', 'rulesOff', 'schemaVersion', 'updatedAt'])
+        && request.resource.data.defaultPresetId is string
+        && request.resource.data.defaultPresetId.size() >= 1
+        && request.resource.data.defaultPresetId.size() <= 40
+        && request.resource.data.rulesOff is map
+        && request.resource.data.rulesOff.size() <= 20
+        && request.resource.data.schemaVersion == 1
+        && request.resource.data.updatedAt == request.time;
+    }
   }
 }
