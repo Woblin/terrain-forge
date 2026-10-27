@@ -48,4 +48,14 @@ describe('checkBoard', () => {
     expect(checks.get('a')).toEqual(["More than one piece stands fully inside Player A's zone"]);
     expect(checks.get('b')).toEqual(["More than one piece stands fully inside Player A's zone"]);
   });
+
+  it('flags copies beyond the quantity in the collection', () => {
+    const fewer = SAMPLE_COLLECTION.map((entry) =>
+      entry.id === 'building' ? { ...entry, quantity: 1 } : entry,
+    );
+    const pieces = [piece('a', 'building', 15, 22), piece('b', 'building', 45, 22)];
+    const checks = checkBoard(pieces, fewer, rules, 'in');
+    expect(checks.get('a')).toBeUndefined();
+    expect(checks.get('b')).toEqual(['More copies than the 1 in your library']);
+  });
 });

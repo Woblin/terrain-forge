@@ -54,8 +54,13 @@ const MAX_PIECES_INSIDE_ZONE = 1;
 /** One entry per physical piece, sorted by id so the order never depends on the input. */
 export function expandCollection(pieces: readonly TerrainPiece[]): TerrainPiece[] {
   return [...pieces]
-    .sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
+    .sort(compareIds)
     .flatMap((piece) => Array.from({ length: piece.quantity }, () => piece));
+}
+
+/** The order the generator takes pieces in. */
+export function compareIds(a: TerrainPiece, b: TerrainPiece): number {
+  return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
 }
 
 export function canPair(a: TerrainPiece, b: TerrainPiece): boolean {

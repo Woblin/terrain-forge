@@ -1,3 +1,4 @@
+import { Link } from 'react-router';
 import type { BoardPiece } from '../domain/editor';
 import { remainingCount } from '../domain/editor';
 import type { TerrainPiece } from '../domain/terrain';
@@ -7,32 +8,33 @@ import { PieceThumbnail } from './PieceThumbnail';
 
 interface PiecePaletteProps {
   collection: readonly TerrainPiece[];
+  /** Where the pieces come from. */
+  source: 'library' | 'sample' | 'link';
   pieces: readonly BoardPiece[];
   photos: ReadonlyMap<string, StoredPhoto>;
   unit: LengthUnit;
   canAdd: boolean;
-  photoBusy: boolean;
-  photoError: string | null;
   onAdd: (piece: TerrainPiece) => void;
-  onPickPhoto: (piece: TerrainPiece, file: File) => void;
-  onRemovePhoto: (piece: TerrainPiece) => void;
 }
+
+const SOURCES: Readonly<Record<PiecePaletteProps['source'], string>> = {
+  library: 'Your terrain library.',
+  sample: 'The built-in sample set, until you add your own terrain.',
+  link: 'The terrain from the shared link. A new board uses your own terrain.',
+};
 
 const BUTTON =
   'rounded border border-stone-500 px-2 py-1 text-xs hover:bg-stone-700 disabled:opacity-40';
 
-/** The terrain collection: how many of each piece are left, adding them, and their photos. */
+/** The terrain the board is made from: how many of each piece are left, and adding them. */
 export function PiecePalette({
   collection,
+  source,
   pieces,
   photos,
   unit,
   canAdd,
-  photoBusy,
-  photoError,
   onAdd,
-  onPickPhoto,
-  onRemovePhoto,
 }: PiecePaletteProps) {
   return (
     <section aria-labelledby="pieces-heading" className="space-y-3 rounded-lg bg-stone-800 p-4">
@@ -42,6 +44,7 @@ export function PiecePalette({
       >
         Terrain pieces
       </h2>
+      <p className="text-xs text-stone-400">{SOURCES[source]}</p>
       <ul className="space-y-3">
         {collection.map((piece) => {
           const left = remainingCount(pieces, piece);
@@ -67,55 +70,18 @@ export function PiecePalette({
                   >
                     Add
                   </button>
-                  <label
-                    className={`${BUTTON} cursor-pointer has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-40 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-amber-300`}
-                  >
-                    {photo === undefined ? 'Add photo' : 'Replace photo'}
-                    <input
-                      type="file"
-                      accept="image/*"
-                      disabled={photoBusy}
-                      aria-label={`${photo === undefined ? 'Add a photo' : 'Replace the photo'} of ${piece.name}`}
-                      onChange={(event) => {
-                        const file = event.target.files?.[0];
-                        event.target.value = '';
-                        if (file !== undefined) {
-                          onPickPhoto(piece, file);
-                        }
-                      }}
-                      className="sr-only"
-                    />
-                  </label>
-                  {photo !== undefined && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        onRemovePhoto(piece);
-                      }}
-                      aria-label={`Remove the photo of ${piece.name}`}
-                      className={BUTTON}
-                    >
-                      Remove photo
-                    </button>
-                  )}
                 </div>
               </div>
             </li>
           );
         })}
       </ul>
-      <div aria-live="polite" className="text-sm">
-        {photoBusy && <p className="text-stone-300">Opening photo…</p>}
-        {photoError !== null && (
-          <p role="alert" className="text-red-300">
-            {photoError}
-          </p>
-        )}
-      </div>
-      <p className="text-xs text-stone-400">
-        Photos stay until you reload the page. Saving them comes with sign-in and your own terrain
-        library.
-      </p>
+      <Link
+        to="/library"
+        className="inline-block text-sm text-amber-300 underline hover:text-amber-200"
+      >
+        Edit your terrain and photos
+      </Link>
     </section>
   );
 }

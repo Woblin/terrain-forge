@@ -16,6 +16,7 @@
     "format:check": "prettier --check .",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:rules": "firebase emulators:exec --only firestore --project demo-terrain-forge \"vitest run --config vitest.rules.config.ts\"",
     "emulators": "firebase emulators:start --project demo-terrain-forge --import=.emulator-data --export-on-exit",
     "validate": "yarn typecheck && yarn lint && yarn format:check && yarn test"
   },
@@ -28,6 +29,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@firebase/rules-unit-testing": "^6.0.0",
     "@tailwindcss/vite": "^4.3.3",
     "@types/node": "^24.19.2",
     "@types/react": "^19.3.0",

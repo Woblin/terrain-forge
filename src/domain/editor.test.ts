@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   canRedo,
   canUndo,
+  countMissingNow,
   currentLayout,
   editorReducer,
   HISTORY_LIMIT,
@@ -155,5 +156,44 @@ describe('editorReducer', () => {
       { type: 'undo' },
     );
     expect(state.selected).toBeNull();
+  });
+
+  it('drops pieces that left the collection from the board and the whole history', () => {
+    const before = run(
+      { type: 'generated', layout: layout(1, 3) },
+      move('piece-2', 40),
+      { type: 'selected', key: 'piece-2' },
+      { type: 'undo' },
+    );
+    const others = layout(2, 1).placements.map((placement) => ({
+      ...placement,
+      pieceId: 'forest',
+    }));
+    const mixed = editorReducer(before, {
+      type: 'generated',
+      layout: { ...layout(2), placements: [...layout(2).placements, ...others] },
+    });
+    const ids = new Set(['forest']);
+    expect(countMissingNow(mixed, ids)).toBe(2);
+    const after = editorReducer(mixed, { type: 'collectionChanged', pieceIds: ids });
+    expect(after.present?.pieces.map((piece) => piece.placement.pieceId)).toEqual(['forest']);
+    expect(after.past.every((snapshot) => snapshot.pieces.length === 0)).toBe(true);
+    expect(after.future).toEqual([]);
+    expect(after.past).toHaveLength(mixed.past.length);
+    expect(countMissingNow(after, ids)).toBe(0);
+  });
+
+  it('keeps the state and the selection when nothing left the collection', () => {
+    const state = run(
+      { type: 'generated', layout: layout(1) },
+      { type: 'selected', key: 'piece-1' },
+    );
+    const same = editorReducer(state, { type: 'collectionChanged', pieceIds: new Set(['ruin']) });
+    expect(same).toBe(state);
+    const cleared = editorReducer(state, {
+      type: 'collectionChanged',
+      pieceIds: new Set<string>(),
+    });
+    expect(cleared.selected).toBeNull();
   });
 });

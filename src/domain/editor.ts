@@ -44,6 +44,7 @@ export type EditorAction =
       readonly rotation: number;
     }
   | { readonly type: 'removed'; readonly key: string }
+  | { readonly type: 'collectionChanged'; readonly pieceIds: ReadonlySet<string> }
   | { readonly type: 'selected'; readonly key: string | null }
   | { readonly type: 'undo' }
   | { readonly type: 'redo' };
@@ -69,6 +70,8 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
       return added(state, action.piece, action.position, action.rotation);
     case 'removed':
       return removed(state, action.key);
+    case 'collectionChanged':
+      return collectionChanged(state, action.pieceIds);
     case 'selected':
       return selected(state, action.key);
     case 'undo':
@@ -161,6 +164,45 @@ function removed(state: EditorState, key: string): EditorState {
   const pieces = present.pieces.filter((piece) => piece.key !== key);
   const next = commit(state, { ...present, pieces, edited: true });
   return { ...next, selected: state.selected === key ? null : state.selected };
+}
+
+/**
+ * Drops pieces that are no longer in the collection from the board and from the undo history,
+ * so undo can never bring back a piece that does not exist. Not an undo step itself.
+ */
+function collectionChanged(state: EditorState, pieceIds: ReadonlySet<string>): EditorState {
+  if (state.present === null || missingAnywhere(state, pieceIds) === 0) {
+    return state;
+  }
+  const keep = (snapshot: EditorSnapshot): EditorSnapshot => ({
+    ...snapshot,
+    pieces: snapshot.pieces.filter((piece) => pieceIds.has(piece.placement.pieceId)),
+  });
+  const present = keep(state.present);
+  return {
+    ...state,
+    past: state.past.map(keep),
+    present,
+    future: state.future.map(keep),
+    selected: keepSelection(present, state.selected),
+  };
+}
+
+/** How many pieces anywhere in the editor's history are not in the collection. */
+function missingAnywhere(state: EditorState, pieceIds: ReadonlySet<string>): number {
+  const snapshots = state.present === null ? [] : [...state.past, state.present, ...state.future];
+  return snapshots.reduce(
+    (sum, snapshot) =>
+      sum + snapshot.pieces.filter((piece) => !pieceIds.has(piece.placement.pieceId)).length,
+    0,
+  );
+}
+
+/** How many pieces on the board now are not in the collection. */
+export function countMissingNow(state: EditorState, pieceIds: ReadonlySet<string>): number {
+  return (
+    state.present?.pieces.filter((piece) => !pieceIds.has(piece.placement.pieceId)).length ?? 0
+  );
 }
 
 function selected(state: EditorState, key: string | null): EditorState {

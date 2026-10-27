@@ -811,6 +811,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@firebase/rules-unit-testing@npm:^6.0.0":
+  version: 6.0.0
+  resolution: "@firebase/rules-unit-testing@npm:6.0.0"
+  peerDependencies:
+    firebase: ^13.0.0
+  checksum: 10c0/806af057693ff1932bd4157190511e4ed18cf600b37a96fde0bd17016599908e71fed2498872e259ac44c5fe1d1338430916985008450db6f346979fcabada00
+  languageName: node
+  linkType: hard
+
 "@firebase/storage-compat@npm:0.4.6":
   version: 0.4.6
   resolution: "@firebase/storage-compat@npm:0.4.6"
@@ -3213,6 +3222,7 @@ __metadata:
   resolution: "terrain-forge@workspace:."
   dependencies:
     "@eslint/js": "npm:^10.0.1"
+    "@firebase/rules-unit-testing": "npm:^6.0.0"
     "@tailwindcss/vite": "npm:^4.3.3"
     "@types/node": "npm:^24.19.2"
     "@types/react": "npm:^19.3.0"

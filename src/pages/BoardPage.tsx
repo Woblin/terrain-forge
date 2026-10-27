@@ -1,9 +1,15 @@
 import { useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
-import { Link, useSearchParams } from 'react-router';
+import { useLocation, useSearchParams } from 'react-router';
 import { boardCentre } from '../domain/board';
 import { fairnessInputFor } from '../domain/boardAnalysis';
 import { checkBoard } from '../domain/boardChecks';
-import { canRedo, canUndo, type BoardPiece, type PieceUpdate } from '../domain/editor';
+import {
+  canRedo,
+  canUndo,
+  countMissingNow,
+  type BoardPiece,
+  type PieceUpdate,
+} from '../domain/editor';
 import { resolveGameSetup, type GameSetup } from '../domain/gameSetup';
 import { prepareCollection } from '../domain/generator';
 import { add, type Point } from '../domain/geometry';
@@ -17,6 +23,7 @@ import { boardLinkSearch, parseBoardLink, type ParsedBoardLink } from '../domain
 import { normalizeRotation, snapRotation } from '../domain/snapping';
 import type { Placement, TerrainPiece } from '../domain/terrain';
 import { formatLength } from '../domain/units';
+import { AppHeader } from '../components/AppHeader';
 import { BoardView } from '../components/BoardView';
 import { DeploymentZones } from '../components/DeploymentZones';
 import { EditorToolbar } from '../components/EditorToolbar';
@@ -24,14 +31,12 @@ import { FairnessPanel } from '../components/FairnessPanel';
 import { GeneratorControls } from '../components/GeneratorControls';
 import { HiddenAreaOverlay } from '../components/HiddenAreaOverlay';
 import { LaneOverlay } from '../components/LaneOverlay';
-import { PhotoCropper } from '../components/PhotoCropper';
 import { PiecePalette } from '../components/PiecePalette';
 import { pieceLabel } from '../components/pieceLabel';
 import { RotateHandle } from '../components/RotateHandle';
 import { SeedField } from '../components/SeedField';
 import { TerrainLegend } from '../components/TerrainLegend';
 import { TerrainShape } from '../components/TerrainShape';
-import { UnitToggle } from '../components/UnitToggle';
 import { copyText } from '../services/clipboard';
 import { useBoardAnalysis } from '../hooks/useBoardAnalysis';
 import { useBoardDrag } from '../hooks/useBoardDrag';
@@ -39,15 +44,13 @@ import { useEditorKeys } from '../hooks/useEditorKeys';
 import { useElementWidth } from '../hooks/useElementWidth';
 import { randomSeed, useGenerator } from '../hooks/useGenerator';
 import { useLayoutEditor } from '../hooks/useLayoutEditor';
-import { usePhotoEditor } from '../hooks/usePhotoEditor';
-import { useTerrainImages } from '../hooks/useTerrainImages';
+import { useTerrainLibrary } from '../hooks/libraryContext';
 import { useUnits } from '../hooks/unitsContext';
 
-/** Until players have their own library, every board uses the built-in collection. */
-const COLLECTION = SAMPLE_COLLECTION;
 const DEFAULT_PRESET = PRESETS[0] as GameSystemPreset;
 const DEFAULT_DEPLOYMENT_ID = 'long-edges';
 const NO_PIECES: readonly BoardPiece[] = [];
+const NO_WARNINGS: readonly string[] = [];
 
 /** Sizes that stay easy to hit with a finger whatever the board's scale, in CSS pixels. */
 const HIT_OUTLINE_PX = 24;
@@ -59,13 +62,22 @@ interface BoardChoice {
   readonly deploymentId: string;
 }
 
+/** Where the board's pieces come from: the player's own terrain, or a shared link. */
+type CollectionSource =
+  { readonly kind: 'own' } | { readonly kind: 'link'; readonly pieces: readonly TerrainPiece[] };
+
+const OWN: CollectionSource = { kind: 'own' };
+
 /** Generate a board, see how fair it is, and edit it by hand. */
 export function BoardPage() {
   const { unit } = useUnits();
+  const library = useTerrainLibrary();
+  const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const [initialLink] = useState(() => parseBoardLink(searchParams.toString()));
-  const [choice, setChoice] = useState(() => initialChoice(initialLink));
+  const [choice, setChoice] = useState(() => initialChoice(initialLink, location.state));
   const [notice, setNotice] = useState(() => linkNotice(initialLink));
+  const [source, setSource] = useState(() => initialSource(initialLink));
   const [editor, dispatch] = useLayoutEditor();
   const { status, generate } = useGenerator();
   const [snap, setSnap] = useState(true);
@@ -73,14 +85,30 @@ export function BoardPage() {
   const [showPhotos, setShowPhotos] = useState(true);
   const [showLane, setShowLane] = useState(true);
   const [showHidden, setShowHidden] = useState(false);
-  const images = useTerrainImages();
-  const photoEditor = usePhotoEditor(images.setPhoto);
   const svgRef = useRef<SVGSVGElement>(null);
   const boardPixels = useElementWidth(svgRef);
 
+  const ownCollection = library.pieces.length > 0 ? library.pieces : SAMPLE_COLLECTION;
+  const collection = source.kind === 'link' ? source.pieces : ownCollection;
+  const knownIds = useMemo(() => new Set(collection.map((piece) => piece.id)), [collection]);
+  const [seenCollection, setSeenCollection] = useState(collection);
+  if (seenCollection !== collection) {
+    setSeenCollection(collection);
+    const missing = countMissingNow(editor, knownIds);
+    if (missing > 0) {
+      setNotice(removedNotice(missing));
+    }
+    dispatch({ type: 'collectionChanged', pieceIds: knownIds });
+  }
+
   const { present } = editor;
   const origin = present?.origin;
-  const pieces = present?.pieces ?? NO_PIECES;
+  // Pieces that just left the library are already gone from this render, before the editor
+  // drops them from its history.
+  const pieces = useMemo(
+    () => (present?.pieces ?? NO_PIECES).filter((piece) => knownIds.has(piece.placement.pieceId)),
+    [present, knownIds],
+  );
   const setup = useMemo(
     () =>
       origin === undefined ? undefined : resolveGameSetup(origin.presetId, origin.deploymentId),
@@ -95,7 +123,7 @@ export function BoardPage() {
     {
       pieces,
       board,
-      collection: COLLECTION,
+      collection,
       edgeMargin: setup?.preset.edgeMargin ?? 0,
       unit,
       snap,
@@ -104,70 +132,85 @@ export function BoardPage() {
     dispatch,
   );
   const shownPieces = useMemo(() => withPreview(pieces, drag.preview), [pieces, drag.preview]);
+  const prepared = useMemo(
+    () =>
+      setup === undefined ? undefined : prepareCollection(collection, setup.board, setup.preset),
+    [setup, collection],
+  );
   const fairnessInput = useMemo(
     () =>
-      setup === undefined
+      setup === undefined || prepared === undefined
         ? null
         : fairnessInputFor(
             setup,
-            COLLECTION,
+            collection,
             shownPieces.map((piece) => piece.placement),
+            prepared.balance,
           ),
-    [setup, shownPieces],
+    [setup, collection, prepared, shownPieces],
   );
   const analysis = useBoardAnalysis(fairnessInput);
-  const warnings = useMemo(
-    () =>
-      setup === undefined ? [] : prepareCollection(COLLECTION, setup.board, setup.preset).warnings,
-    [setup],
-  );
   const problems = useMemo(
     () =>
       setup === undefined
         ? new Map<string, readonly string[]>()
-        : checkBoard(shownPieces, COLLECTION, placementRules(setup), unit),
-    [setup, shownPieces, unit],
+        : checkBoard(shownPieces, collection, placementRules(setup), unit),
+    [setup, shownPieces, collection, unit],
   );
 
-  async function runGeneration(next: BoardChoice, seed: number): Promise<void> {
+  async function runGeneration(
+    next: BoardChoice,
+    seed: number,
+    from: CollectionSource,
+  ): Promise<void> {
     const target = resolveGameSetup(next.presetId, next.deploymentId);
     if (target === undefined) {
       return;
     }
     const result = await generate({
       board: target.board,
-      pieces: COLLECTION,
+      pieces: from.kind === 'link' ? from.pieces : ownCollection,
       preset: target.preset,
       deployment: target.deployment,
       seed,
     });
     if (result?.ok === true) {
+      setSource(from);
       dispatch({ type: 'generated', layout: result.layout });
     }
   }
 
+  /** A new board is always made from the player's own terrain. */
   function generateNew(seed: number): void {
     setNotice(null);
-    void runGeneration(choice, seed);
+    void runGeneration(choice, seed, OWN);
   }
 
+  const libraryLoaded = library.status !== 'loading';
   const generateFirstBoard = useEffectEvent(() => {
     const seed = initialLink.kind === 'valid' ? initialLink.link.seed : randomSeed();
-    void runGeneration(choice, seed);
+    void runGeneration(choice, seed, source);
   });
   useEffect(() => {
-    generateFirstBoard();
-  }, []);
+    if (libraryLoaded) {
+      // The board's state changes only once the worker replies, never during this effect.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      generateFirstBoard();
+    }
+  }, [libraryLoaded]);
 
   useEffect(() => {
     if (origin === undefined) {
       return;
     }
-    const search = boardLinkSearch(origin);
+    const search = boardLinkSearch({
+      ...origin,
+      pieces: collection === SAMPLE_COLLECTION ? null : collection,
+    });
     if (searchParams.toString() !== search) {
       setSearchParams(search, { replace: true });
     }
-  }, [origin, searchParams, setSearchParams]);
+  }, [origin, collection, searchParams, setSearchParams]);
 
   const selected = pieces.find((piece) => piece.key === editor.selected);
   const shownSelected = shownPieces.find((piece) => piece.key === editor.selected);
@@ -222,16 +265,11 @@ export function BoardPage() {
   const selectedPiece =
     shownSelected === undefined
       ? undefined
-      : pieceById(COLLECTION, shownSelected.placement.pieceId);
+      : pieceById(collection, shownSelected.placement.pieceId);
 
   return (
     <div className="min-h-screen bg-stone-900 text-stone-100">
-      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-stone-800 px-4 py-3">
-        <Link to="/" className="text-lg font-bold hover:text-amber-300">
-          Terrain Forge
-        </Link>
-        <UnitToggle />
-      </header>
+      <AppHeader />
       <main className="mx-auto grid max-w-[96rem] gap-4 p-4 lg:grid-cols-[16rem_minmax(0,1fr)_24rem]">
         <div className="space-y-4">
           <GeneratorControls
@@ -308,7 +346,7 @@ export function BoardPage() {
               <HiddenAreaOverlay hidden={analysis.analysis.hidden} />
             )}
             {shownPieces.map((boardPiece) => {
-              const piece = pieceById(COLLECTION, boardPiece.placement.pieceId);
+              const piece = pieceById(collection, boardPiece.placement.pieceId);
               const issues = problems.get(boardPiece.key);
               return (
                 <TerrainShape
@@ -318,7 +356,7 @@ export function BoardPage() {
                   label={pieceLabel(piece, boardPiece.placement, unit, issues)}
                   selected={editor.selected === boardPiece.key}
                   hasProblems={issues !== undefined}
-                  photoUrl={showPhotos ? images.photos.get(piece.id)?.url : undefined}
+                  photoUrl={showPhotos ? library.photos.get(piece.id)?.url : undefined}
                   hitWidth={HIT_OUTLINE_PX * inchesPerPixel}
                   onPointerDown={(event) => {
                     drag.startMove(boardPiece.key, event);
@@ -370,7 +408,7 @@ export function BoardPage() {
             balance={fairnessInput?.balance ?? null}
             edited={present?.edited ?? false}
             misplaced={problems.size}
-            warnings={warnings}
+            warnings={prepared?.warnings ?? NO_WARNINGS}
             unit={unit}
             showLane={showLane}
             showHidden={showHidden}
@@ -378,43 +416,58 @@ export function BoardPage() {
             onShowHiddenChange={setShowHidden}
           />
           <PiecePalette
-            collection={COLLECTION}
+            collection={collection}
+            source={sourceKind(source, collection)}
             pieces={pieces}
-            photos={images.photos}
+            photos={library.photos}
             unit={unit}
             canAdd={present !== null}
-            photoBusy={photoEditor.busy === 'loading'}
-            photoError={photoEditor.editing === null ? photoEditor.error : null}
             onAdd={addPiece}
-            onPickPhoto={(piece, file) => {
-              void photoEditor.open(piece, file);
-            }}
-            onRemovePhoto={(piece) => {
-              images.removePhoto(piece.id);
-            }}
           />
         </div>
       </main>
-      {photoEditor.editing !== null && (
-        <PhotoCropper
-          piece={photoEditor.editing.piece}
-          image={photoEditor.editing.image}
-          saving={photoEditor.busy === 'saving'}
-          error={photoEditor.error}
-          onSave={(view) => {
-            void photoEditor.save(view);
-          }}
-          onCancel={photoEditor.cancel}
-        />
-      )}
     </div>
   );
 }
 
-function initialChoice(link: ParsedBoardLink): BoardChoice {
+/** A shared link decides the board; otherwise the library page may ask for a game system. */
+function initialChoice(link: ParsedBoardLink, routeState: unknown): BoardChoice {
+  if (link.kind === 'valid') {
+    return { presetId: link.link.presetId, deploymentId: link.link.deploymentId };
+  }
+  const asked = requestedPreset(routeState);
+  return { presetId: asked ?? DEFAULT_PRESET.id, deploymentId: DEFAULT_DEPLOYMENT_ID };
+}
+
+function requestedPreset(routeState: unknown): string | null {
+  if (typeof routeState !== 'object' || routeState === null || !('presetId' in routeState)) {
+    return null;
+  }
+  const { presetId } = routeState;
+  return typeof presetId === 'string' && findPreset(presetId) !== undefined ? presetId : null;
+}
+
+/** A link reproduces its board from the terrain it carries, or the sample set if none. */
+function initialSource(link: ParsedBoardLink): CollectionSource {
   return link.kind === 'valid'
-    ? { presetId: link.link.presetId, deploymentId: link.link.deploymentId }
-    : { presetId: DEFAULT_PRESET.id, deploymentId: DEFAULT_DEPLOYMENT_ID };
+    ? { kind: 'link', pieces: link.link.pieces ?? SAMPLE_COLLECTION }
+    : OWN;
+}
+
+function sourceKind(
+  source: CollectionSource,
+  collection: readonly TerrainPiece[],
+): 'link' | 'sample' | 'library' {
+  if (source.kind === 'link') {
+    return 'link';
+  }
+  return collection === SAMPLE_COLLECTION ? 'sample' : 'library';
+}
+
+function removedNotice(count: number): string {
+  return count === 1
+    ? 'A piece was taken off the board because it is no longer in your library.'
+    : `${String(count)} pieces were taken off the board because they are no longer in your library.`;
 }
 
 function linkNotice(link: ParsedBoardLink): string | null {
