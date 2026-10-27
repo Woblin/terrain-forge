@@ -22,6 +22,16 @@ import { sameTerrain } from '../domain/libraryLink';
 import { findPreset } from '../domain/presets';
 import { seedToCode } from '../domain/random';
 import { SAMPLE_COLLECTION } from '../domain/sampleCollection';
+import {
+  changedPieces,
+  defaultBoardName,
+  hasUnsavedChanges,
+  layoutFingerprint,
+  libraryHasTerrain,
+  photoFits,
+  savedBoardContent,
+  type SavedBoard,
+} from '../domain/savedBoard';
 import { boardLinkSearch, parseBoardLink, type ParsedBoardLink } from '../domain/shareLink';
 import { normalizeRotation, snapRotation } from '../domain/snapping';
 import type { Placement, TerrainPiece } from '../domain/terrain';
@@ -37,8 +47,10 @@ import { LaneOverlay } from '../components/LaneOverlay';
 import { PiecePalette } from '../components/PiecePalette';
 import { pieceLabel } from '../components/pieceLabel';
 import { RotateHandle } from '../components/RotateHandle';
+import { SaveBoardControls } from '../components/SaveBoardControls';
 import { SeedField } from '../components/SeedField';
 import { TerrainLegend } from '../components/TerrainLegend';
+import { TerrainChoiceDialog } from '../components/TerrainChoiceDialog';
 import { TerrainShape } from '../components/TerrainShape';
 import { copyText } from '../services/clipboard';
 import { useBoardAnalysis } from '../hooks/useBoardAnalysis';
@@ -46,6 +58,7 @@ import { useBoardDrag } from '../hooks/useBoardDrag';
 import { useEditorKeys } from '../hooks/useEditorKeys';
 import { useElementWidth } from '../hooks/useElementWidth';
 import { randomSeed, useGenerator } from '../hooks/useGenerator';
+import { useLeaveWarning } from '../hooks/useLeaveWarning';
 import {
   DEFAULT_DEPLOYMENT_ID,
   useBoardSession,
@@ -55,6 +68,7 @@ import {
 } from '../hooks/boardSessionContext';
 import { useGamePreferences } from '../hooks/gamePreferencesContext';
 import { useTerrainLibrary } from '../hooks/libraryContext';
+import { useSavedBoards, type SavedBoards } from '../hooks/savedBoardsContext';
 import { useUnits } from '../hooks/unitsContext';
 
 const NO_PIECES: readonly BoardPiece[] = [];
@@ -68,9 +82,19 @@ const HANDLE_GAP_PX = 30;
 
 const OWN: CollectionSource = { kind: 'own' };
 
+/** The address parameter that names a saved board, as in `/board?saved=<id>`. */
+const SAVED_PARAM = 'saved';
+
+/** A new board the player asked for, waiting for them to pick its terrain. */
+interface PendingBoard {
+  readonly seed: number;
+  readonly choice: BoardChoice;
+}
+
 /** How the page opens: on the board kept from before, or on a new one. */
 type Entry =
   | { readonly kind: 'keep' }
+  | { readonly kind: 'saved'; readonly id: string }
   | {
       readonly kind: 'new';
       readonly link: ParsedBoardLink;
@@ -87,10 +111,22 @@ type Entry =
 export function BoardPage() {
   const { unit } = useUnits();
   const library = useTerrainLibrary();
+  const savedBoards = useSavedBoards();
   const settings = useGamePreferences();
   const session = useBoardSession();
-  const { editor, dispatch, choice, setChoice, source, setSource, notice, setNotice, setView } =
-    session;
+  const {
+    editor,
+    dispatch,
+    choice,
+    setChoice,
+    source,
+    setSource,
+    notice,
+    setNotice,
+    setView,
+    opened,
+    setOpened,
+  } = session;
   const { snap, movePairs, showPhotos, showLane, showHidden } = session.view;
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -98,12 +134,32 @@ export function BoardPage() {
   const [entry] = useState(() =>
     boardEntry(session, ownCollection, searchParams.toString(), location.state),
   );
+  const [pendingBoard, setPendingBoard] = useState<PendingBoard | null>(null);
   const { status, generate } = useGenerator();
   const svgRef = useRef<SVGSVGElement>(null);
   const boardPixels = useElementWidth(svgRef);
 
-  const collection = source.kind === 'link' ? source.pieces : ownCollection;
+  const collection = source.kind === 'own' ? ownCollection : source.pieces;
   const knownIds = useMemo(() => new Set(collection.map((piece) => piece.id)), [collection]);
+  // Terrain that is not the library's shows a library photo only where it fits the piece.
+  const photos = useMemo(
+    () =>
+      source.kind === 'own'
+        ? library.photos
+        : new Map(
+            [...library.photos].filter(([id]) => {
+              const piece = pieceOf(collection, id);
+              return (
+                piece !== undefined &&
+                photoFits(
+                  piece,
+                  library.pieces.find((candidate) => candidate.id === id),
+                )
+              );
+            }),
+          ),
+    [source.kind, library.photos, library.pieces, collection],
+  );
 
   const { present } = editor;
   const origin = present?.origin;
@@ -155,6 +211,8 @@ export function BoardPage() {
     [origin, setup, collection, prepared, shownPieces],
   );
   const analysis = useBoardAnalysis(fairnessInput);
+  const unsaved = hasUnsavedChanges(opened, present);
+  useLeaveWarning(unsaved);
   const problems = useMemo(
     () =>
       setup === undefined
@@ -194,7 +252,7 @@ export function BoardPage() {
     if (target === undefined) {
       return;
     }
-    const pieces = from.kind === 'link' ? from.pieces : latestOwn.current;
+    const pieces = from.kind === 'own' ? latestOwn.current : from.pieces;
     const result = await generate({
       board: target.board,
       pieces,
@@ -214,10 +272,77 @@ export function BoardPage() {
     }
   }
 
-  /** A new board is always made from the player's own terrain, with their rules. */
+  /** A new board is made from the player's own terrain, with their rules. */
   function generateNew(seed: number, next: BoardChoice = choice): void {
     setNotice(null);
+    setOpened(null);
     void runGeneration(next, seed, OWN, playerRules(next));
+  }
+
+  /** A new board from the terrain kept with this board, with the player's rules. */
+  function generateFromBoardTerrain(seed: number, next: BoardChoice): void {
+    setNotice(null);
+    setOpened(null);
+    void runGeneration(next, seed, source, playerRules(next));
+  }
+
+  /** A new board the player asked for. Terrain kept with the board asks which terrain to use. */
+  function requestNew(seed: number, next: BoardChoice = choice): void {
+    if (source.kind === 'saved') {
+      setPendingBoard({ seed, choice: next });
+    } else {
+      generateNew(seed, next);
+    }
+  }
+
+  /** Shows a saved board as it was saved, on the library's terrain when it is still the same. */
+  function openSaved(board: SavedBoard): void {
+    const { layout } = board;
+    const changed = changedPieces(board.pieces, ownCollection).length;
+    dispatch({ type: 'loaded', layout, edited: board.edited });
+    setChoice({ presetId: layout.presetId, deploymentId: layout.deploymentId });
+    setSource(changed === 0 ? OWN : { kind: 'saved', pieces: board.pieces });
+    setNotice(changed === 0 ? null : terrainChangedNotice(changed));
+    setOpened({ id: board.id, name: board.name, fingerprint: layoutFingerprint(layout) });
+  }
+
+  /** Opens the saved board the address names, or a new board when it cannot be found. */
+  function openEntry(boardId: string): void {
+    const board = savedBoards.boards.find((saved) => saved.id === boardId);
+    if (board !== undefined) {
+      openSaved(board);
+      return;
+    }
+    const next = startingChoice();
+    setChoice(next);
+    generateNew(randomSeed(), next);
+    setNotice(missingBoardNotice(savedBoards));
+  }
+
+  /** Saves the board under `name`; returns a message when it did not work. */
+  function saveBoard(name: string, asCopy: boolean): string | null {
+    if (present === null) {
+      return 'There is no board to save yet.';
+    }
+    const passed = analysis.analysis?.report.failedRules.length === 0;
+    const content = savedBoardContent(present, collection, name, passed);
+    const result = savedBoards.save(content, asCopy ? null : (opened?.id ?? null));
+    if (!result.ok) {
+      return result.message;
+    }
+    setOpened({
+      id: result.id,
+      name: content.name,
+      fingerprint: layoutFingerprint(content.layout),
+    });
+    return null;
+  }
+
+  function renameBoard(name: string): void {
+    if (opened !== null) {
+      savedBoards.rename(opened.id, name);
+      setOpened({ ...opened, name });
+    }
   }
 
   const libraryLoaded = library.status !== 'loading';
@@ -226,7 +351,9 @@ export function BoardPage() {
   const entryOwner = useRef<string | null>(null);
   const startBoard = useEffectEvent(() => {
     entryOwner.current ??= library.owner;
-    if (entryOwner.current === library.owner && entry.kind === 'new') {
+    if (entryOwner.current === library.owner && entry.kind === 'saved') {
+      openEntry(entry.id);
+    } else if (entryOwner.current === library.owner && entry.kind === 'new') {
       const from = linksToOwn(entry.source, ownCollection) ? OWN : entry.source;
       const next = entry.choice ?? startingChoice();
       dispatch({ type: 'cleared' });
@@ -245,17 +372,29 @@ export function BoardPage() {
     }
   });
   // A board waits for the player's settings, so that it starts on their game and rules.
-  const ready = libraryLoaded && settings.ready;
+  const ready =
+    libraryLoaded && settings.ready && (entry.kind !== 'saved' || savedBoards.status !== 'loading');
   useEffect(() => {
     if (ready) {
       startBoard();
     }
   }, [ready, library.owner]);
 
+  // A page that opens another board has nothing to follow for the board it replaces.
+  const replacedSeen = useRef(entry.kind === 'keep' ? null : session.seenCollection);
+
   /** Takes pieces that left the library off the board, or starts over on other terrain. */
   const followCollection = useEffectEvent((seen: readonly TerrainPiece[] | null) => {
     session.setSeenCollection(collection);
-    if (seen === null || editor.present === null) {
+    const replaced = seen === replacedSeen.current;
+    replacedSeen.current = null;
+    if (seen === null || editor.present === null || replaced) {
+      return;
+    }
+    if (opened !== null && source.kind === 'own' && !libraryHasTerrain(seen, collection)) {
+      // A saved board keeps the terrain it was saved with.
+      setSource({ kind: 'saved', pieces: seen });
+      setNotice(terrainChangedNotice(changedPieces(seen, collection).length));
       return;
     }
     if (
@@ -283,15 +422,39 @@ export function BoardPage() {
     }
   }, [seenCollection, collection]);
 
+  /** Terrain kept with the board that the library holds unchanged becomes the library's again. */
+  const adoptLibrary = useEffectEvent(() => {
+    if (source.kind === 'saved' && libraryHasTerrain(source.pieces, ownCollection)) {
+      setSource(OWN);
+    }
+  });
+  useEffect(() => {
+    if (libraryLoaded) {
+      adoptLibrary();
+    }
+  }, [libraryLoaded, source, ownCollection]);
+
   useEffect(() => {
     if (origin === undefined) {
       return;
     }
-    const search = boardLinkSearch({ ...origin, pieces: linkPieces(source, ownCollection) });
+    const search =
+      opened === null
+        ? boardLinkSearch({ ...origin, pieces: linkPieces(source, ownCollection) })
+        : new URLSearchParams([[SAVED_PARAM, opened.id]]).toString();
     if (searchParams.toString() !== search) {
       setSearchParams(search, { replace: true });
     }
-  }, [origin, source, ownCollection, searchParams, setSearchParams]);
+  }, [origin, source, ownCollection, opened, searchParams, setSearchParams]);
+
+  /** The share link of the board, which makes the same board again, without hand edits. */
+  function shareUrl(): string {
+    if (origin === undefined) {
+      return window.location.href;
+    }
+    const search = boardLinkSearch({ ...origin, pieces: linkPieces(source, ownCollection) });
+    return new URL(`/board?${search}`, window.location.origin).href;
+  }
 
   const selected = pieces.find((piece) => piece.key === editor.selected);
   const shownSelected = shownPieces.find((piece) => piece.key === editor.selected);
@@ -371,17 +534,34 @@ export function BoardPage() {
               setChoice({ ...choice, deploymentId });
             }}
             onGenerate={() => {
-              generateNew(randomSeed());
+              requestNew(randomSeed());
             }}
           />
           <SeedField
             seedCode={origin === undefined ? null : seedToCode(origin.seed)}
             edited={present?.edited ?? false}
-            onLoadSeed={generateNew}
-            onRandomSeed={() => {
-              generateNew(randomSeed());
+            onLoadSeed={(seed) => {
+              requestNew(seed);
             }}
-            onCopyLink={() => copyText(window.location.href)}
+            onRandomSeed={() => {
+              requestNew(randomSeed());
+            }}
+            onCopyLink={() => copyText(shareUrl())}
+          />
+          <SaveBoardControls
+            access={savedBoards.access}
+            opened={opened}
+            unsaved={unsaved}
+            sending={savedBoards.saving}
+            hasBoard={present !== null && savedBoards.status === 'ready'}
+            defaultName={defaultBoardName(
+              setup?.preset.name ?? chosenPreset.name,
+              setup?.deployment.name ?? '',
+              new Date(),
+            )}
+            error={savedBoards.writeError}
+            onSave={saveBoard}
+            onRename={renameBoard}
           />
           {notice !== null && (
             <p
@@ -449,7 +629,7 @@ export function BoardPage() {
                   label={pieceLabel(piece, boardPiece.placement, unit, issues)}
                   selected={editor.selected === boardPiece.key}
                   hasProblems={issues !== undefined}
-                  photoUrl={showPhotos ? library.photos.get(piece.id)?.url : undefined}
+                  photoUrl={showPhotos ? photos.get(piece.id)?.url : undefined}
                   hitWidth={HIT_OUTLINE_PX * inchesPerPixel}
                   onPointerDown={(event) => {
                     drag.startMove(boardPiece.key, event);
@@ -517,13 +697,28 @@ export function BoardPage() {
             collection={collection}
             source={sourceKind(source, collection)}
             pieces={pieces}
-            photos={library.photos}
+            photos={photos}
             unit={unit}
             canAdd={present !== null}
             onAdd={addPiece}
           />
         </div>
       </main>
+      {pendingBoard !== null && (
+        <TerrainChoiceDialog
+          onBoardTerrain={() => {
+            setPendingBoard(null);
+            generateFromBoardTerrain(pendingBoard.seed, pendingBoard.choice);
+          }}
+          onLibrary={() => {
+            setPendingBoard(null);
+            generateNew(pendingBoard.seed, pendingBoard.choice);
+          }}
+          onCancel={() => {
+            setPendingBoard(null);
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -540,6 +735,12 @@ function boardEntry(
 ): Entry {
   const { present } = session.editor;
   const asked = requestedBoard(routeState);
+  const savedId = new URLSearchParams(search).get(SAVED_PARAM);
+  if (savedId !== null && asked === null) {
+    return present !== null && session.opened?.id === savedId
+      ? { kind: 'keep' }
+      : { kind: 'saved', id: savedId };
+  }
   const keptSearch =
     present === null
       ? null
@@ -587,7 +788,7 @@ function linkPieces(
   source: CollectionSource,
   own: readonly TerrainPiece[],
 ): readonly TerrainPiece[] | null {
-  const pieces = source.kind === 'link' ? source.pieces : own;
+  const pieces = source.kind === 'own' ? own : source.pieces;
   return pieces === SAMPLE_COLLECTION ? null : pieces;
 }
 
@@ -604,9 +805,9 @@ function linksToOwn(source: CollectionSource, own: readonly TerrainPiece[]): boo
 function sourceKind(
   source: CollectionSource,
   collection: readonly TerrainPiece[],
-): 'link' | 'sample' | 'library' {
-  if (source.kind === 'link') {
-    return 'link';
+): 'link' | 'saved' | 'sample' | 'library' {
+  if (source.kind !== 'own') {
+    return source.kind;
   }
   return collection === SAMPLE_COLLECTION ? 'sample' : 'library';
 }
@@ -615,6 +816,31 @@ function removedNotice(count: number): string {
   return count === 1
     ? 'A piece was taken off the board because it is no longer in your library.'
     : `${String(count)} pieces were taken off the board because they are no longer in your library.`;
+}
+
+function terrainChangedNotice(count: number): string {
+  return count === 1
+    ? 'This board shows its terrain as it was saved: one of its pieces has changed or left your library since.'
+    : `This board shows its terrain as it was saved: ${String(count)} of its pieces have changed or left your library since.`;
+}
+
+function missingBoardNotice(savedBoards: SavedBoards): string {
+  const instead = 'Here is a new board instead.';
+  if (savedBoards.access === 'signedOut') {
+    return `Sign in to open your saved boards. ${instead}`;
+  }
+  if (savedBoards.access === 'unverified') {
+    return `Verify your email to open your saved boards. ${instead}`;
+  }
+  if (savedBoards.loadError !== null) {
+    return `${savedBoards.loadError} ${instead}`;
+  }
+  return `This saved board was not found. It may have been deleted. ${instead}`;
+}
+
+/** The piece with this id in the collection, if there is one. */
+function pieceOf(collection: readonly TerrainPiece[], id: string): TerrainPiece | undefined {
+  return collection.find((piece) => piece.id === id);
 }
 
 function linkNotice(link: ParsedBoardLink): string | null {

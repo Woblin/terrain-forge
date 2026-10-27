@@ -1,5 +1,6 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { DEFAULT_PRESET_ID } from '../domain/presets';
+import type { OpenedBoard } from '../domain/savedBoard';
 import type { TerrainPiece } from '../domain/terrain';
 import {
   BoardSessionContext,
@@ -8,7 +9,7 @@ import {
   type BoardViewOptions,
   type CollectionSource,
 } from '../hooks/boardSessionContext';
-import { useTerrainLibrary } from '../hooks/libraryContext';
+import { GUEST_OWNER, useTerrainLibrary } from '../hooks/libraryContext';
 import { useLayoutEditor } from '../hooks/useLayoutEditor';
 
 interface SessionState {
@@ -19,6 +20,7 @@ interface SessionState {
   readonly notice: string | null;
   readonly view: BoardViewOptions;
   readonly seenCollection: readonly TerrainPiece[] | null;
+  readonly opened: OpenedBoard | null;
 }
 
 const DEFAULT_VIEW: BoardViewOptions = {
@@ -29,14 +31,21 @@ const DEFAULT_VIEW: BoardViewOptions = {
   showHidden: false,
 };
 
-/** Keeps the board while the player visits other pages. Signing in or out starts afresh. */
+/**
+ * Keeps the board while the player visits other pages. Signing out or switching accounts starts
+ * afresh; a board made before signing in stays, with its terrain, so that it can be saved.
+ */
 export function BoardSessionProvider({ children }: { children: ReactNode }) {
   const { owner } = useTerrainLibrary();
   const [editor, dispatch] = useLayoutEditor();
   const [state, setState] = useState(() => freshSession(owner));
   if (state.owner !== owner) {
-    setState(freshSession(owner));
-    dispatch({ type: 'cleared' });
+    if (state.owner === GUEST_OWNER && editor.present !== null) {
+      setState(carriedSession(state, owner));
+    } else {
+      setState(freshSession(owner));
+      dispatch({ type: 'cleared' });
+    }
   }
 
   const session = useMemo(() => {
@@ -66,6 +75,10 @@ export function BoardSessionProvider({ children }: { children: ReactNode }) {
       setSeenCollection: (seenCollection: readonly TerrainPiece[]) => {
         change({ seenCollection });
       },
+      opened: state.opened,
+      setOpened: (opened: OpenedBoard | null) => {
+        change({ opened });
+      },
     };
   }, [editor, dispatch, state]);
 
@@ -80,5 +93,18 @@ function freshSession(owner: string): SessionState {
     notice: null,
     view: DEFAULT_VIEW,
     seenCollection: null,
+    opened: null,
+  };
+}
+
+/** The guest's board, kept for the account that just signed in with the terrain it was made of. */
+function carriedSession(state: SessionState, owner: string): SessionState {
+  const pieces = state.source.kind === 'own' ? (state.seenCollection ?? []) : state.source.pieces;
+  return {
+    ...state,
+    owner,
+    source: { kind: 'saved', pieces },
+    seenCollection: pieces,
+    opened: null,
   };
 }

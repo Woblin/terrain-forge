@@ -3,6 +3,9 @@ import type { LibraryPiece } from '../domain/library';
 import type { EncodedPhoto } from '../domain/imageCrop';
 import type { StoredPhoto } from './useLibraryPhotos';
 
+/** The owner of a library that is not saved, signed out or before the email is verified. */
+export const GUEST_OWNER = 'guest';
+
 /**
  * The player's terrain library and the actions on it. Each action resolves to a message for the
  * player when it fails, or null when it worked.

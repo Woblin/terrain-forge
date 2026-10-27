@@ -1,5 +1,6 @@
 import { createContext, useContext, type ActionDispatch } from 'react';
 import type { EditorAction, EditorState } from '../domain/editor';
+import type { OpenedBoard } from '../domain/savedBoard';
 import type { TerrainPiece } from '../domain/terrain';
 
 export const DEFAULT_DEPLOYMENT_ID = 'long-edges';
@@ -10,9 +11,14 @@ export interface BoardChoice {
   readonly deploymentId: string;
 }
 
-/** Where the board's pieces come from: the player's own terrain, or a shared link. */
+/**
+ * Where the board's pieces come from: the player's own terrain, a shared link, or terrain kept
+ * with the board, such as a saved board whose pieces have changed in the library since.
+ */
 export type CollectionSource =
-  { readonly kind: 'own' } | { readonly kind: 'link'; readonly pieces: readonly TerrainPiece[] };
+  | { readonly kind: 'own' }
+  | { readonly kind: 'link'; readonly pieces: readonly TerrainPiece[] }
+  | { readonly kind: 'saved'; readonly pieces: readonly TerrainPiece[] };
 
 /** How the board is shown and edited. */
 export interface BoardViewOptions {
@@ -25,7 +31,8 @@ export interface BoardViewOptions {
 
 /**
  * The board being worked on, kept above the pages so that it is still there after a visit to
- * another page. It lasts until the page reloads, or until another player's library takes over.
+ * another page. It lasts until the page reloads, or until another player's library takes over;
+ * a board made before signing in stays, so that it can be saved.
  */
 export interface BoardSession {
   readonly editor: EditorState;
@@ -41,6 +48,9 @@ export interface BoardSession {
   /** The terrain the board last saw, to notice pieces that left the library meanwhile. */
   readonly seenCollection: readonly TerrainPiece[] | null;
   readonly setSeenCollection: (collection: readonly TerrainPiece[]) => void;
+  /** The saved board this board was opened from or last saved as, if any. */
+  readonly opened: OpenedBoard | null;
+  readonly setOpened: (opened: OpenedBoard | null) => void;
 }
 
 export const BoardSessionContext = createContext<BoardSession | null>(null);

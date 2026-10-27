@@ -2,14 +2,12 @@ import { useMemo, useState, type ReactNode } from 'react';
 import { canSave } from '../domain/account';
 import { useAuth } from '../hooks/authContext';
 import { useFirebase } from '../hooks/firebaseContext';
-import { LibraryContext } from '../hooks/libraryContext';
+import { GUEST_OWNER, LibraryContext } from '../hooks/libraryContext';
 import { UnsavedPiecesContext } from '../hooks/unsavedPiecesContext';
 import { useLibraryStore } from '../hooks/useLibraryStore';
 import { useUnsavedPieceMove } from '../hooks/useUnsavedPieceMove';
 import { createMemoryLibrary } from '../services/memoryLibrary';
 import { createFirestoreLibrary } from '../services/terrainLibrary';
-
-const GUEST = 'guest';
 
 /**
  * Shares the player's terrain library with every page. A player with a verified email gets their
@@ -31,7 +29,7 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
     () => (savingUid === null ? null : createFirestoreLibrary(db, savingUid)),
     [db, savingUid],
   );
-  const library = useLibraryStore(account ?? guest.store, savingUid ?? GUEST);
+  const library = useLibraryStore(account ?? guest.store, savingUid ?? GUEST_OWNER);
   const unsaved = useUnsavedPieceMove(guest.store, account === null ? null : library);
   const shown = useMemo(
     () => (state.status === 'checking' ? { ...library, status: 'loading' as const } : library),
