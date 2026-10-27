@@ -76,7 +76,7 @@ export function LibraryPage() {
     const failure =
       editing === null
         ? await library.addPieces([{ ...fields, id: library.newId(), image: null }])
-        : await library.updatePiece({ ...editing, ...fields });
+        : await library.updatePiece({ ...latestVersion(pieces, editing), ...fields });
     setBusy(false);
     if (failure === null) {
       setForm(null);
@@ -232,6 +232,11 @@ export function LibraryPage() {
       )}
     </div>
   );
+}
+
+/** The piece as the library has it now, with any photo added or removed while the form was open. */
+function latestVersion(pieces: readonly LibraryPiece[], piece: LibraryPiece): LibraryPiece {
+  return pieces.find((candidate) => candidate.id === piece.id) ?? piece;
 }
 
 function totals(pieces: readonly LibraryPiece[]): string {

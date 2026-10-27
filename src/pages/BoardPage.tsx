@@ -16,6 +16,7 @@ import { add, type Point } from '../domain/geometry';
 import { pieceById } from '../domain/layoutTerrain';
 import { findMirrorTwin, withTwin } from '../domain/mirror';
 import type { PlacementRules } from '../domain/placement';
+import { sameTerrain } from '../domain/libraryLink';
 import { findPreset, PRESETS, type GameSystemPreset } from '../domain/presets';
 import { seedToCode } from '../domain/random';
 import { SAMPLE_COLLECTION } from '../domain/sampleCollection';
@@ -176,7 +177,7 @@ export function BoardPage() {
     });
     if (result?.ok === true) {
       setSource(from);
-      dispatch({ type: 'generated', layout: result.layout });
+      dispatch({ type: 'generated', layout: result.layout, newHistory: from !== source });
     }
   }
 
@@ -189,7 +190,7 @@ export function BoardPage() {
   const libraryLoaded = library.status !== 'loading';
   const generateFirstBoard = useEffectEvent(() => {
     const seed = initialLink.kind === 'valid' ? initialLink.link.seed : randomSeed();
-    void runGeneration(choice, seed, source);
+    void runGeneration(choice, seed, linksToOwn(source, ownCollection) ? OWN : source);
   });
   useEffect(() => {
     if (libraryLoaded) {
@@ -452,6 +453,11 @@ function initialSource(link: ParsedBoardLink): CollectionSource {
   return link.kind === 'valid'
     ? { kind: 'link', pieces: link.link.pieces ?? SAMPLE_COLLECTION }
     : OWN;
+}
+
+/** A link to the player's own terrain, such as their own board reopened, shows their pieces. */
+function linksToOwn(source: CollectionSource, own: readonly TerrainPiece[]): boolean {
+  return source.kind === 'link' && sameTerrain(source.pieces, own);
 }
 
 function sourceKind(

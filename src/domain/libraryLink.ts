@@ -1,4 +1,4 @@
-import { LIBRARY_LIMITS } from './library';
+import { countPieces, LIBRARY_LIMITS } from './library';
 import { compareIds } from './placement';
 import {
   TERRAIN_TYPE_NAMES,
@@ -39,8 +39,8 @@ export function encodePieces(pieces: readonly TerrainPiece[]): string {
 }
 
 /**
- * The collection a link carries, or null when the text is not a valid collection. Pieces are
- * named after their type and get ids that keep the encoded order.
+ * The collection a link carries, or null when the text is not a valid collection or holds more
+ * than a library can. Pieces are named after their type and get ids that keep the encoded order.
  */
 export function decodePieces(code: string): TerrainPiece[] | null {
   const parts = code.split(PIECE_SEPARATOR);
@@ -48,7 +48,15 @@ export function decodePieces(code: string): TerrainPiece[] | null {
     return null;
   }
   const pieces = parts.map((part, index) => decodePiece(part, index));
-  return pieces.every((piece) => piece !== null) ? pieces : null;
+  if (!pieces.every((piece) => piece !== null)) {
+    return null;
+  }
+  return countPieces(pieces) > LIBRARY_LIMITS.maxPieces ? null : pieces;
+}
+
+/** Whether two collections hold the same terrain, so they give the same boards. */
+export function sameTerrain(a: readonly TerrainPiece[], b: readonly TerrainPiece[]): boolean {
+  return encodePieces(a) === encodePieces(b);
 }
 
 function decodePiece(part: string, index: number): TerrainPiece | null {

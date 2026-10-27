@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { resolveGameSetup } from './gameSetup';
 import { generateLayout } from './generator';
-import { decodePieces, encodePieces } from './libraryLink';
+import { decodePieces, encodePieces, sameTerrain } from './libraryLink';
 import type { TerrainPiece } from './terrain';
 
 /** A library with the random-looking ids Firestore gives pieces. */
@@ -88,5 +88,18 @@ describe('piece links', () => {
     expect(decodePieces('rr1x1x0')).toBeNull();
     expect(decodePieces('rr1x1x21')).toBeNull();
     expect(decodePieces(Array.from({ length: 51 }, () => 'rr1x1x1').join('_'))).toBeNull();
+  });
+
+  it('rejects more pieces in all than a library can hold', () => {
+    const kinds = (count: number) => Array.from({ length: count }, () => 'rr1x1x20').join('_');
+    expect(decodePieces(kinds(5))).toHaveLength(5);
+    expect(decodePieces(kinds(6))).toBeNull();
+  });
+
+  it('knows a link to the same terrain, whatever the names and ids', () => {
+    const decoded = decodePieces(encodePieces(library)) ?? [];
+    expect(sameTerrain(decoded, library)).toBe(true);
+    const fewer = library.map((piece, i) => (i === 0 ? { ...piece, quantity: 3 } : piece));
+    expect(sameTerrain(decoded, fewer)).toBe(false);
   });
 });

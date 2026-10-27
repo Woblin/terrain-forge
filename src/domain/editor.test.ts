@@ -117,6 +117,18 @@ describe('editorReducer', () => {
     expect(keys(state)).toEqual(['piece-0', 'piece-1']);
   });
 
+  it('starts a new history for a board made from other terrain', () => {
+    const state = run({ type: 'generated', layout: layout(7) }, move('piece-0', 5), {
+      type: 'generated',
+      layout: layout(8, 1),
+      newHistory: true,
+    });
+    expect(state.present?.origin.seed).toBe(8);
+    expect(keys(state)).toEqual(['piece-2']);
+    expect(canUndo(state)).toBe(false);
+    expect(canRedo(state)).toBe(false);
+  });
+
   it(`keeps at most ${String(HISTORY_LIMIT)} undo steps`, () => {
     const moves = Array.from({ length: HISTORY_LIMIT + 20 }, (_, i) => move('piece-0', i + 100));
     const state = run({ type: 'generated', layout: layout(7) }, ...moves);
