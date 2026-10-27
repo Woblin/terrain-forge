@@ -26,8 +26,11 @@ Terrain Forge is a web app that generates a battlefield layout for tabletop warg
 - Generate battlefields using only the terrain in your collection
 
 ### User accounts
-- Sign in to keep your terrain library and saved battlefields
-- Access your boards from any device
+- Sign in with Google or with an email and password to keep your terrain library and photos
+- Email accounts save once the email address is verified
+- Use the app without an account; your terrain then lasts until you reload the page
+- Delete your account and everything saved with it from the account page
+- Access your terrain from any device
 
 ## Tech stack
 
@@ -64,7 +67,7 @@ Terrain Forge is a web app that generates a battlefield layout for tabletop warg
    cp .env.example .env.local
    ```
    The example values work with the local emulators, no Firebase project needed. To use a real project, replace them with the config from the Firebase console under *Project settings → Your apps* and set `VITE_USE_EMULATORS=false`. Never commit `.env.local`.
-4. Start the emulators (Auth, Firestore, and the Emulator UI on http://127.0.0.1:4000) in one terminal:
+4. Start the emulators (Auth, Firestore, and the Emulator UI on http://127.0.0.1:4000) in one terminal. The Auth emulator signs in with made-up Google and email accounts; verification and password reset links are printed in its log and listed in the Emulator UI.
    ```bash
    yarn emulators
    ```
@@ -100,8 +103,8 @@ firebase deploy
 ## Roadmap
 - [x] Battlefield generation algorithm with balance rules
 - [x] Board editor (drag and drop, rotate, add, remove)
-- [x] Terrain library (kept in memory until sign-in arrives)
-- [ ] Firebase Authentication
+- [x] Terrain library
+- [x] Firebase Authentication (Google and email, verified email needed to save)
 - [ ] Save and load battlefields
 - [ ] Presets for popular game systems
 - [ ] Export or share a battlefield (image / link)

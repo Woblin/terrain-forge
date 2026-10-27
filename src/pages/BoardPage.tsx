@@ -44,12 +44,17 @@ import { useBoardDrag } from '../hooks/useBoardDrag';
 import { useEditorKeys } from '../hooks/useEditorKeys';
 import { useElementWidth } from '../hooks/useElementWidth';
 import { randomSeed, useGenerator } from '../hooks/useGenerator';
-import { useLayoutEditor } from '../hooks/useLayoutEditor';
+import {
+  DEFAULT_DEPLOYMENT_ID,
+  useBoardSession,
+  type BoardChoice,
+  type BoardSession,
+  type CollectionSource,
+} from '../hooks/boardSessionContext';
 import { useTerrainLibrary } from '../hooks/libraryContext';
 import { useUnits } from '../hooks/unitsContext';
 
 const DEFAULT_PRESET = PRESETS[0] as GameSystemPreset;
-const DEFAULT_DEPLOYMENT_ID = 'long-edges';
 const NO_PIECES: readonly BoardPiece[] = [];
 const NO_WARNINGS: readonly string[] = [];
 
@@ -58,49 +63,38 @@ const HIT_OUTLINE_PX = 24;
 const HANDLE_RADIUS_PX = 11;
 const HANDLE_GAP_PX = 30;
 
-interface BoardChoice {
-  readonly presetId: string;
-  readonly deploymentId: string;
-}
-
-/** Where the board's pieces come from: the player's own terrain, or a shared link. */
-type CollectionSource =
-  { readonly kind: 'own' } | { readonly kind: 'link'; readonly pieces: readonly TerrainPiece[] };
-
 const OWN: CollectionSource = { kind: 'own' };
+
+/** How the page opens: on the board kept from before, or on a new one. */
+type Entry =
+  | { readonly kind: 'keep' }
+  | {
+      readonly kind: 'new';
+      readonly link: ParsedBoardLink;
+      readonly choice: BoardChoice;
+      readonly source: CollectionSource;
+    };
 
 /** Generate a board, see how fair it is, and edit it by hand. */
 export function BoardPage() {
   const { unit } = useUnits();
   const library = useTerrainLibrary();
+  const session = useBoardSession();
+  const { editor, dispatch, choice, setChoice, source, setSource, notice, setNotice, setView } =
+    session;
+  const { snap, movePairs, showPhotos, showLane, showHidden } = session.view;
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [initialLink] = useState(() => parseBoardLink(searchParams.toString()));
-  const [choice, setChoice] = useState(() => initialChoice(initialLink, location.state));
-  const [notice, setNotice] = useState(() => linkNotice(initialLink));
-  const [source, setSource] = useState(() => initialSource(initialLink));
-  const [editor, dispatch] = useLayoutEditor();
+  const ownCollection = library.pieces.length > 0 ? library.pieces : SAMPLE_COLLECTION;
+  const [entry] = useState(() =>
+    boardEntry(session, ownCollection, searchParams.toString(), location.state),
+  );
   const { status, generate } = useGenerator();
-  const [snap, setSnap] = useState(true);
-  const [movePairs, setMovePairs] = useState(true);
-  const [showPhotos, setShowPhotos] = useState(true);
-  const [showLane, setShowLane] = useState(true);
-  const [showHidden, setShowHidden] = useState(false);
   const svgRef = useRef<SVGSVGElement>(null);
   const boardPixels = useElementWidth(svgRef);
 
-  const ownCollection = library.pieces.length > 0 ? library.pieces : SAMPLE_COLLECTION;
   const collection = source.kind === 'link' ? source.pieces : ownCollection;
   const knownIds = useMemo(() => new Set(collection.map((piece) => piece.id)), [collection]);
-  const [seenCollection, setSeenCollection] = useState(collection);
-  if (seenCollection !== collection) {
-    setSeenCollection(collection);
-    const missing = countMissingNow(editor, knownIds);
-    if (missing > 0) {
-      setNotice(removedNotice(missing));
-    }
-    dispatch({ type: 'collectionChanged', pieceIds: knownIds });
-  }
 
   const { present } = editor;
   const origin = present?.origin;
@@ -159,6 +153,12 @@ export function BoardPage() {
     [setup, shownPieces, collection, unit],
   );
 
+  // Generation reads the player's terrain when it finishes, to see if it changed meanwhile.
+  const latestOwn = useRef(ownCollection);
+  useEffect(() => {
+    latestOwn.current = ownCollection;
+  }, [ownCollection]);
+
   async function runGeneration(
     next: BoardChoice,
     seed: number,
@@ -168,16 +168,22 @@ export function BoardPage() {
     if (target === undefined) {
       return;
     }
+    const pieces = from.kind === 'link' ? from.pieces : latestOwn.current;
     const result = await generate({
       board: target.board,
-      pieces: from.kind === 'link' ? from.pieces : ownCollection,
+      pieces,
       preset: target.preset,
       deployment: target.deployment,
       seed,
     });
+    if (from.kind === 'own' && latestOwn.current !== pieces) {
+      // The library changed while the board was made; make it again from the terrain as it is.
+      await runGeneration(next, seed, from);
+      return;
+    }
     if (result?.ok === true) {
       setSource(from);
-      dispatch({ type: 'generated', layout: result.layout, newHistory: from !== source });
+      dispatch({ type: 'generated', layout: result.layout, newHistory: !sameSource(from, source) });
     }
   }
 
@@ -188,30 +194,69 @@ export function BoardPage() {
   }
 
   const libraryLoaded = library.status !== 'loading';
-  const generateFirstBoard = useEffectEvent(() => {
-    const seed = initialLink.kind === 'valid' ? initialLink.link.seed : randomSeed();
-    void runGeneration(choice, seed, linksToOwn(source, ownCollection) ? OWN : source);
+  // The library the page opened on. Another player's library, after a sign-in or sign-out, gets
+  // a new board instead of the one the page was opened for.
+  const entryOwner = useRef<string | null>(null);
+  const startBoard = useEffectEvent(() => {
+    entryOwner.current ??= library.owner;
+    if (entryOwner.current === library.owner && entry.kind === 'new') {
+      const from = linksToOwn(entry.source, ownCollection) ? OWN : entry.source;
+      dispatch({ type: 'cleared' });
+      setChoice(entry.choice);
+      setSource(from);
+      setNotice(linkNotice(entry.link));
+      const seed = entry.link.kind === 'valid' ? entry.link.link.seed : randomSeed();
+      void runGeneration(entry.choice, seed, from);
+    } else if (editor.present === null) {
+      generateNew(randomSeed());
+    }
   });
   useEffect(() => {
     if (libraryLoaded) {
-      // The board's state changes only once the worker replies, never during this effect.
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      generateFirstBoard();
+      startBoard();
     }
-  }, [libraryLoaded]);
+  }, [libraryLoaded, library.owner]);
+
+  /** Takes pieces that left the library off the board, or starts over on other terrain. */
+  const followCollection = useEffectEvent((seen: readonly TerrainPiece[] | null) => {
+    session.setSeenCollection(collection);
+    if (seen === null || editor.present === null) {
+      return;
+    }
+    if (
+      source.kind === 'own' &&
+      (seen === SAMPLE_COLLECTION) !== (collection === SAMPLE_COLLECTION)
+    ) {
+      generateNew(randomSeed());
+      setNotice(
+        collection === SAMPLE_COLLECTION
+          ? 'Your library is empty, so this new board uses the sample set.'
+          : 'This new board uses the terrain in your library instead of the sample set.',
+      );
+      return;
+    }
+    const missing = countMissingNow(editor, knownIds);
+    if (missing > 0) {
+      setNotice(removedNotice(missing));
+    }
+    dispatch({ type: 'collectionChanged', pieceIds: knownIds });
+  });
+  const { seenCollection } = session;
+  useEffect(() => {
+    if (seenCollection !== collection) {
+      followCollection(seenCollection);
+    }
+  }, [seenCollection, collection]);
 
   useEffect(() => {
     if (origin === undefined) {
       return;
     }
-    const search = boardLinkSearch({
-      ...origin,
-      pieces: collection === SAMPLE_COLLECTION ? null : collection,
-    });
+    const search = boardLinkSearch({ ...origin, pieces: linkPieces(source, ownCollection) });
     if (searchParams.toString() !== search) {
       setSearchParams(search, { replace: true });
     }
-  }, [origin, collection, searchParams, setSearchParams]);
+  }, [origin, source, ownCollection, searchParams, setSearchParams]);
 
   const selected = pieces.find((piece) => piece.key === editor.selected);
   const shownSelected = shownPieces.find((piece) => piece.key === editor.selected);
@@ -326,9 +371,15 @@ export function BoardPage() {
             }}
             onTurn={turn}
             onRemove={removeSelected}
-            onSnapChange={setSnap}
-            onMovePairsChange={setMovePairs}
-            onShowPhotosChange={setShowPhotos}
+            onSnapChange={(value) => {
+              setView({ snap: value });
+            }}
+            onMovePairsChange={(value) => {
+              setView({ movePairs: value });
+            }}
+            onShowPhotosChange={(value) => {
+              setView({ showPhotos: value });
+            }}
           />
           <BoardView
             board={board}
@@ -413,8 +464,12 @@ export function BoardPage() {
             unit={unit}
             showLane={showLane}
             showHidden={showHidden}
-            onShowLaneChange={setShowLane}
-            onShowHiddenChange={setShowHidden}
+            onShowLaneChange={(value) => {
+              setView({ showLane: value });
+            }}
+            onShowHiddenChange={(value) => {
+              setView({ showHidden: value });
+            }}
           />
           <PiecePalette
             collection={collection}
@@ -431,28 +486,70 @@ export function BoardPage() {
   );
 }
 
-/** A shared link decides the board; otherwise the library page may ask for a game system. */
-function initialChoice(link: ParsedBoardLink, routeState: unknown): BoardChoice {
-  if (link.kind === 'valid') {
-    return { presetId: link.link.presetId, deploymentId: link.link.deploymentId };
+/**
+ * The page keeps the board from before, unless a different shared link is opened, a page asked
+ * for a new board, or there is no board yet.
+ */
+function boardEntry(
+  session: BoardSession,
+  own: readonly TerrainPiece[],
+  search: string,
+  routeState: unknown,
+): Entry {
+  const { present } = session.editor;
+  const asked = requestedBoard(routeState);
+  const keptSearch =
+    present === null
+      ? null
+      : boardLinkSearch({ ...present.origin, pieces: linkPieces(session.source, own) });
+  if (present !== null && asked === null && (search === '' || search === keptSearch)) {
+    return { kind: 'keep' };
   }
-  const asked = requestedPreset(routeState);
-  return { presetId: asked ?? DEFAULT_PRESET.id, deploymentId: DEFAULT_DEPLOYMENT_ID };
+  const link = parseBoardLink(search);
+  if (link.kind === 'valid') {
+    return {
+      kind: 'new',
+      link,
+      choice: { presetId: link.link.presetId, deploymentId: link.link.deploymentId },
+      source: { kind: 'link', pieces: link.link.pieces ?? SAMPLE_COLLECTION },
+    };
+  }
+  return {
+    kind: 'new',
+    link,
+    choice: {
+      presetId: asked?.presetId ?? session.choice.presetId,
+      deploymentId:
+        asked?.presetId === undefined ? session.choice.deploymentId : DEFAULT_DEPLOYMENT_ID,
+    },
+    source: OWN,
+  };
 }
 
-function requestedPreset(routeState: unknown): string | null {
-  if (typeof routeState !== 'object' || routeState === null || !('presetId' in routeState)) {
+/** Another page can ask for a new board, for a game system or for the one picked before. */
+function requestedBoard(routeState: unknown): { presetId?: string } | null {
+  if (typeof routeState !== 'object' || routeState === null) {
     return null;
   }
-  const { presetId } = routeState;
-  return typeof presetId === 'string' && findPreset(presetId) !== undefined ? presetId : null;
+  if ('presetId' in routeState) {
+    const { presetId } = routeState;
+    return typeof presetId === 'string' && findPreset(presetId) !== undefined ? { presetId } : {};
+  }
+  return 'newBoard' in routeState && routeState.newBoard === true ? {} : null;
 }
 
-/** A link reproduces its board from the terrain it carries, or the sample set if none. */
-function initialSource(link: ParsedBoardLink): CollectionSource {
-  return link.kind === 'valid'
-    ? { kind: 'link', pieces: link.link.pieces ?? SAMPLE_COLLECTION }
-    : OWN;
+/** The pieces a board's link carries; none stands for the sample set. */
+function linkPieces(
+  source: CollectionSource,
+  own: readonly TerrainPiece[],
+): readonly TerrainPiece[] | null {
+  const pieces = source.kind === 'link' ? source.pieces : own;
+  return pieces === SAMPLE_COLLECTION ? null : pieces;
+}
+
+/** Two sources give the same terrain: both the player's own, or the very same link. */
+function sameSource(a: CollectionSource, b: CollectionSource): boolean {
+  return a === b || (a.kind === 'own' && b.kind === 'own');
 }
 
 /** A link to the player's own terrain, such as their own board reopened, shows their pieces. */

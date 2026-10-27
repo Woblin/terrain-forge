@@ -56,6 +56,16 @@ describe('editorReducer', () => {
     expect(canUndo(INITIAL_EDITOR_STATE)).toBe(false);
   });
 
+  it('clears the board and its history but keeps counting keys', () => {
+    const state = run({ type: 'generated', layout: layout(7) }, { type: 'cleared' });
+    expect(state.present).toBeNull();
+    expect(canUndo(state)).toBe(false);
+    expect(keys(editorReducer(state, { type: 'generated', layout: layout(8) }))).toEqual([
+      'piece-2',
+      'piece-3',
+    ]);
+  });
+
   it('gives generated pieces unique keys and keeps the layout', () => {
     const state = run({ type: 'generated', layout: layout(7) });
     expect(keys(state)).toEqual(['piece-0', 'piece-1']);

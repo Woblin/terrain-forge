@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { footprintRatio, type CropView } from '../domain/imageCrop';
+import { footprintRatio, type CropView, type EncodedPhoto } from '../domain/imageCrop';
 import type { TerrainPiece } from '../domain/terrain';
-import { encodeCrop, loadWorkingImage, type EncodedPhoto } from '../services/imageEncoding';
+import { encodeCrop, loadWorkingImage } from '../services/imageEncoding';
 
 export interface PhotoInEditing {
   readonly piece: TerrainPiece;

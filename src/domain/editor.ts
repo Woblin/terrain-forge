@@ -52,7 +52,9 @@ export type EditorAction =
   | { readonly type: 'collectionChanged'; readonly pieceIds: ReadonlySet<string> }
   | { readonly type: 'selected'; readonly key: string | null }
   | { readonly type: 'undo' }
-  | { readonly type: 'redo' };
+  | { readonly type: 'redo' }
+  /** Clears the board and its history, for a board that belonged to another player. */
+  | { readonly type: 'cleared' };
 
 /** Undo steps kept; older ones are dropped. */
 export const HISTORY_LIMIT = 100;
@@ -83,6 +85,8 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
       return undo(state);
     case 'redo':
       return redo(state);
+    case 'cleared':
+      return withoutHistory(state);
   }
 }
 

@@ -3,7 +3,7 @@ import type { BoardPiece } from '../domain/editor';
 import { remainingCount } from '../domain/editor';
 import type { TerrainPiece } from '../domain/terrain';
 import { formatLength, type LengthUnit } from '../domain/units';
-import type { StoredPhoto } from '../hooks/useTerrainImages';
+import type { StoredPhoto } from '../hooks/useLibraryPhotos';
 import { PieceThumbnail } from './PieceThumbnail';
 
 interface PiecePaletteProps {
