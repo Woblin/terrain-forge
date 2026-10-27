@@ -1,5 +1,6 @@
 import { BrowserRouter, Route, Routes } from 'react-router';
 import { AuthProvider } from './components/AuthProvider';
+import { BoardSessionProvider } from './components/BoardSessionProvider';
 import { LibraryProvider } from './components/LibraryProvider';
 import { UnitsProvider } from './components/UnitsProvider';
 import { UnsavedPiecesPrompt } from './components/UnsavedPiecesPrompt';
@@ -21,16 +22,18 @@ export function App({ firebase }: AppProps) {
       <UnitsProvider>
         <AuthProvider>
           <LibraryProvider>
-            <BrowserRouter>
-              <Routes>
-                <Route path="/" element={<HomePage />} />
-                <Route path="/board" element={<BoardPage />} />
-                <Route path="/library" element={<LibraryPage />} />
-                <Route path="/sign-in" element={<SignInPage />} />
-                <Route path="/account" element={<AccountPage />} />
-              </Routes>
-              <UnsavedPiecesPrompt />
-            </BrowserRouter>
+            <BoardSessionProvider>
+              <BrowserRouter>
+                <Routes>
+                  <Route path="/" element={<HomePage />} />
+                  <Route path="/board" element={<BoardPage />} />
+                  <Route path="/library" element={<LibraryPage />} />
+                  <Route path="/sign-in" element={<SignInPage />} />
+                  <Route path="/account" element={<AccountPage />} />
+                </Routes>
+                <UnsavedPiecesPrompt />
+              </BrowserRouter>
+            </BoardSessionProvider>
           </LibraryProvider>
         </AuthProvider>
       </UnitsProvider>

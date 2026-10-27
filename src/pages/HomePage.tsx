@@ -12,6 +12,7 @@ export function HomePage() {
       <div className="mt-4 flex flex-wrap justify-center gap-3">
         <Link
           to="/board"
+          state={{ newBoard: true }}
           className="rounded bg-amber-500 px-4 py-2 font-semibold text-stone-950 hover:bg-amber-400"
         >
           New battlefield
