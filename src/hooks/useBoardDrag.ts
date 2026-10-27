@@ -67,7 +67,7 @@ const DRAG_THRESHOLD_PX = 4;
  * piece off the board removes it. One finished drag is one undo step.
  */
 export function useBoardDrag(
-  svg: RefObject<SVGSVGElement | null>,
+  frame: RefObject<SVGGraphicsElement | null>,
   settings: DragSettings,
   dispatch: (action: EditorAction) => void,
 ): BoardDrag {
@@ -81,7 +81,7 @@ export function useBoardDrag(
     }
     event.stopPropagation();
     dispatch({ type: 'selected', key });
-    svg.current?.setPointerCapture(event.pointerId);
+    frame.current?.ownerSVGElement?.setPointerCapture(event.pointerId);
     return piece;
   }
 
@@ -91,7 +91,7 @@ export function useBoardDrag(
 
   function startMove(key: string, event: PointerEvent): void {
     const piece = begin(event, key);
-    const point = toBoardPoint(svg.current, event);
+    const point = toBoardPoint(frame.current, event);
     if (piece === undefined || point === null) {
       return;
     }
@@ -111,7 +111,7 @@ export function useBoardDrag(
 
   function startRotate(key: string, event: PointerEvent): void {
     const piece = begin(event, key);
-    const point = toBoardPoint(svg.current, event);
+    const point = toBoardPoint(frame.current, event);
     if (piece === undefined || point === null) {
       return;
     }
@@ -178,7 +178,7 @@ export function useBoardDrag(
 
   function onPointerMove(event: PointerEvent<SVGSVGElement>): void {
     const current = gestureFor(event);
-    const point = toBoardPoint(svg.current, event);
+    const point = toBoardPoint(frame.current, event);
     if (current === null || point === null) {
       return;
     }
@@ -200,7 +200,7 @@ export function useBoardDrag(
     }
     gesture.current = null;
     setPreview(new Map());
-    const point = toBoardPoint(svg.current, event);
+    const point = toBoardPoint(frame.current, event);
     if (point === null || (current.kind === 'move' && !current.moved)) {
       return;
     }
@@ -237,12 +237,12 @@ function onBoard(point: Point, board: Board): boolean {
   return point.x >= 0 && point.y >= 0 && point.x <= board.width && point.y <= board.depth;
 }
 
-/** Screen position to board inches, through the board's viewBox. */
+/** Screen position to board inches, through the viewBox and any turn of the board drawing. */
 function toBoardPoint(
-  svg: SVGSVGElement | null,
+  frame: SVGGraphicsElement | null,
   event: { clientX: number; clientY: number },
 ): Point | null {
-  const matrix = svg?.getScreenCTM() ?? null;
+  const matrix = frame?.getScreenCTM() ?? null;
   if (matrix === null) {
     return null;
   }

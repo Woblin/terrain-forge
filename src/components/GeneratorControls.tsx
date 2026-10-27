@@ -4,6 +4,9 @@ import { deploymentsFor } from '../domain/gameSetup';
 import { PRESETS, type GameSystemPreset } from '../domain/presets';
 import { formatLength, type LengthUnit } from '../domain/units';
 import type { GeneratorStatus } from '../hooks/useGenerator';
+import { SparklesIcon } from 'lucide-react';
+import { BUTTON_STYLES } from './buttonStyles';
+import { FIELD_STYLES, LABEL_STYLES } from './fieldStyles';
 import { RuleSwitches } from './RuleSwitches';
 
 interface GeneratorControlsProps {
@@ -37,18 +40,12 @@ export function GeneratorControls({
   const deploymentSelectId = useId();
   const { width, depth } = preset.defaultBoard;
   return (
-    <section
-      aria-labelledby={`${presetId}-heading`}
-      className="border-line bg-surface space-y-3 rounded-2xl border p-4 shadow-sm"
-    >
-      <h2
-        id={`${presetId}-heading`}
-        className="text-muted text-sm font-semibold tracking-wide uppercase"
-      >
+    <section aria-labelledby={`${presetId}-heading`} className="space-y-4">
+      <h3 id={`${presetId}-heading`} className="text-sm font-semibold">
         New board
-      </h2>
-      <div className="space-y-1">
-        <label htmlFor={presetId} className="text-soft block text-sm">
+      </h3>
+      <div>
+        <label htmlFor={presetId} className={LABEL_STYLES}>
           Game system
         </label>
         <select
@@ -57,7 +54,7 @@ export function GeneratorControls({
           onChange={(event) => {
             onPresetChange(event.target.value);
           }}
-          className="border-line-strong bg-raised w-full rounded-lg border px-2 py-1.5"
+          className={FIELD_STYLES}
         >
           {PRESETS.map((option) => (
             <option key={option.id} value={option.id}>
@@ -65,12 +62,12 @@ export function GeneratorControls({
             </option>
           ))}
         </select>
-        <p className="text-muted text-xs">
+        <p className="text-muted mt-1 text-xs">
           Board {formatLength(width, unit)} × {formatLength(depth, unit)}
         </p>
       </div>
-      <div className="space-y-1">
-        <label htmlFor={deploymentSelectId} className="text-soft block text-sm">
+      <div>
+        <label htmlFor={deploymentSelectId} className={LABEL_STYLES}>
           Deployment
         </label>
         <select
@@ -79,7 +76,7 @@ export function GeneratorControls({
           onChange={(event) => {
             onDeploymentChange(event.target.value);
           }}
-          className="border-line-strong bg-raised w-full rounded-lg border px-2 py-1.5"
+          className={FIELD_STYLES}
         >
           {deploymentsFor(preset).map((option) => (
             <option key={option.id} value={option.id}>
@@ -90,12 +87,9 @@ export function GeneratorControls({
       </div>
       <RuleSwitches enabledRules={enabledRules} onRuleChange={onRuleChange} />
       {settingsError !== null && <p className="text-warn-ink text-sm">{settingsError}</p>}
-      <button
-        type="button"
-        onClick={onGenerate}
-        className="bg-accent text-on-accent hover:bg-accent-hover focus-visible:outline-accent-ink w-full rounded-lg px-3 py-2 font-semibold focus-visible:outline-2 focus-visible:outline-offset-2"
-      >
-        {status.running ? 'Generating…' : 'Generate'}
+      <button type="button" onClick={onGenerate} className={`w-full ${BUTTON_STYLES.primary} h-11`}>
+        <SparklesIcon className="size-[18px]" aria-hidden="true" />
+        {status.running ? 'Generating…' : 'Generate board'}
       </button>
       <div aria-live="polite" className="text-sm">
         {status.slow && <p className="text-soft">Still working on a fair layout…</p>}

@@ -1,6 +1,8 @@
+import { SparklesIcon, XIcon } from 'lucide-react';
 import { useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
 import { useLocation, useSearchParams } from 'react-router';
 import { boardCentre } from '../domain/board';
+import { drawsUpright, fitBoard, inchesPerPixel, screenMoveToBoard } from '../domain/boardFit';
 import { fairnessInputFor } from '../domain/boardAnalysis';
 import { checkBoard } from '../domain/boardChecks';
 import {
@@ -11,7 +13,7 @@ import {
   type BoardPiece,
   type PieceUpdate,
 } from '../domain/editor';
-import { evaluateFairness, type RuleId } from '../domain/fairness';
+import { evaluateFairness, RULE_IDS, type RuleId } from '../domain/fairness';
 import { enabledRulesFor, startingPreset } from '../domain/gamePreferences';
 import { resolveGameSetup, type GameSetup } from '../domain/gameSetup';
 import { prepareCollection } from '../domain/generator';
@@ -37,27 +39,36 @@ import {
 import { boardLinkSearch, parseBoardLink, type ParsedBoardLink } from '../domain/shareLink';
 import { normalizeRotation, snapRotation } from '../domain/snapping';
 import type { Placement, TerrainPiece } from '../domain/terrain';
-import { formatLength } from '../domain/units';
+import { formatLength, type LengthUnit } from '../domain/units';
+import { BoardToolbar } from '../components/BoardToolbar';
 import { BoardView } from '../components/BoardView';
+import { BoardWorkspace } from '../components/BoardWorkspace';
+import { BUTTON_STYLES } from '../components/buttonStyles';
 import { DeploymentZones } from '../components/DeploymentZones';
-import { EditorToolbar } from '../components/EditorToolbar';
+import { EditorStatus } from '../components/EditorStatus';
 import { FairnessPanel } from '../components/FairnessPanel';
+import { FairnessVerdict } from '../components/FairnessVerdict';
 import { GeneratorControls } from '../components/GeneratorControls';
 import { HiddenAreaOverlay } from '../components/HiddenAreaOverlay';
+import { IconButton } from '../components/IconButton';
 import { LaneOverlay } from '../components/LaneOverlay';
 import { PiecePalette } from '../components/PiecePalette';
+import { PhoneBoardButtons } from '../components/PhoneBoardButtons';
 import { pieceLabel } from '../components/pieceLabel';
 import { RotateHandle } from '../components/RotateHandle';
 import { SaveBoardControls } from '../components/SaveBoardControls';
 import { SeedField } from '../components/SeedField';
+import { SelectionBar } from '../components/SelectionBar';
 import { TerrainLegend } from '../components/TerrainLegend';
 import { TerrainChoiceDialog } from '../components/TerrainChoiceDialog';
 import { TerrainShape } from '../components/TerrainShape';
 import { copyText } from '../services/clipboard';
 import { useBoardAnalysis } from '../hooks/useBoardAnalysis';
 import { useBoardDrag } from '../hooks/useBoardDrag';
+import { useBoardLayout } from '../hooks/useBoardLayout';
+import { useCoarsePointer } from '../hooks/useCoarsePointer';
 import { useEditorKeys } from '../hooks/useEditorKeys';
-import { useElementWidth } from '../hooks/useElementWidth';
+import { useElementSize } from '../hooks/useElementSize';
 import { randomSeed, useGenerator } from '../hooks/useGenerator';
 import { useLeaveWarning } from '../hooks/useLeaveWarning';
 import {
@@ -76,10 +87,19 @@ const NO_PIECES: readonly BoardPiece[] = [];
 const NO_WARNINGS: readonly string[] = [];
 const NO_RULES: readonly RuleId[] = [];
 
-/** Sizes that stay easy to hit with a finger whatever the board's scale, in CSS pixels. */
-const HIT_OUTLINE_PX = 24;
-const HANDLE_RADIUS_PX = 11;
-const HANDLE_GAP_PX = 30;
+/** Sizes in CSS pixels that stay easy to hit whatever the board's scale. */
+interface TargetSizes {
+  readonly hitOutline: number;
+  readonly handleRadius: number;
+  readonly handleGap: number;
+}
+
+const MOUSE_TARGETS: TargetSizes = { hitOutline: 24, handleRadius: 11, handleGap: 30 };
+/** Fingers need bigger targets: the handle is 44 pixels across, the size of a tap. */
+const TOUCH_TARGETS: TargetSizes = { hitOutline: 40, handleRadius: 22, handleGap: 38 };
+
+/** Inches per pixel before the board has been measured. */
+const UNMEASURED_PIXEL_SIZE = 0.1;
 
 const OWN: CollectionSource = { kind: 'own' };
 
@@ -137,8 +157,10 @@ export function BoardPage() {
   );
   const [pendingBoard, setPendingBoard] = useState<PendingBoard | null>(null);
   const { status, generate } = useGenerator();
-  const svgRef = useRef<SVGSVGElement>(null);
-  const boardPixels = useElementWidth(svgRef);
+  const layout = useBoardLayout();
+  const targets = useCoarsePointer() ? TOUCH_TARGETS : MOUSE_TARGETS;
+  const frameRef = useRef<SVGGElement>(null);
+  const [boardArea, boardAreaRef, boardSpace] = useElementSize<HTMLDivElement>();
 
   const collection = source.kind === 'own' ? ownCollection : source.pieces;
   const knownIds = useMemo(() => new Set(collection.map((piece) => piece.id)), [collection]);
@@ -177,10 +199,12 @@ export function BoardPage() {
   );
   const chosenPreset = findPreset(choice.presetId) ?? startingPreset(settings.preferences);
   const board = setup?.board ?? chosenPreset.defaultBoard;
-  const inchesPerPixel = boardPixels > 0 ? board.width / boardPixels : 0.1;
+  const upright = drawsUpright(board, boardSpace);
+  const drawnSize = fitBoard(board, boardSpace, upright);
+  const pixelSize = inchesPerPixel(board, drawnSize, upright) ?? UNMEASURED_PIXEL_SIZE;
 
   const drag = useBoardDrag(
-    svgRef,
+    frameRef,
     {
       pieces,
       board,
@@ -514,15 +538,21 @@ export function BoardPage() {
     dispatch({ type: 'added', piece, position: boardCentre(board), rotation: 0 });
   }
 
-  useEditorKeys(svgRef, {
+  function undo(): void {
+    dispatch({ type: 'undo' });
+  }
+
+  function redo(): void {
+    dispatch({ type: 'redo' });
+  }
+
+  useEditorKeys(boardArea, {
     hasSelection: selected !== undefined,
-    undo: () => {
-      dispatch({ type: 'undo' });
+    undo,
+    redo,
+    nudge: (move) => {
+      nudge(screenMoveToBoard(move, upright));
     },
-    redo: () => {
-      dispatch({ type: 'redo' });
-    },
-    nudge,
     turn,
     remove: removeSelected,
     escape: () => {
@@ -535,85 +565,195 @@ export function BoardPage() {
     shownSelected === undefined
       ? undefined
       : pieceById(collection, shownSelected.placement.pieceId);
+  const selection =
+    selectedPiece === undefined || shownSelected === undefined
+      ? null
+      : { name: selectedPiece.name, problems: problems.get(shownSelected.key) ?? NO_WARNINGS };
+  const report = analysis.analysis?.report ?? null;
+
+  const setupPanel = (
+    <div className="space-y-6">
+      <GeneratorControls
+        preset={chosenPreset}
+        deploymentId={choice.deploymentId}
+        status={status}
+        unit={unit}
+        enabledRules={enabledRulesFor(chosenPreset, settings.preferences)}
+        settingsError={settings.error}
+        onPresetChange={(presetId) => {
+          setChoice({ presetId, deploymentId: DEFAULT_DEPLOYMENT_ID });
+          settings.choosePreset(presetId);
+        }}
+        onRuleChange={(rule, enabled) => {
+          settings.switchRule(chosenPreset, rule, enabled);
+        }}
+        onDeploymentChange={(deploymentId) => {
+          setChoice({ ...choice, deploymentId });
+        }}
+        onGenerate={() => {
+          requestNew(randomSeed());
+        }}
+      />
+      <SeedField
+        seedCode={origin === undefined ? null : seedToCode(origin.seed)}
+        edited={present?.edited ?? false}
+        onLoadSeed={(seed) => {
+          requestNew(seed);
+        }}
+        onRandomSeed={() => {
+          requestNew(randomSeed());
+        }}
+        onCopyLink={() => copyText(shareUrl())}
+      />
+      <SaveBoardControls
+        access={savedBoards.access}
+        opened={shownOpened}
+        unsaved={unsaved}
+        sending={savedBoards.saving}
+        hasBoard={present !== null && savedBoards.status === 'ready'}
+        defaultName={defaultBoardName(
+          setup?.preset.name ?? chosenPreset.name,
+          setup?.deployment.name ?? '',
+          new Date(),
+        )}
+        error={savedBoards.writeError}
+        onSave={saveBoard}
+        onRename={renameBoard}
+      />
+    </div>
+  );
+
+  const fairnessPanel = (
+    <FairnessPanel
+      analysis={analysis.analysis}
+      current={analysis.current}
+      error={analysis.error}
+      balance={fairnessInput?.balance ?? null}
+      enabledRules={fairnessInput?.enabledRules ?? NO_RULES}
+      edited={present?.edited ?? false}
+      misplaced={problems.size}
+      warnings={prepared?.warnings ?? NO_WARNINGS}
+      unit={unit}
+      showLane={showLane}
+      showHidden={showHidden}
+      onShowLaneChange={(value) => {
+        setView({ showLane: value });
+      }}
+      onShowHiddenChange={(value) => {
+        setView({ showHidden: value });
+      }}
+    />
+  );
+
+  const piecesPanel = (
+    <PiecePalette
+      collection={collection}
+      source={sourceKind(source, collection)}
+      pieces={pieces}
+      photos={photos}
+      unit={unit}
+      canAdd={present !== null}
+      onAdd={addPiece}
+    />
+  );
+
+  const boardDrawing = (
+    <BoardView
+      board={board}
+      frameRef={frameRef}
+      upright={upright}
+      size={drawnSize}
+      description={boardDescription(setup, shownPieces.length, unit)}
+      dimmed={status.running}
+      onBackgroundPointerDown={() => {
+        dispatch({ type: 'selected', key: null });
+      }}
+      onPointerMove={drag.onPointerMove}
+      onPointerUp={drag.onPointerUp}
+      onPointerCancel={drag.cancel}
+    >
+      {setup !== undefined && <DeploymentZones deployment={setup.deployment} upright={upright} />}
+      {showHidden && analysis.analysis !== null && (
+        <HiddenAreaOverlay hidden={analysis.analysis.hidden} />
+      )}
+      {shownPieces.map((boardPiece) => {
+        const piece = pieceById(collection, boardPiece.placement.pieceId);
+        const issues = problems.get(boardPiece.key);
+        return (
+          <TerrainShape
+            key={boardPiece.key}
+            piece={piece}
+            placement={boardPiece.placement}
+            label={pieceLabel(piece, boardPiece.placement, unit, issues)}
+            selected={editor.selected === boardPiece.key}
+            hasProblems={issues !== undefined}
+            photoUrl={showPhotos ? photos.get(piece.id)?.url : undefined}
+            hitWidth={targets.hitOutline * pixelSize}
+            onPointerDown={(event) => {
+              drag.startMove(boardPiece.key, event);
+            }}
+            onFocus={() => {
+              dispatch({ type: 'selected', key: boardPiece.key });
+            }}
+          />
+        );
+      })}
+      {showLane && setup !== undefined && analysis.analysis?.lane != null && (
+        <LaneOverlay
+          lane={analysis.analysis.lane}
+          limit={fairnessInput?.balance.maxClearLane ?? setup.preset.balance.maxClearLane}
+          unit={unit}
+          upright={upright}
+        />
+      )}
+      {shownSelected !== undefined && selectedPiece !== undefined && (
+        <RotateHandle
+          center={shownSelected.placement.position}
+          rotation={shownSelected.placement.rotation}
+          reach={selectedPiece.footprint.depth / 2 + targets.handleGap * pixelSize}
+          radius={targets.handleRadius * pixelSize}
+          onPointerDown={(event) => {
+            drag.startRotate(shownSelected.key, event);
+          }}
+        />
+      )}
+    </BoardView>
+  );
 
   return (
     <>
-      <main className="mx-auto grid max-w-[96rem] gap-4 p-4 lg:grid-cols-[16rem_minmax(0,1fr)_24rem]">
-        <div className="space-y-4">
-          <GeneratorControls
-            preset={chosenPreset}
-            deploymentId={choice.deploymentId}
-            status={status}
-            unit={unit}
-            enabledRules={enabledRulesFor(chosenPreset, settings.preferences)}
-            settingsError={settings.error}
-            onPresetChange={(presetId) => {
-              setChoice({ presetId, deploymentId: DEFAULT_DEPLOYMENT_ID });
-              settings.choosePreset(presetId);
-            }}
-            onRuleChange={(rule, enabled) => {
-              settings.switchRule(chosenPreset, rule, enabled);
-            }}
-            onDeploymentChange={(deploymentId) => {
-              setChoice({ ...choice, deploymentId });
-            }}
-            onGenerate={() => {
-              requestNew(randomSeed());
-            }}
-          />
-          <SeedField
-            seedCode={origin === undefined ? null : seedToCode(origin.seed)}
-            edited={present?.edited ?? false}
-            onLoadSeed={(seed) => {
-              requestNew(seed);
-            }}
-            onRandomSeed={() => {
-              requestNew(randomSeed());
-            }}
-            onCopyLink={() => copyText(shareUrl())}
-          />
-          <SaveBoardControls
-            access={savedBoards.access}
-            opened={shownOpened}
-            unsaved={unsaved}
-            sending={savedBoards.saving}
-            hasBoard={present !== null && savedBoards.status === 'ready'}
-            defaultName={defaultBoardName(
-              setup?.preset.name ?? chosenPreset.name,
-              setup?.deployment.name ?? '',
-              new Date(),
-            )}
-            error={savedBoards.writeError}
-            onSave={saveBoard}
-            onRename={renameBoard}
-          />
-          {notice !== null && (
-            <p
+      <BoardWorkspace
+        layout={layout}
+        notice={
+          notice === null ? null : (
+            <div
               role="alert"
-              className="border-warn-line bg-warn-soft text-warn-ink rounded-lg border p-3 text-sm"
+              className="border-warn-line bg-warn-soft text-warn-ink shadow-shade flex items-start gap-2 rounded-xl border py-1 pr-1 pl-3 text-sm shadow-lg"
             >
-              {notice}
-            </p>
-          )}
-        </div>
-        <section aria-label="Board editor" className="min-w-0 space-y-3">
-          <EditorToolbar
+              <p className="flex-1 py-1.5">{notice}</p>
+              <IconButton
+                icon={XIcon}
+                label="Dismiss"
+                onClick={() => {
+                  setNotice(null);
+                }}
+              />
+            </div>
+          )
+        }
+        setup={setupPanel}
+        fairness={fairnessPanel}
+        pieces={piecesPanel}
+        toolbar={
+          <BoardToolbar
             canUndo={canUndo(editor)}
             canRedo={canRedo(editor)}
-            selection={
-              selectedPiece === undefined || shownSelected === undefined
-                ? null
-                : { name: selectedPiece.name, problems: problems.get(shownSelected.key) ?? [] }
-            }
+            hasSelection={selection !== null}
             snap={snap}
             movePairs={movePairs}
             showPhotos={showPhotos}
-            onUndo={() => {
-              dispatch({ type: 'undo' });
-            }}
-            onRedo={() => {
-              dispatch({ type: 'redo' });
-            }}
+            onUndo={undo}
+            onRedo={redo}
             onTurn={turn}
             onRemove={removeSelected}
             onSnapChange={(value) => {
@@ -626,108 +766,85 @@ export function BoardPage() {
               setView({ showPhotos: value });
             }}
           />
-          <BoardView
-            board={board}
-            svgRef={svgRef}
-            description={boardDescription(setup, shownPieces.length, unit)}
-            dimmed={status.running}
-            onBackgroundPointerDown={() => {
-              dispatch({ type: 'selected', key: null });
-            }}
-            onPointerMove={drag.onPointerMove}
-            onPointerUp={drag.onPointerUp}
-            onPointerCancel={drag.cancel}
-          >
-            {setup !== undefined && <DeploymentZones deployment={setup.deployment} />}
-            {showHidden && analysis.analysis !== null && (
-              <HiddenAreaOverlay hidden={analysis.analysis.hidden} />
-            )}
-            {shownPieces.map((boardPiece) => {
-              const piece = pieceById(collection, boardPiece.placement.pieceId);
-              const issues = problems.get(boardPiece.key);
-              return (
-                <TerrainShape
-                  key={boardPiece.key}
-                  piece={piece}
-                  placement={boardPiece.placement}
-                  label={pieceLabel(piece, boardPiece.placement, unit, issues)}
-                  selected={editor.selected === boardPiece.key}
-                  hasProblems={issues !== undefined}
-                  photoUrl={showPhotos ? photos.get(piece.id)?.url : undefined}
-                  hitWidth={HIT_OUTLINE_PX * inchesPerPixel}
-                  onPointerDown={(event) => {
-                    drag.startMove(boardPiece.key, event);
-                  }}
-                  onFocus={() => {
-                    dispatch({ type: 'selected', key: boardPiece.key });
-                  }}
+        }
+        boardAreaRef={boardAreaRef}
+        board={boardDrawing}
+        footer={
+          <div className="space-y-2">
+            <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-2">
+              <EditorStatus selection={selection} />
+              {setup !== undefined && <TerrainLegend effects={setup.preset.terrainEffects} />}
+            </div>
+            <details className="text-soft text-sm pointer-coarse:hidden">
+              <summary className="text-muted cursor-pointer">Keyboard shortcuts</summary>
+              <ul className="mt-2 list-disc space-y-1 pl-5">
+                <li>Tab and Shift+Tab move between pieces on the board.</li>
+                <li>
+                  Arrow keys move the selected piece {formatLength(0.5, unit)}; with Shift,{' '}
+                  {formatLength(0.1, unit)}.
+                </li>
+                <li>
+                  Q and E turn it 15° left and right. Delete removes it. Escape lets go of it.
+                </li>
+                <li>Ctrl+Z undoes, Ctrl+Shift+Z or Ctrl+Y redoes (Cmd on a Mac).</li>
+              </ul>
+            </details>
+          </div>
+        }
+        phoneButtons={
+          <PhoneBoardButtons
+            canUndo={canUndo(editor)}
+            canRedo={canRedo(editor)}
+            layers={session.view}
+            onUndo={undo}
+            onRedo={redo}
+            onLayersChange={setView}
+          />
+        }
+        selectionBar={
+          selection === null ||
+          shownSelected === undefined ||
+          selectedPiece === undefined ? null : (
+            <SelectionBar
+              name={selection.name}
+              detail={pieceDetail(selectedPiece, shownSelected.placement, unit)}
+              problems={selection.problems}
+              onTurn={turn}
+              onRemove={removeSelected}
+              onDone={() => {
+                dispatch({ type: 'selected', key: null });
+              }}
+            />
+          )
+        }
+        summary={
+          <div className="flex items-center gap-2">
+            <div className="min-w-0 flex-1 text-sm">
+              {report === null ? (
+                <p className="text-muted">Generate a board to see how fair it is.</p>
+              ) : (
+                <FairnessVerdict
+                  report={report}
+                  edited={present?.edited ?? false}
+                  allRulesOn={(fairnessInput?.enabledRules.length ?? 0) === RULE_IDS.length}
+                  compact
                 />
-              );
-            })}
-            {showLane && setup !== undefined && analysis.analysis?.lane != null && (
-              <LaneOverlay
-                lane={analysis.analysis.lane}
-                limit={fairnessInput?.balance.maxClearLane ?? setup.preset.balance.maxClearLane}
-                unit={unit}
-              />
-            )}
-            {shownSelected !== undefined && selectedPiece !== undefined && (
-              <RotateHandle
-                center={shownSelected.placement.position}
-                rotation={shownSelected.placement.rotation}
-                reach={selectedPiece.footprint.depth / 2 + HANDLE_GAP_PX * inchesPerPixel}
-                radius={HANDLE_RADIUS_PX * inchesPerPixel}
-                onPointerDown={(event) => {
-                  drag.startRotate(shownSelected.key, event);
-                }}
-              />
-            )}
-          </BoardView>
-          {setup !== undefined && <TerrainLegend effects={setup.preset.terrainEffects} />}
-          <details className="text-soft text-sm">
-            <summary className="text-muted cursor-pointer">Keyboard shortcuts</summary>
-            <ul className="mt-2 list-disc space-y-1 pl-5">
-              <li>Tab and Shift+Tab move between pieces on the board.</li>
-              <li>
-                Arrow keys move the selected piece {formatLength(0.5, unit)}; with Shift,{' '}
-                {formatLength(0.1, unit)}.
-              </li>
-              <li>Q and E turn it 15° left and right. Delete removes it. Escape lets go of it.</li>
-              <li>Ctrl+Z undoes, Ctrl+Shift+Z or Ctrl+Y redoes (Cmd on a Mac).</li>
-            </ul>
-          </details>
-        </section>
-        <div className="space-y-4">
-          <FairnessPanel
-            analysis={analysis.analysis}
-            current={analysis.current}
-            error={analysis.error}
-            balance={fairnessInput?.balance ?? null}
-            enabledRules={fairnessInput?.enabledRules ?? NO_RULES}
-            edited={present?.edited ?? false}
-            misplaced={problems.size}
-            warnings={prepared?.warnings ?? NO_WARNINGS}
-            unit={unit}
-            showLane={showLane}
-            showHidden={showHidden}
-            onShowLaneChange={(value) => {
-              setView({ showLane: value });
-            }}
-            onShowHiddenChange={(value) => {
-              setView({ showHidden: value });
-            }}
-          />
-          <PiecePalette
-            collection={collection}
-            source={sourceKind(source, collection)}
-            pieces={pieces}
-            photos={photos}
-            unit={unit}
-            canAdd={present !== null}
-            onAdd={addPiece}
-          />
-        </div>
-      </main>
+              )}
+            </div>
+            <button
+              type="button"
+              disabled={status.running}
+              onClick={() => {
+                requestNew(randomSeed());
+              }}
+              className={`${BUTTON_STYLES.primary} shrink-0`}
+            >
+              <SparklesIcon className="size-4" aria-hidden="true" />
+              Generate
+            </button>
+          </div>
+        }
+      />
       {pendingBoard !== null && (
         <TerrainChoiceDialog
           onBoardTerrain={() => {
@@ -745,6 +862,12 @@ export function BoardPage() {
       )}
     </>
   );
+}
+
+/** The selected piece's size and turn, in one short line. */
+function pieceDetail(piece: TerrainPiece, placement: Placement, unit: LengthUnit): string {
+  const { width, depth } = piece.footprint;
+  return `${formatLength(width, unit)} × ${formatLength(depth, unit)}, turned ${String(Math.round(placement.rotation))}°`;
 }
 
 /**

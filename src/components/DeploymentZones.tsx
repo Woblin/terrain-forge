@@ -5,10 +5,12 @@ import { PLAYER_STYLES } from './terrainStyles';
 
 interface DeploymentZonesProps {
   deployment: DeploymentMap;
+  /** The board is drawn turned a quarter turn, so labels turn back to stay readable. */
+  upright: boolean;
 }
 
 /** Both players' deployment zones, hatched in different directions and labelled. */
-export function DeploymentZones({ deployment }: DeploymentZonesProps) {
+export function DeploymentZones({ deployment, upright }: DeploymentZonesProps) {
   const id = useId().replace(/[^a-zA-Z0-9_-]/g, '');
   return (
     <g aria-hidden="true" pointerEvents="none">
@@ -47,6 +49,7 @@ export function DeploymentZones({ deployment }: DeploymentZonesProps) {
               textAnchor="middle"
               dominantBaseline="middle"
               fontSize={1.6}
+              transform={upright ? `rotate(90 ${String(middle.x)} ${String(middle.y)})` : undefined}
               className={`${PLAYER_STYLES[player].text} font-semibold`}
             >
               Player {player}

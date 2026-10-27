@@ -1,3 +1,4 @@
+import { PlusIcon } from 'lucide-react';
 import { Link } from 'react-router';
 import type { BoardPiece } from '../domain/editor';
 import { remainingCount } from '../domain/editor';
@@ -25,7 +26,7 @@ const SOURCES: Readonly<Record<PiecePaletteProps['source'], string>> = {
 };
 
 const BUTTON =
-  'rounded-lg border border-line-strong px-2 py-1 text-xs hover:bg-hover disabled:opacity-40';
+  'inline-flex items-center gap-1 rounded-lg border border-line-strong px-2.5 py-1 text-xs font-medium hover:bg-hover disabled:opacity-40 pointer-coarse:px-3 pointer-coarse:py-2';
 
 /** The terrain the board is made from: how many of each piece are left, and adding them. */
 export function PiecePalette({
@@ -38,13 +39,7 @@ export function PiecePalette({
   onAdd,
 }: PiecePaletteProps) {
   return (
-    <section
-      aria-labelledby="pieces-heading"
-      className="border-line bg-surface space-y-3 rounded-2xl border p-4 shadow-sm"
-    >
-      <h2 id="pieces-heading" className="text-muted text-sm font-semibold tracking-wide uppercase">
-        Terrain pieces
-      </h2>
+    <section aria-label="Terrain pieces" className="space-y-3">
       <p className="text-muted text-xs">{SOURCES[source]}</p>
       <ul className="space-y-3">
         {collection.map((piece) => {
@@ -69,6 +64,7 @@ export function PiecePalette({
                     aria-label={`Add a ${piece.name} to the board`}
                     className={BUTTON}
                   >
+                    <PlusIcon className="size-3.5" aria-hidden="true" />
                     Add
                   </button>
                 </div>

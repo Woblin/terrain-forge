@@ -6,6 +6,7 @@ import type { LengthUnit } from '../domain/units';
 import { ClosestBoardNote } from './ClosestBoardNote';
 import { FairnessRuleRow } from './FairnessRuleRow';
 import { FairnessVerdict } from './FairnessVerdict';
+import { Switch } from './Switch';
 import { RULE_NAMES, ruleRows } from './fairnessRows';
 
 interface FairnessPanelProps {
@@ -52,19 +53,12 @@ export function FairnessPanel({
   }
 
   return (
-    <section
-      aria-labelledby="fairness-heading"
-      className="border-line bg-surface space-y-3 rounded-2xl border p-4 shadow-sm"
-    >
-      <div className="flex items-baseline justify-between gap-2">
-        <h2
-          id="fairness-heading"
-          className="text-muted text-sm font-semibold tracking-wide uppercase"
-        >
-          Fairness
-        </h2>
-        {!current && report !== null && <span className="text-muted text-xs">Updating…</span>}
-      </div>
+    <section aria-label="Fairness" className="space-y-3">
+      {!current && report !== null && (
+        <p className="text-muted text-right text-xs" aria-hidden="true">
+          Updating…
+        </p>
+      )}
       {report === null || balance === null ? (
         <p className="text-muted text-sm">{error ?? 'Generate a board to see how fair it is.'}</p>
       ) : (
@@ -128,28 +122,14 @@ export function FairnessPanel({
           ))}
         </ul>
       )}
-      <fieldset className="space-y-1 text-sm">
+      <fieldset className="border-line border-t pt-2">
         <legend className="sr-only">Show on the board</legend>
-        <label className="flex items-center gap-2">
-          <input
-            type="checkbox"
-            checked={showLane}
-            onChange={(event) => {
-              onShowLaneChange(event.target.checked);
-            }}
-          />
+        <Switch checked={showLane} onChange={onShowLaneChange}>
           Show the longest clear lane
-        </label>
-        <label className="flex items-center gap-2">
-          <input
-            type="checkbox"
-            checked={showHidden}
-            onChange={(event) => {
-              onShowHiddenChange(event.target.checked);
-            }}
-          />
+        </Switch>
+        <Switch checked={showHidden} onChange={onShowHiddenChange}>
           Show hidden deployment areas
-        </label>
+        </Switch>
       </fieldset>
       <p aria-live="polite" className="sr-only">
         {announcement}

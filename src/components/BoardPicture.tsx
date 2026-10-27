@@ -23,7 +23,7 @@ export function BoardPicture({ setup, layout, pieces, className = '' }: BoardPic
       className={`bg-mat block h-auto w-full ${className}`}
     >
       <rect width={width} height={depth} className="fill-stone-800" />
-      <DeploymentZones deployment={setup.deployment} />
+      <DeploymentZones deployment={setup.deployment} upright={false} />
       <g>
         {layout?.placements.map((placement, index) => {
           const piece = pieces.find((candidate) => candidate.id === placement.pieceId);

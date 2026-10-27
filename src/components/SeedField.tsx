@@ -1,5 +1,9 @@
 import { useId, useState, type SubmitEvent } from 'react';
+import { DicesIcon, LinkIcon } from 'lucide-react';
 import { codeToSeed } from '../domain/random';
+import { BUTTON_STYLES } from './buttonStyles';
+import { FIELD_STYLES, LABEL_STYLES } from './fieldStyles';
+import { IconButton } from './IconButton';
 
 interface SeedFieldProps {
   /** The current board's code, or null before the first board. */
@@ -54,9 +58,9 @@ export function SeedField({
   }
 
   return (
-    <section className="border-line bg-surface space-y-3 rounded-2xl border p-4 shadow-sm">
-      <form onSubmit={submit} className="space-y-1">
-        <label htmlFor={inputId} className="text-soft block text-sm">
+    <section className="space-y-3">
+      <form onSubmit={submit}>
+        <label htmlFor={inputId} className={LABEL_STYLES}>
           Board code
         </label>
         <div className="flex gap-2">
@@ -71,26 +75,18 @@ export function SeedField({
             spellCheck={false}
             aria-invalid={error !== null}
             aria-describedby={error === null ? undefined : `${inputId}-error`}
-            className="border-line-strong bg-raised w-full min-w-0 rounded-lg border px-2 py-1.5 font-mono tracking-widest uppercase"
+            className={`${FIELD_STYLES} min-w-0 font-mono tracking-widest uppercase`}
           />
           <button
             type="submit"
-            className="border-line-strong hover:bg-hover rounded-lg border px-3"
+            className={`${BUTTON_STYLES.secondary} h-10 px-3 text-sm pointer-coarse:h-11`}
           >
             Load
           </button>
-          <button
-            type="button"
-            onClick={onRandomSeed}
-            aria-label="New random board"
-            title="New random board"
-            className="border-line-strong hover:bg-hover rounded-lg border px-3"
-          >
-            🎲
-          </button>
+          <IconButton icon={DicesIcon} label="New random board" onClick={onRandomSeed} />
         </div>
         {error !== null && (
-          <p id={`${inputId}-error`} role="alert" className="text-fail text-sm">
+          <p id={`${inputId}-error`} role="alert" className="text-fail mt-1 text-sm">
             {error}
           </p>
         )}
@@ -99,9 +95,10 @@ export function SeedField({
         type="button"
         disabled={seedCode === null}
         onClick={() => void copy()}
-        className="border-line-strong hover:bg-hover w-full rounded-lg border px-3 py-1.5 disabled:opacity-50"
+        className={`w-full ${BUTTON_STYLES.secondary} h-10 text-sm pointer-coarse:h-11`}
       >
-        Copy link
+        <LinkIcon className="size-4" aria-hidden="true" />
+        Copy share link
       </button>
       <p aria-live="polite" className="text-soft text-sm">
         {copyMessage}
