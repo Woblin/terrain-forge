@@ -25,7 +25,7 @@ const SOURCES: Readonly<Record<PiecePaletteProps['source'], string>> = {
 };
 
 const BUTTON =
-  'rounded border border-stone-500 px-2 py-1 text-xs hover:bg-stone-700 disabled:opacity-40';
+  'rounded-lg border border-line-strong px-2 py-1 text-xs hover:bg-hover disabled:opacity-40';
 
 /** The terrain the board is made from: how many of each piece are left, and adding them. */
 export function PiecePalette({
@@ -38,14 +38,14 @@ export function PiecePalette({
   onAdd,
 }: PiecePaletteProps) {
   return (
-    <section aria-labelledby="pieces-heading" className="space-y-3 rounded-lg bg-stone-800 p-4">
-      <h2
-        id="pieces-heading"
-        className="text-sm font-semibold tracking-wide text-stone-400 uppercase"
-      >
+    <section
+      aria-labelledby="pieces-heading"
+      className="border-line bg-surface space-y-3 rounded-2xl border p-4 shadow-sm"
+    >
+      <h2 id="pieces-heading" className="text-muted text-sm font-semibold tracking-wide uppercase">
         Terrain pieces
       </h2>
-      <p className="text-xs text-stone-400">{SOURCES[source]}</p>
+      <p className="text-muted text-xs">{SOURCES[source]}</p>
       <ul className="space-y-3">
         {collection.map((piece) => {
           const left = remainingCount(pieces, piece);
@@ -55,7 +55,7 @@ export function PiecePalette({
               <PieceThumbnail piece={piece} photoUrl={photo?.url} />
               <div className="min-w-0 flex-1 space-y-1">
                 <p className="text-sm font-medium">{piece.name}</p>
-                <p className="text-xs text-stone-400">
+                <p className="text-muted text-xs">
                   {formatLength(piece.footprint.width, unit)} ×{' '}
                   {formatLength(piece.footprint.depth, unit)} · {left} of {piece.quantity} left
                 </p>
@@ -79,7 +79,7 @@ export function PiecePalette({
       </ul>
       <Link
         to="/library"
-        className="inline-block text-sm text-amber-300 underline hover:text-amber-200"
+        className="text-accent-ink hover:text-accent-ink-hover inline-block text-sm underline"
       >
         Edit your terrain and photos
       </Link>

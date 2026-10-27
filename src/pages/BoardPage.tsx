@@ -38,7 +38,6 @@ import { boardLinkSearch, parseBoardLink, type ParsedBoardLink } from '../domain
 import { normalizeRotation, snapRotation } from '../domain/snapping';
 import type { Placement, TerrainPiece } from '../domain/terrain';
 import { formatLength } from '../domain/units';
-import { AppHeader } from '../components/AppHeader';
 import { BoardView } from '../components/BoardView';
 import { DeploymentZones } from '../components/DeploymentZones';
 import { EditorToolbar } from '../components/EditorToolbar';
@@ -538,8 +537,7 @@ export function BoardPage() {
       : pieceById(collection, shownSelected.placement.pieceId);
 
   return (
-    <div className="min-h-screen bg-stone-900 text-stone-100">
-      <AppHeader />
+    <>
       <main className="mx-auto grid max-w-[96rem] gap-4 p-4 lg:grid-cols-[16rem_minmax(0,1fr)_24rem]">
         <div className="space-y-4">
           <GeneratorControls
@@ -592,7 +590,7 @@ export function BoardPage() {
           {notice !== null && (
             <p
               role="alert"
-              className="rounded-lg border border-amber-400/50 bg-amber-950/50 p-3 text-sm text-amber-100"
+              className="border-warn-line bg-warn-soft text-warn-ink rounded-lg border p-3 text-sm"
             >
               {notice}
             </p>
@@ -686,8 +684,8 @@ export function BoardPage() {
             )}
           </BoardView>
           {setup !== undefined && <TerrainLegend effects={setup.preset.terrainEffects} />}
-          <details className="text-sm text-stone-300">
-            <summary className="cursor-pointer text-stone-400">Keyboard shortcuts</summary>
+          <details className="text-soft text-sm">
+            <summary className="text-muted cursor-pointer">Keyboard shortcuts</summary>
             <ul className="mt-2 list-disc space-y-1 pl-5">
               <li>Tab and Shift+Tab move between pieces on the board.</li>
               <li>
@@ -745,7 +743,7 @@ export function BoardPage() {
           }}
         />
       )}
-    </div>
+    </>
   );
 }
 

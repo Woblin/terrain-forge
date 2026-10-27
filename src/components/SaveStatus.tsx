@@ -9,7 +9,7 @@ interface SaveStatusProps {
 export function SaveStatus({ saving }: SaveStatusProps) {
   const online = useOnline();
   return (
-    <p aria-live="polite" className="text-sm text-stone-400">
+    <p aria-live="polite" className="text-muted text-sm">
       {saving &&
         (online
           ? 'Saving…'

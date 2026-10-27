@@ -28,7 +28,7 @@ interface PieceFormProps {
   onCancel: () => void;
 }
 
-const INPUT = 'w-full rounded border border-stone-600 bg-stone-900 px-2 py-1.5';
+const INPUT = 'w-full rounded-lg border border-line-strong bg-raised px-2 py-1.5';
 const NO_ERRORS: DraftErrors = {};
 
 /** Adding or changing one piece: name, type, shape, size and how many the player owns. */
@@ -75,7 +75,7 @@ export function PieceForm({
   function fieldError(field: DraftField) {
     const message = errors[field];
     return message === undefined ? null : (
-      <p id={`${id}-${field}-error`} className="text-xs text-red-300">
+      <p id={`${id}-${field}-error`} className="text-fail text-xs">
         {message}
       </p>
     );
@@ -86,13 +86,13 @@ export function PieceForm({
       onSubmit={submit}
       aria-labelledby={`${id}-title`}
       noValidate
-      className="space-y-3 rounded-lg bg-stone-800 p-4"
+      className="border-line bg-surface space-y-3 rounded-2xl border p-4 shadow-sm"
     >
       <h2 id={`${id}-title`} className="text-lg font-semibold">
         {title}
       </h2>
       <div className="space-y-1">
-        <label htmlFor={`${id}-name`} className="block text-sm text-stone-300">
+        <label htmlFor={`${id}-name`} className="text-soft block text-sm">
           Name
         </label>
         <input
@@ -108,7 +108,7 @@ export function PieceForm({
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1">
-          <label htmlFor={`${id}-type`} className="block text-sm text-stone-300">
+          <label htmlFor={`${id}-type`} className="text-soft block text-sm">
             Type
           </label>
           <select
@@ -130,7 +130,7 @@ export function PieceForm({
           </select>
         </div>
         <fieldset className="space-y-1">
-          <legend className="text-sm text-stone-300">Shape</legend>
+          <legend className="text-soft text-sm">Shape</legend>
           <div className="flex gap-3 pt-1.5 text-sm">
             {(['rect', 'ellipse'] as const).map((shape) => (
               <label key={shape} className="flex items-center gap-1.5">
@@ -151,7 +151,7 @@ export function PieceForm({
       </div>
       <div className="grid grid-cols-3 gap-3">
         <div className="space-y-1">
-          <label htmlFor={`${id}-width`} className="block text-sm text-stone-300">
+          <label htmlFor={`${id}-width`} className="text-soft block text-sm">
             Width ({unitName})
           </label>
           <input
@@ -165,7 +165,7 @@ export function PieceForm({
           />
         </div>
         <div className="space-y-1">
-          <label htmlFor={`${id}-depth`} className="block text-sm text-stone-300">
+          <label htmlFor={`${id}-depth`} className="text-soft block text-sm">
             Depth ({unitName})
           </label>
           <input
@@ -179,7 +179,7 @@ export function PieceForm({
           />
         </div>
         <div className="space-y-1">
-          <label htmlFor={`${id}-quantity`} className="block text-sm text-stone-300">
+          <label htmlFor={`${id}-quantity`} className="text-soft block text-sm">
             How many
           </label>
           <input
@@ -199,12 +199,12 @@ export function PieceForm({
       <FootprintPreview type={draft.type} footprint={draftFootprint(draft, unit)} unit={unit} />
       <div aria-live="polite">
         {errors.library !== undefined && (
-          <p role="alert" className="text-sm text-red-300">
+          <p role="alert" className="text-fail text-sm">
             {errors.library}
           </p>
         )}
         {error !== null && (
-          <p role="alert" className="text-sm text-red-300">
+          <p role="alert" className="text-fail text-sm">
             {error}
           </p>
         )}
@@ -214,14 +214,14 @@ export function PieceForm({
           type="button"
           onClick={onCancel}
           disabled={saving}
-          className="rounded border border-stone-500 px-3 py-1.5 hover:bg-stone-700 disabled:opacity-50"
+          className="border-line-strong hover:bg-hover rounded-lg border px-3 py-1.5 disabled:opacity-50"
         >
           Cancel
         </button>
         <button
           type="submit"
           disabled={saving}
-          className="rounded bg-amber-500 px-3 py-1.5 font-semibold text-stone-950 hover:bg-amber-400 disabled:opacity-50"
+          className="bg-accent text-on-accent hover:bg-accent-hover rounded-lg px-3 py-1.5 font-semibold disabled:opacity-50"
         >
           {saving ? 'Saving…' : 'Save piece'}
         </button>

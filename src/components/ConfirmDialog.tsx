@@ -43,17 +43,17 @@ export function ConfirmDialog({
           onCancel();
         }
       }}
-      className="m-auto max-w-[calc(100vw-2rem)] rounded-lg bg-stone-800 p-0 text-stone-100 backdrop:bg-black/70"
+      className="border-line bg-surface text-ink shadow-shade m-auto max-w-[calc(100vw-2rem)] rounded-2xl border p-0 shadow-2xl backdrop:bg-black/60 backdrop:backdrop-blur-sm"
     >
       <div className="max-w-sm space-y-4 p-5">
         <h2 id={titleId} className="text-lg font-semibold">
           {title}
         </h2>
-        <p id={messageId} className="text-sm text-stone-300">
+        <p id={messageId} className="text-soft text-sm">
           {message}
         </p>
         {error !== null && (
-          <p role="alert" className="text-sm text-red-300">
+          <p role="alert" className="text-fail text-sm">
             {error}
           </p>
         )}
@@ -62,7 +62,7 @@ export function ConfirmDialog({
             type="button"
             disabled={busy}
             onClick={onCancel}
-            className="rounded border border-stone-500 px-3 py-1.5 hover:bg-stone-700 disabled:opacity-50"
+            className="border-line-strong hover:bg-hover rounded-lg border px-3 py-1.5 disabled:opacity-50"
           >
             Cancel
           </button>
@@ -70,7 +70,7 @@ export function ConfirmDialog({
             type="button"
             disabled={busy}
             onClick={onConfirm}
-            className="rounded bg-red-600 px-3 py-1.5 font-semibold text-white hover:bg-red-500 disabled:opacity-50"
+            className="bg-danger hover:bg-danger-hover rounded-lg px-3 py-1.5 font-semibold text-white disabled:opacity-50"
           >
             {busy ? 'Working…' : confirmLabel}
           </button>

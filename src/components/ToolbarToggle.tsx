@@ -7,7 +7,7 @@ interface ToolbarToggleProps {
 /** An on/off option in the editor toolbar. */
 export function ToolbarToggle({ label, checked, onChange }: ToolbarToggleProps) {
   return (
-    <label className="flex cursor-pointer items-center gap-1.5 rounded px-1.5 py-1 text-sm has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-amber-300">
+    <label className="has-[:focus-visible]:outline-accent-ink flex cursor-pointer items-center gap-1.5 rounded-lg px-1.5 py-1 text-sm has-[:focus-visible]:outline-2">
       <input
         type="checkbox"
         checked={checked}

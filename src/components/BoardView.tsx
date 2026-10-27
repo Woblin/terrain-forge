@@ -50,7 +50,7 @@ export function BoardView({
       role="group"
       aria-labelledby={titleId}
       aria-describedby={descriptionId}
-      className={`block h-auto w-full touch-none overflow-hidden rounded-md bg-stone-800 shadow-lg transition-opacity select-none motion-reduce:transition-none ${dimmed ? 'opacity-50' : ''}`}
+      className={`bg-mat block h-auto w-full touch-none overflow-hidden rounded-md shadow-lg transition-opacity select-none motion-reduce:transition-none ${dimmed ? 'opacity-50' : ''}`}
       onPointerDown={onBackgroundPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}

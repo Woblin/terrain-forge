@@ -2698,6 +2698,19 @@ __metadata:
   languageName: node
   linkType: hard
 
+"lucide-react@npm:^1.57.0":
+  version: 1.61.0
+  resolution: "lucide-react@npm:1.61.0"
+  peerDependencies:
+    "@types/react": "*"
+    react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0
+  peerDependenciesMeta:
+    "@types/react":
+      optional: true
+  checksum: 10c0/85576d32aef43d5dccf5a1fac06b67c2ccbb70eb33b996123f49aab108111fffa6bdd517c7d406db67a14432c45924279c2ec7212a166864d3355ce68b361494
+  languageName: node
+  linkType: hard
+
 "magic-string@npm:^0.30.21":
   version: 0.30.21
   resolution: "magic-string@npm:0.30.21"
@@ -3233,6 +3246,7 @@ __metadata:
     eslint-plugin-react-refresh: "npm:^0.5.7"
     firebase: "npm:^13.1.0"
     globals: "npm:^17.13.0"
+    lucide-react: "npm:^1.57.0"
     prettier: "npm:^3.9.10"
     prettier-plugin-tailwindcss: "npm:^0.8.1"
     react: "npm:^19.3.1"

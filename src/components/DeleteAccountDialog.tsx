@@ -40,7 +40,7 @@ export function DeleteAccountDialog({
           onCancel();
         }
       }}
-      className="m-auto max-w-[calc(100vw-2rem)] rounded-lg bg-stone-800 p-0 text-stone-100 backdrop:bg-black/70"
+      className="border-line bg-surface text-ink shadow-shade m-auto max-w-[calc(100vw-2rem)] rounded-2xl border p-0 shadow-2xl backdrop:bg-black/60 backdrop:backdrop-blur-sm"
     >
       <form
         className="max-w-sm space-y-4 p-5"
@@ -52,13 +52,13 @@ export function DeleteAccountDialog({
         <h2 id={`${id}-title`} className="text-lg font-semibold">
           Delete your account?
         </h2>
-        <p className="text-sm text-stone-300">
+        <p className="text-soft text-sm">
           Your account, every terrain piece, photo and saved board are deleted for good. This
           can&apos;t be undone.
         </p>
         {usesPassword ? (
           <div className="space-y-1">
-            <label htmlFor={`${id}-password`} className="block text-sm text-stone-300">
+            <label htmlFor={`${id}-password`} className="text-soft block text-sm">
               Your password, to confirm it is you
             </label>
             <input
@@ -69,14 +69,14 @@ export function DeleteAccountDialog({
               onChange={(event) => {
                 setPassword(event.target.value);
               }}
-              className="w-full rounded border border-stone-600 bg-stone-900 px-2 py-1.5"
+              className="border-line-strong bg-raised w-full rounded-lg border px-2 py-1.5"
             />
           </div>
         ) : (
-          <p className="text-sm text-stone-300">Google asks you to confirm it is you first.</p>
+          <p className="text-soft text-sm">Google asks you to confirm it is you first.</p>
         )}
         {error !== null && (
-          <p role="alert" className="text-sm text-red-300">
+          <p role="alert" className="text-fail text-sm">
             {error}
           </p>
         )}
@@ -85,14 +85,14 @@ export function DeleteAccountDialog({
             type="button"
             disabled={busy}
             onClick={onCancel}
-            className="rounded border border-stone-500 px-3 py-1.5 hover:bg-stone-700 disabled:opacity-50"
+            className="border-line-strong hover:bg-hover rounded-lg border px-3 py-1.5 disabled:opacity-50"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={busy || (usesPassword && password === '')}
-            className="rounded bg-red-600 px-3 py-1.5 font-semibold text-white hover:bg-red-500 disabled:opacity-50"
+            className="bg-danger hover:bg-danger-hover rounded-lg px-3 py-1.5 font-semibold text-white disabled:opacity-50"
           >
             {busy ? 'Deleting…' : 'Delete everything'}
           </button>

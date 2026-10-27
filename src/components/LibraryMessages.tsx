@@ -14,11 +14,11 @@ export function LibraryMessages({
 }: LibraryMessagesProps) {
   return (
     <div aria-live="polite" className="space-y-2 text-sm">
-      {loading && <p className="text-stone-300">Loading…</p>}
+      {loading && <p className="text-soft">Loading…</p>}
       {[loadError, actionError, ...problems].map(
         (message) =>
           message !== null && (
-            <p key={message} role="alert" className="text-red-300">
+            <p key={message} role="alert" className="text-fail">
               {message}
             </p>
           ),

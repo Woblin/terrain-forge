@@ -1,9 +1,12 @@
 import { INITIAL_GAME_PREFERENCES, type GamePreferences } from '../domain/gamePreferences';
+import { parseThemeChoice, type ThemeChoice } from '../domain/theme';
 import type { LengthUnit } from '../domain/units';
 import { parsePreferencesDocument, preferencesDocument } from './gamePreferencesSchema';
 
 const UNIT_KEY = 'terrain-forge.length-unit';
 const GAME_KEY = 'terrain-forge.game-preferences';
+/** Also read by the script in index.html that sets the theme before the page draws. */
+const THEME_KEY = 'terrain-forge.theme';
 
 /**
  * The unit the player picked last time on this device. Storage can be switched off or full;
@@ -48,5 +51,23 @@ export function saveGamePreferences(preferences: GamePreferences): void {
     localStorage.setItem(GAME_KEY, JSON.stringify(preferencesDocument(preferences)));
   } catch (error) {
     console.warn('Could not save the game settings; they reset on the next visit.', error);
+  }
+}
+
+/** The theme the player picked on this device. Like the unit, a failure falls back to the default. */
+export function loadThemeChoice(): ThemeChoice {
+  try {
+    return parseThemeChoice(localStorage.getItem(THEME_KEY));
+  } catch (error) {
+    console.warn('Could not read the saved theme; following the device.', error);
+    return 'system';
+  }
+}
+
+export function saveThemeChoice(choice: ThemeChoice): void {
+  try {
+    localStorage.setItem(THEME_KEY, choice);
+  } catch (error) {
+    console.warn('Could not save the theme; it resets on the next visit.', error);
   }
 }

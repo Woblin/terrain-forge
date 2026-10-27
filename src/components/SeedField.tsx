@@ -54,9 +54,9 @@ export function SeedField({
   }
 
   return (
-    <section className="space-y-3 rounded-lg bg-stone-800 p-4">
+    <section className="border-line bg-surface space-y-3 rounded-2xl border p-4 shadow-sm">
       <form onSubmit={submit} className="space-y-1">
-        <label htmlFor={inputId} className="block text-sm text-stone-300">
+        <label htmlFor={inputId} className="text-soft block text-sm">
           Board code
         </label>
         <div className="flex gap-2">
@@ -71,9 +71,12 @@ export function SeedField({
             spellCheck={false}
             aria-invalid={error !== null}
             aria-describedby={error === null ? undefined : `${inputId}-error`}
-            className="w-full min-w-0 rounded border border-stone-600 bg-stone-900 px-2 py-1.5 font-mono tracking-widest uppercase"
+            className="border-line-strong bg-raised w-full min-w-0 rounded-lg border px-2 py-1.5 font-mono tracking-widest uppercase"
           />
-          <button type="submit" className="rounded border border-stone-500 px-3 hover:bg-stone-700">
+          <button
+            type="submit"
+            className="border-line-strong hover:bg-hover rounded-lg border px-3"
+          >
             Load
           </button>
           <button
@@ -81,13 +84,13 @@ export function SeedField({
             onClick={onRandomSeed}
             aria-label="New random board"
             title="New random board"
-            className="rounded border border-stone-500 px-3 hover:bg-stone-700"
+            className="border-line-strong hover:bg-hover rounded-lg border px-3"
           >
             🎲
           </button>
         </div>
         {error !== null && (
-          <p id={`${inputId}-error`} role="alert" className="text-sm text-red-300">
+          <p id={`${inputId}-error`} role="alert" className="text-fail text-sm">
             {error}
           </p>
         )}
@@ -96,11 +99,11 @@ export function SeedField({
         type="button"
         disabled={seedCode === null}
         onClick={() => void copy()}
-        className="w-full rounded border border-stone-500 px-3 py-1.5 hover:bg-stone-700 disabled:opacity-50"
+        className="border-line-strong hover:bg-hover w-full rounded-lg border px-3 py-1.5 disabled:opacity-50"
       >
         Copy link
       </button>
-      <p aria-live="polite" className="text-sm text-stone-300">
+      <p aria-live="polite" className="text-soft text-sm">
         {copyMessage}
       </p>
     </section>

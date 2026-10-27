@@ -18,7 +18,7 @@ const RULER_SPACE = 2;
 export function FootprintPreview({ type, footprint, unit }: FootprintPreviewProps) {
   if (footprint === null) {
     return (
-      <p className="flex h-32 items-center justify-center rounded bg-stone-900 px-3 text-center text-sm text-stone-400">
+      <p className="bg-mat text-muted flex h-32 items-center justify-center rounded-lg px-3 text-center text-sm">
         Enter a width and depth to see the piece to scale.
       </p>
     );
@@ -31,7 +31,7 @@ export function FootprintPreview({ type, footprint, unit }: FootprintPreviewProp
     <figure className="space-y-1">
       <svg
         viewBox={`0 0 ${String(width)} ${String(height)}`}
-        className="max-h-48 w-full rounded bg-stone-900"
+        className="bg-mat max-h-48 w-full rounded-lg"
         role="img"
         aria-label={`${style.name}, ${formatLength(footprint.width, unit)} by ${formatLength(footprint.depth, unit)}, drawn to scale`}
       >
@@ -64,7 +64,7 @@ export function FootprintPreview({ type, footprint, unit }: FootprintPreviewProp
           ))}
         </g>
       </svg>
-      <figcaption className="text-xs text-stone-400">
+      <figcaption className="text-muted text-xs">
         The bar under the piece is {formatLength(RULER, unit)} long.
       </figcaption>
     </figure>

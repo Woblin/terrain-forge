@@ -10,7 +10,7 @@ interface RuleSwitchesProps {
 export function RuleSwitches({ enabledRules, onRuleChange }: RuleSwitchesProps) {
   return (
     <fieldset className="space-y-1">
-      <legend className="text-sm text-stone-300">Balance rules</legend>
+      <legend className="text-soft text-sm">Balance rules</legend>
       {RULE_IDS.map((rule) => (
         <label key={rule} className="flex cursor-pointer items-center gap-2 text-sm">
           <input
@@ -22,11 +22,11 @@ export function RuleSwitches({ enabledRules, onRuleChange }: RuleSwitchesProps) 
             className="accent-amber-500"
           />
           <span>
-            <span className="text-stone-400">{RULE_NAMES[rule].code}</span> {RULE_NAMES[rule].name}
+            <span className="text-muted">{RULE_NAMES[rule].code}</span> {RULE_NAMES[rule].name}
           </span>
         </label>
       ))}
-      <p className="text-xs text-stone-400">
+      <p className="text-muted text-xs">
         Used for the next board you generate. Rules that are off are still measured.
       </p>
     </fieldset>

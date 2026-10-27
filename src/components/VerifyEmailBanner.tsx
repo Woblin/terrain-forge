@@ -27,7 +27,7 @@ export function VerifyEmailBanner() {
   return (
     <div
       role="status"
-      className="border-b border-amber-400/50 bg-amber-950/60 px-4 py-2 text-sm text-amber-100"
+      className="border-warn-line bg-warn-soft text-warn-ink border-b px-4 py-2 text-sm"
     >
       <p>
         Verify your email to save your terrain. We sent a link to {auth.user.email ?? 'you'}. Until
@@ -51,7 +51,7 @@ export function VerifyEmailBanner() {
         </TextButton>
       </p>
       {message !== null && (
-        <p className={message.failed ? 'text-red-300' : 'text-emerald-300'}>{message.text}</p>
+        <p className={message.failed ? 'text-fail' : 'text-pass'}>{message.text}</p>
       )}
     </div>
   );

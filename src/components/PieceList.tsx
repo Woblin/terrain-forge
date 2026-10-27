@@ -36,11 +36,11 @@ export function PieceList({
         <section key={group.type} aria-labelledby={`group-${group.type}`}>
           <h3
             id={`group-${group.type}`}
-            className="text-sm font-semibold tracking-wide text-stone-400 uppercase"
+            className="text-muted text-sm font-semibold tracking-wide uppercase"
           >
             {TERRAIN_STYLES[group.type].name}
           </h3>
-          <ul className="divide-y divide-stone-700">
+          <ul className="divide-line divide-y">
             {group.pieces.map((piece) => (
               <PieceRow
                 key={piece.id}

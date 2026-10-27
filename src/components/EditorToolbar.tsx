@@ -18,7 +18,7 @@ interface EditorToolbarProps {
 }
 
 const BUTTON =
-  'rounded border border-stone-500 px-2.5 py-1.5 text-sm hover:bg-stone-700 disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-amber-300';
+  'rounded-lg border border-line-strong px-2.5 py-1.5 text-sm hover:bg-hover disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-accent-ink';
 
 /** Undo, redo, turning and removing the selected piece, and the editing options. */
 export function EditorToolbar({
@@ -46,7 +46,7 @@ export function EditorToolbar({
         <button type="button" onClick={onRedo} disabled={!canRedo} className={BUTTON}>
           Redo
         </button>
-        <span className="mx-1 h-6 w-px bg-stone-700" aria-hidden="true" />
+        <span className="bg-line-strong mx-1 h-6 w-px" aria-hidden="true" />
         <button
           type="button"
           onClick={() => {
@@ -72,7 +72,7 @@ export function EditorToolbar({
         <button type="button" onClick={onRemove} disabled={!hasSelection} className={BUTTON}>
           Remove
         </button>
-        <span className="mx-1 h-6 w-px bg-stone-700" aria-hidden="true" />
+        <span className="bg-line-strong mx-1 h-6 w-px" aria-hidden="true" />
         <ToolbarToggle label="Snap" checked={snap} onChange={onSnapChange} />
         <ToolbarToggle
           label="Move pairs together"
@@ -83,15 +83,15 @@ export function EditorToolbar({
       </div>
       <div role="status" className="min-h-10 text-sm">
         {selection === null ? (
-          <p className="text-stone-400">
+          <p className="text-muted">
             Select a piece to edit it. Drag to move, drag the yellow handle to turn, or drop it off
             the board to remove it. Hold Shift to place freely.
           </p>
         ) : (
           <>
-            <p className="text-stone-200">{selection.name} selected.</p>
+            <p className="text-ink">{selection.name} selected.</p>
             {selection.problems.map((problem) => (
-              <p key={problem} className="text-red-300">
+              <p key={problem} className="text-fail">
                 ⚠ {problem}
               </p>
             ))}

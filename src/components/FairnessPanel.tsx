@@ -52,20 +52,21 @@ export function FairnessPanel({
   }
 
   return (
-    <section aria-labelledby="fairness-heading" className="space-y-3 rounded-lg bg-stone-800 p-4">
+    <section
+      aria-labelledby="fairness-heading"
+      className="border-line bg-surface space-y-3 rounded-2xl border p-4 shadow-sm"
+    >
       <div className="flex items-baseline justify-between gap-2">
         <h2
           id="fairness-heading"
-          className="text-sm font-semibold tracking-wide text-stone-400 uppercase"
+          className="text-muted text-sm font-semibold tracking-wide uppercase"
         >
           Fairness
         </h2>
-        {!current && report !== null && <span className="text-xs text-stone-400">Updating…</span>}
+        {!current && report !== null && <span className="text-muted text-xs">Updating…</span>}
       </div>
       {report === null || balance === null ? (
-        <p className="text-sm text-stone-400">
-          {error ?? 'Generate a board to see how fair it is.'}
-        </p>
+        <p className="text-muted text-sm">{error ?? 'Generate a board to see how fair it is.'}</p>
       ) : (
         <>
           <FairnessVerdict
@@ -77,14 +78,14 @@ export function FairnessPanel({
             <ClosestBoardNote failedRules={report.failedRules} />
           )}
           {misplaced > 0 && (
-            <p className="text-sm text-rose-300">
+            <p className="text-fail text-sm">
               ⚠ {misplaced === 1 ? '1 piece breaks' : `${String(misplaced)} pieces break`} the
               placement rules. Select a piece with a red outline to see why.
             </p>
           )}
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-left text-xs text-stone-400">
+              <tr className="text-muted text-left text-xs">
                 <th scope="col" className="py-1 font-normal">
                   Rule
                 </th>
@@ -110,18 +111,18 @@ export function FairnessPanel({
               ))}
             </tbody>
           </table>
-          <p className="text-xs text-stone-400">
+          <p className="text-muted text-xs">
             Imbalance score {report.imbalance.toFixed(2)} (0 is perfectly even).
           </p>
           {error !== null && (
-            <p role="alert" className="text-sm text-red-300">
+            <p role="alert" className="text-fail text-sm">
               {error}
             </p>
           )}
         </>
       )}
       {warnings.length > 0 && (
-        <ul className="list-disc space-y-1 pl-5 text-sm text-amber-200">
+        <ul className="text-warn-ink list-disc space-y-1 pl-5 text-sm">
           {warnings.map((warning) => (
             <li key={warning}>{warning}</li>
           ))}

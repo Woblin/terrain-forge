@@ -11,7 +11,7 @@ interface ClosestBoardNoteProps {
  */
 export function ClosestBoardNote({ failedRules }: ClosestBoardNoteProps) {
   return (
-    <div className="space-y-1 rounded border border-amber-400/50 bg-amber-950/50 p-3 text-sm text-amber-100">
+    <div className="border-warn-line bg-warn-soft text-warn-ink space-y-1 rounded-lg border p-3 text-sm">
       <p>
         Your terrain could not meet every rule that is on, so this is the closest board the
         generator found.
