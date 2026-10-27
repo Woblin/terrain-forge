@@ -1,1 +1,101 @@
 @import 'tailwindcss';
+
+/* The `dark` class on <html> switches every colour token below to its dark value. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
+ * Colour tokens, light theme. Components use the token names (bg-surface, text-muted, ...)
+ * and never raw palette colours, so each theme is defined once, here.
+ */
+:root {
+  color-scheme: light;
+  --canvas: var(--color-zinc-100);
+  --surface: var(--color-white);
+  --raised: var(--color-zinc-100);
+  --selected: var(--color-white);
+  --hover: rgb(9 9 11 / 0.05);
+  --line: rgb(9 9 11 / 0.1);
+  --line-strong: rgb(9 9 11 / 0.2);
+  --ink: var(--color-zinc-900);
+  --soft: var(--color-zinc-700);
+  --muted: var(--color-zinc-600);
+  --faint: var(--color-zinc-500);
+  --accent-ink: var(--color-amber-700);
+  --accent-ink-hover: var(--color-amber-800);
+  --pass: var(--color-emerald-700);
+  --pass-soft: var(--color-emerald-50);
+  --fail: var(--color-rose-700);
+  --fail-soft: var(--color-rose-50);
+  --fail-line: var(--color-rose-300);
+  --warn-ink: var(--color-amber-900);
+  --warn-soft: var(--color-amber-50);
+  --warn-line: var(--color-amber-300);
+  --shade: rgb(24 24 27 / 0.12);
+}
+
+/* Colour tokens, dark theme. */
+.dark {
+  color-scheme: dark;
+  --canvas: var(--color-zinc-950);
+  --surface: var(--color-zinc-900);
+  --raised: var(--color-zinc-800);
+  --selected: var(--color-zinc-600);
+  --hover: rgb(255 255 255 / 0.07);
+  --line: rgb(255 255 255 / 0.08);
+  --line-strong: rgb(255 255 255 / 0.18);
+  --ink: var(--color-zinc-50);
+  --soft: var(--color-zinc-300);
+  --muted: var(--color-zinc-400);
+  --faint: var(--color-zinc-500);
+  --accent-ink: var(--color-amber-400);
+  --accent-ink-hover: var(--color-amber-300);
+  --pass: var(--color-emerald-400);
+  --pass-soft: rgb(6 78 59 / 0.45);
+  --fail: var(--color-rose-400);
+  --fail-soft: rgb(76 5 25 / 0.55);
+  --fail-line: rgb(251 113 133 / 0.5);
+  --warn-ink: var(--color-amber-100);
+  --warn-soft: rgb(69 26 3 / 0.55);
+  --warn-line: rgb(251 191 36 / 0.4);
+  --shade: rgb(0 0 0 / 0.5);
+}
+
+@theme inline {
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-raised: var(--raised);
+  --color-selected: var(--selected);
+  --color-hover: var(--hover);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-ink: var(--ink);
+  --color-soft: var(--soft);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+  /* The accent fill is the same amber in both themes, always with dark text on it. */
+  --color-accent: var(--color-amber-400);
+  --color-accent-hover: var(--color-amber-300);
+  --color-on-accent: var(--color-zinc-950);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-ink-hover: var(--accent-ink-hover);
+  --color-pass: var(--pass);
+  --color-pass-soft: var(--pass-soft);
+  --color-fail: var(--fail);
+  --color-fail-soft: var(--fail-soft);
+  --color-fail-line: var(--fail-line);
+  --color-warn-ink: var(--warn-ink);
+  --color-warn-soft: var(--warn-soft);
+  --color-warn-line: var(--warn-line);
+  --color-danger: var(--color-red-600);
+  --color-danger-hover: var(--color-red-500);
+  --color-shade: var(--shade);
+  /* The table the board and terrain previews are drawn on: dark in both themes. */
+  --color-mat: var(--color-stone-800);
+}
+
+@layer base {
+  body {
+    @apply bg-canvas text-ink font-sans antialiased;
+  }
+}

@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router';
 import { copyName, hasUnsavedChanges, type SavedBoard } from '../domain/savedBoard';
-import { AppHeader } from '../components/AppHeader';
 import { BoardNameDialog } from '../components/BoardNameDialog';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { LibraryMessages } from '../components/LibraryMessages';
@@ -48,30 +47,29 @@ export function SavedBoardsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-stone-900 text-stone-100">
-      <AppHeader />
+    <>
       <main className="mx-auto max-w-4xl space-y-4 p-4">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <h1 className="text-2xl font-bold">My boards</h1>
             {savedBoards.access === 'account' && savedBoards.status === 'ready' && (
-              <p className="text-sm text-stone-400">{countText(boards.length)}</p>
+              <p className="text-muted text-sm">{countText(boards.length)}</p>
             )}
           </div>
           <Link
             to="/board"
             state={{ newBoard: true }}
-            className="rounded border border-stone-500 px-3 py-1.5 text-sm hover:bg-stone-800"
+            className="border-line-strong hover:bg-hover rounded-lg border px-3 py-1.5 text-sm"
           >
             New board
           </Link>
         </div>
         {savedBoards.access === 'signedOut' && (
-          <p className="text-stone-300">
+          <p className="text-soft">
             <Link
               to="/sign-in"
               state={{ from: location.pathname }}
-              className="text-amber-300 underline hover:text-amber-200"
+              className="text-accent-ink hover:text-accent-ink-hover underline"
             >
               Sign in
             </Link>{' '}
@@ -79,7 +77,7 @@ export function SavedBoardsPage() {
           </p>
         )}
         {savedBoards.access === 'unverified' && (
-          <p className="text-stone-300">Verify your email to save boards to your account.</p>
+          <p className="text-soft">Verify your email to save boards to your account.</p>
         )}
         {savedBoards.access === 'account' && (
           <>
@@ -91,11 +89,11 @@ export function SavedBoardsPage() {
               loading={savedBoards.status === 'loading'}
             />
             {boards.length === 0 && savedBoards.status === 'ready' ? (
-              <div className="space-y-3 rounded-lg bg-stone-800 p-4">
-                <p className="text-stone-300">No saved boards yet.</p>
+              <div className="border-line bg-surface space-y-3 rounded-2xl border p-4 shadow-sm">
+                <p className="text-soft">No saved boards yet.</p>
                 <Link
                   to="/board"
-                  className="inline-block rounded bg-amber-500 px-3 py-1.5 font-semibold text-stone-950 hover:bg-amber-400"
+                  className="bg-accent text-on-accent hover:bg-accent-hover inline-block rounded-lg px-3 py-1.5 font-semibold"
                 >
                   Go to the board
                 </Link>
@@ -195,7 +193,7 @@ export function SavedBoardsPage() {
           }}
         />
       )}
-    </div>
+    </>
   );
 }
 

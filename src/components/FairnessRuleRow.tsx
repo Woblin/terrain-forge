@@ -10,10 +10,10 @@ interface FairnessRuleRowProps {
 /** One balance rule: its name and limit, both players' values, and whether it passes. */
 export function FairnessRuleRow({ row, failed, off }: FairnessRuleRowProps) {
   return (
-    <tr className={`border-t border-stone-700 align-top ${off ? 'text-stone-500' : ''}`}>
+    <tr className={`border-line border-t align-top ${off ? 'text-faint' : ''}`}>
       <th scope="row" className="py-1.5 pr-2 text-left font-normal">
-        <span className="text-stone-400">{row.code}</span> {row.name}
-        <span className="block text-xs text-stone-400">{row.limit}</span>
+        <span className="text-muted">{row.code}</span> {row.name}
+        <span className="text-muted block text-xs">{row.limit}</span>
       </th>
       {typeof row.values === 'string' ? (
         <td colSpan={2} className="py-1.5 text-right whitespace-nowrap tabular-nums">
@@ -41,7 +41,7 @@ function resultLabel(failed: boolean, off: boolean): string {
 
 function resultColour(failed: boolean, off: boolean): string {
   if (off) {
-    return 'text-stone-500';
+    return 'text-faint';
   }
-  return failed ? 'text-rose-300' : 'text-emerald-300';
+  return failed ? 'text-fail' : 'text-pass';
 }

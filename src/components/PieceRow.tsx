@@ -19,7 +19,7 @@ interface PieceRowProps {
 }
 
 const BUTTON =
-  'rounded border border-stone-500 px-2 py-1 text-xs hover:bg-stone-700 disabled:opacity-40';
+  'rounded-lg border border-line-strong px-2 py-1 text-xs hover:bg-hover disabled:opacity-40';
 
 /** One piece in the library, with its count and the things the player can do with it. */
 export function PieceRow({
@@ -42,12 +42,12 @@ export function PieceRow({
       <PieceThumbnail piece={piece} photoUrl={photoUrl} />
       <div className="min-w-0 flex-1 space-y-1">
         <p className="font-medium">{piece.name}</p>
-        <p className="text-xs text-stone-400">
+        <p className="text-muted text-xs">
           {formatLength(width, unit)} × {formatLength(depth, unit)},{' '}
           {piece.footprint.kind === 'rect' ? 'rectangle' : 'oval'}
         </p>
         {hasPhoto && needsRecrop(piece) && (
-          <p className="text-xs text-amber-300">
+          <p className="text-accent-ink text-xs">
             The piece changed shape since its photo was cropped. Re-crop the photo.
           </p>
         )}
@@ -59,7 +59,7 @@ export function PieceRow({
             Duplicate
           </button>
           <label
-            className={`${BUTTON} cursor-pointer has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-40 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-amber-300`}
+            className={`${BUTTON} has-[:focus-visible]:outline-accent-ink cursor-pointer has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-40 has-[:focus-visible]:outline-2`}
           >
             {!hasPhoto ? 'Add photo' : needsRecrop(piece) ? 'Re-crop photo' : 'Replace photo'}
             <input
@@ -93,7 +93,7 @@ export function PieceRow({
             onClick={onDelete}
             disabled={busy}
             aria-label={`Delete ${piece.name}`}
-            className={`${BUTTON} border-red-400/60 text-red-200 hover:bg-red-950`}
+            className={`${BUTTON} border-fail-line text-fail hover:bg-fail-soft`}
           >
             Delete
           </button>

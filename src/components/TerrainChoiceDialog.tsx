@@ -32,34 +32,34 @@ export function TerrainChoiceDialog({
         event.preventDefault();
         onCancel();
       }}
-      className="m-auto max-w-[calc(100vw-2rem)] rounded-lg bg-stone-800 p-0 text-stone-100 backdrop:bg-black/70"
+      className="border-line bg-surface text-ink shadow-shade m-auto max-w-[calc(100vw-2rem)] rounded-2xl border p-0 shadow-2xl backdrop:bg-black/60 backdrop:backdrop-blur-sm"
     >
       <div className="max-w-sm space-y-4 p-5">
         <h2 id={`${id}-title`} className="text-lg font-semibold">
           Which terrain for the new board?
         </h2>
-        <p id={`${id}-message`} className="text-sm text-stone-300">
+        <p id={`${id}-message`} className="text-soft text-sm">
           This board&apos;s terrain is not the same as your library now.
         </p>
         <div className="flex flex-col gap-2">
           <button
             type="button"
             onClick={onBoardTerrain}
-            className="rounded bg-amber-500 px-3 py-1.5 font-semibold text-stone-950 hover:bg-amber-400"
+            className="bg-accent text-on-accent hover:bg-accent-hover rounded-lg px-3 py-1.5 font-semibold"
           >
             This board&apos;s terrain
           </button>
           <button
             type="button"
             onClick={onLibrary}
-            className="rounded border border-stone-500 px-3 py-1.5 hover:bg-stone-700"
+            className="border-line-strong hover:bg-hover rounded-lg border px-3 py-1.5"
           >
             My library as it is now
           </button>
           <button
             type="button"
             onClick={onCancel}
-            className="rounded px-3 py-1.5 text-stone-300 hover:bg-stone-700"
+            className="text-soft hover:bg-hover rounded-lg px-3 py-1.5"
           >
             Cancel
           </button>

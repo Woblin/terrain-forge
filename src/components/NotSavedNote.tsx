@@ -9,7 +9,7 @@ interface NotSavedNoteProps {
 export function NotSavedNote({ signedIn }: NotSavedNoteProps) {
   const location = useLocation();
   return (
-    <p className="rounded-lg border border-amber-400/50 bg-amber-950/50 p-3 text-sm text-amber-100">
+    <p className="border-warn-line bg-warn-soft text-warn-ink rounded-lg border p-3 text-sm">
       Your library isn&apos;t saved: it lasts until you reload the page.{' '}
       {signedIn ? (
         'Verify your email to save it to your account.'
@@ -18,7 +18,7 @@ export function NotSavedNote({ signedIn }: NotSavedNoteProps) {
           <Link
             to="/sign-in"
             state={{ from: location.pathname }}
-            className="text-amber-300 underline hover:text-amber-200"
+            className="text-accent-ink hover:text-accent-ink-hover underline"
           >
             Sign in
           </Link>{' '}

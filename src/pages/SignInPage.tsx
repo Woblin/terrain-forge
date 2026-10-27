@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Link, Navigate, useLocation } from 'react-router';
 import type { AccountDraft, AccountFormMode } from '../domain/account';
-import { AppHeader } from '../components/AppHeader';
 import { EmailForm } from '../components/EmailForm';
 import { GoogleButton } from '../components/GoogleButton';
 import { useAuth } from '../hooks/authContext';
@@ -48,57 +47,54 @@ export function SignInPage() {
   }
 
   return (
-    <div className="min-h-screen bg-stone-900 text-stone-100">
-      <AppHeader />
-      <main className="mx-auto max-w-sm space-y-4 p-4">
-        <div>
-          <h1 className="text-2xl font-bold">Sign in</h1>
-          <p className="text-sm text-stone-400">
-            Signing in saves your terrain library and photos, so they are there on every device.
-          </p>
-        </div>
-        <GoogleButton
-          label="Continue with Google"
-          busy={busy === 'google'}
-          onClick={() => {
-            void run('google', auth.signInWithGoogle);
-          }}
-        />
-        {error?.from === 'google' && (
-          <p role="alert" className="text-sm text-red-300">
-            {error.message}
-          </p>
-        )}
-        <p className="text-center text-sm text-stone-400">or</p>
-        <EmailForm
-          mode={mode}
-          busy={busy !== null}
-          error={error?.from === 'email' ? error.message : null}
-          notice={notice}
-          onModeChange={(next) => {
-            setMode(next);
-            setError(null);
-            setNotice(null);
-          }}
-          onSubmit={(submitted, draft) => {
-            void submitEmail(submitted, draft);
-          }}
-        />
-        {mode === 'createAccount' && (
-          <p className="text-sm text-stone-400">
-            We send you an email to check the address. Your terrain is saved once you click the link
-            in it.
-          </p>
-        )}
-        <p className="text-sm text-stone-400">
-          You can also{' '}
-          <Link to="/board" className="text-amber-300 underline hover:text-amber-200">
-            use Terrain Forge without an account
-          </Link>
-          ; your terrain then lasts until you reload the page.
+    <main className="mx-auto max-w-sm space-y-4 p-4">
+      <div>
+        <h1 className="text-2xl font-bold">Sign in</h1>
+        <p className="text-muted text-sm">
+          Signing in saves your terrain library and photos, so they are there on every device.
         </p>
-      </main>
-    </div>
+      </div>
+      <GoogleButton
+        label="Continue with Google"
+        busy={busy === 'google'}
+        onClick={() => {
+          void run('google', auth.signInWithGoogle);
+        }}
+      />
+      {error?.from === 'google' && (
+        <p role="alert" className="text-fail text-sm">
+          {error.message}
+        </p>
+      )}
+      <p className="text-muted text-center text-sm">or</p>
+      <EmailForm
+        mode={mode}
+        busy={busy !== null}
+        error={error?.from === 'email' ? error.message : null}
+        notice={notice}
+        onModeChange={(next) => {
+          setMode(next);
+          setError(null);
+          setNotice(null);
+        }}
+        onSubmit={(submitted, draft) => {
+          void submitEmail(submitted, draft);
+        }}
+      />
+      {mode === 'createAccount' && (
+        <p className="text-muted text-sm">
+          We send you an email to check the address. Your terrain is saved once you click the link
+          in it.
+        </p>
+      )}
+      <p className="text-muted text-sm">
+        You can also{' '}
+        <Link to="/board" className="text-accent-ink hover:text-accent-ink-hover underline">
+          use Terrain Forge without an account
+        </Link>
+        ; your terrain then lasts until you reload the page.
+      </p>
+    </main>
   );
 }
 

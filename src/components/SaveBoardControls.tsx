@@ -41,20 +41,23 @@ export function SaveBoardControls({
 
   if (access !== 'account') {
     return (
-      <section aria-label="Save board" className="space-y-2 rounded-lg bg-stone-800 p-4 text-sm">
+      <section
+        aria-label="Save board"
+        className="border-line bg-surface space-y-2 rounded-2xl border p-4 text-sm shadow-sm"
+      >
         {access === 'signedOut' ? (
           <>
             <Link
               to="/sign-in"
               state={{ from: location.pathname }}
-              className="block w-full rounded border border-stone-500 px-3 py-1.5 text-center hover:bg-stone-700"
+              className="border-line-strong hover:bg-hover block w-full rounded-lg border px-3 py-1.5 text-center"
             >
               Sign in to save
             </Link>
-            <p className="text-xs text-stone-400">This board stays here while you sign in.</p>
+            <p className="text-muted text-xs">This board stays here while you sign in.</p>
           </>
         ) : (
-          <p className="text-stone-300">Verify your email to save boards.</p>
+          <p className="text-soft">Verify your email to save boards.</p>
         )}
       </section>
     );
@@ -67,7 +70,10 @@ export function SaveBoardControls({
   }
 
   return (
-    <section aria-label="Save board" className="space-y-2 rounded-lg bg-stone-800 p-4 text-sm">
+    <section
+      aria-label="Save board"
+      className="border-line bg-surface space-y-2 rounded-2xl border p-4 text-sm shadow-sm"
+    >
       {opened !== null && (
         <div className="flex items-baseline justify-between gap-2">
           <h2 className="min-w-0 font-semibold break-words">{opened.name}</h2>
@@ -76,7 +82,7 @@ export function SaveBoardControls({
             onClick={() => {
               setAsking('rename');
             }}
-            className="shrink-0 text-amber-300 underline hover:text-amber-200"
+            className="text-accent-ink hover:text-accent-ink-hover shrink-0 underline"
           >
             Rename
           </button>
@@ -93,7 +99,7 @@ export function SaveBoardControls({
               saveOver();
             }
           }}
-          className="flex-1 rounded bg-amber-500 px-3 py-1.5 font-semibold text-stone-950 hover:bg-amber-400 disabled:opacity-50"
+          className="bg-accent text-on-accent hover:bg-accent-hover flex-1 rounded-lg px-3 py-1.5 font-semibold disabled:opacity-50"
         >
           {opened === null ? 'Save board' : 'Save'}
           {unsaved && <span aria-hidden="true"> •</span>}
@@ -105,17 +111,17 @@ export function SaveBoardControls({
             onClick={() => {
               setAsking('copy');
             }}
-            className="flex-1 rounded border border-stone-500 px-3 py-1.5 hover:bg-stone-700 disabled:opacity-50"
+            className="border-line-strong hover:bg-hover flex-1 rounded-lg border px-3 py-1.5 disabled:opacity-50"
           >
             Save as copy
           </button>
         )}
       </div>
-      <p aria-live="polite" className="text-xs text-stone-400">
+      <p aria-live="polite" className="text-muted text-xs">
         {statusText(opened, unsaved, sending)}
       </p>
       {(message ?? error) !== null && (
-        <p role="alert" className="text-red-300">
+        <p role="alert" className="text-fail">
           {message ?? error}
         </p>
       )}

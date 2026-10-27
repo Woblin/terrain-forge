@@ -14,13 +14,13 @@ export function FairnessVerdict({ report, edited, allRulesOn }: FairnessVerdictP
   if (failed.length === 0) {
     const rules = allRulesOn ? 'all rules' : 'all rules that are on';
     return (
-      <p className="font-medium text-emerald-300">
+      <p className="text-pass font-medium">
         ✓ {edited ? `Edited, still passes ${rules}` : `Passes ${rules}`}
       </p>
     );
   }
   return (
-    <p className="font-medium text-rose-300">
+    <p className="text-fail font-medium">
       ✗ {edited ? 'Edited' : 'Generated'}, breaks {joinWithAnd(failed)}
     </p>
   );

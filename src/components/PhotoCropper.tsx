@@ -133,13 +133,13 @@ export function PhotoCropper({ piece, image, saving, error, onSave, onCancel }: 
           onCancel();
         }
       }}
-      className="m-auto max-w-[calc(100vw-2rem)] rounded-lg bg-stone-800 p-0 text-stone-100 backdrop:bg-black/70"
+      className="border-line bg-surface text-ink shadow-shade m-auto max-w-[calc(100vw-2rem)] rounded-2xl border p-0 shadow-2xl backdrop:bg-black/60 backdrop:backdrop-blur-sm"
     >
       <div className="space-y-4 p-5">
         <h2 id={titleId} className="text-lg font-semibold">
           Photo of {piece.name}
         </h2>
-        <p className="max-w-sm text-sm text-stone-300">
+        <p className="text-soft max-w-sm text-sm">
           Line the photo up with the piece seen from straight above. The frame has the piece&apos;s
           shape. Drag to move it, pinch or scroll to zoom. Arrow keys and + and − work too.
         </p>
@@ -157,7 +157,7 @@ export function PhotoCropper({ piece, image, saving, error, onSave, onCancel }: 
           }}
           onKeyDown={onKeyDown}
           style={{ width: frame.width, height: frame.height }}
-          className="relative mx-auto cursor-move touch-none overflow-hidden rounded bg-stone-950 outline-none focus-visible:ring-2 focus-visible:ring-amber-300"
+          className="focus-visible:ring-accent-ink relative mx-auto cursor-move touch-none overflow-hidden rounded-lg bg-stone-950 outline-none focus-visible:ring-2"
         >
           <canvas
             ref={canvas}
@@ -189,7 +189,7 @@ export function PhotoCropper({ piece, image, saving, error, onSave, onCancel }: 
           )}
         </div>
         <div className="flex items-center gap-3">
-          <label htmlFor={zoomId} className="text-sm text-stone-300">
+          <label htmlFor={zoomId} className="text-soft text-sm">
             Zoom
           </label>
           <input
@@ -207,13 +207,13 @@ export function PhotoCropper({ piece, image, saving, error, onSave, onCancel }: 
           <button
             type="button"
             onClick={crop.turn}
-            className="rounded border border-stone-500 px-3 py-1.5 text-sm hover:bg-stone-700"
+            className="border-line-strong hover:bg-hover rounded-lg border px-3 py-1.5 text-sm"
           >
             Turn 90°
           </button>
         </div>
         {error !== null && (
-          <p role="alert" className="max-w-sm text-sm text-red-300">
+          <p role="alert" className="text-fail max-w-sm text-sm">
             {error}
           </p>
         )}
@@ -222,7 +222,7 @@ export function PhotoCropper({ piece, image, saving, error, onSave, onCancel }: 
             type="button"
             disabled={saving}
             onClick={onCancel}
-            className="rounded border border-stone-500 px-3 py-1.5 hover:bg-stone-700 disabled:opacity-50"
+            className="border-line-strong hover:bg-hover rounded-lg border px-3 py-1.5 disabled:opacity-50"
           >
             Cancel
           </button>
@@ -232,7 +232,7 @@ export function PhotoCropper({ piece, image, saving, error, onSave, onCancel }: 
             onClick={() => {
               onSave(crop.view);
             }}
-            className="rounded bg-amber-500 px-3 py-1.5 font-semibold text-stone-950 hover:bg-amber-400 disabled:opacity-50"
+            className="bg-accent text-on-accent hover:bg-accent-hover rounded-lg px-3 py-1.5 font-semibold disabled:opacity-50"
           >
             {saving ? 'Saving…' : 'Use photo'}
           </button>

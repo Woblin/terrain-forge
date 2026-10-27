@@ -16,7 +16,7 @@ export function PieceThumbnail({ piece, photoUrl }: PieceThumbnailProps) {
   return (
     <svg
       viewBox={`${String(-width / 2 - margin)} ${String(-depth / 2 - margin)} ${String(width + 2 * margin)} ${String(depth + 2 * margin)}`}
-      className="h-12 w-16 shrink-0 rounded bg-stone-900"
+      className="bg-mat h-12 w-16 shrink-0 rounded-lg"
       aria-hidden="true"
     >
       <FootprintShape footprint={piece.footprint} className={style.fill} />

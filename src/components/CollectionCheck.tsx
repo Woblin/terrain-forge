@@ -19,14 +19,17 @@ export function CollectionCheck({ pieces, preferences, unit }: CollectionCheckPr
     [pieces, preferences],
   );
   return (
-    <section aria-labelledby="collection-check-heading" className="rounded-lg bg-stone-800 p-4">
+    <section
+      aria-labelledby="collection-check-heading"
+      className="border-line bg-surface rounded-2xl border p-4 shadow-sm"
+    >
       <h2
         id="collection-check-heading"
-        className="text-sm font-semibold tracking-wide text-stone-400 uppercase"
+        className="text-muted text-sm font-semibold tracking-wide uppercase"
       >
         Is your terrain enough?
       </h2>
-      <ul className="divide-y divide-stone-700">
+      <ul className="divide-line divide-y">
         {checks.map((check) => (
           <CollectionCheckRow key={check.preset.id} check={check} unit={unit} />
         ))}

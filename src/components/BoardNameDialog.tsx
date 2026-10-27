@@ -45,14 +45,14 @@ export function BoardNameDialog({
         event.preventDefault();
         onCancel();
       }}
-      className="m-auto max-w-[calc(100vw-2rem)] rounded-lg bg-stone-800 p-0 text-stone-100 backdrop:bg-black/70"
+      className="border-line bg-surface text-ink shadow-shade m-auto max-w-[calc(100vw-2rem)] rounded-2xl border p-0 shadow-2xl backdrop:bg-black/60 backdrop:backdrop-blur-sm"
     >
       <form onSubmit={submit} className="w-96 max-w-full space-y-4 p-5">
         <h2 id={`${id}-title`} className="text-lg font-semibold">
           {title}
         </h2>
         <div className="space-y-1">
-          <label htmlFor={`${id}-name`} className="block text-sm text-stone-300">
+          <label htmlFor={`${id}-name`} className="text-soft block text-sm">
             Name
           </label>
           <input
@@ -65,10 +65,10 @@ export function BoardNameDialog({
             autoComplete="off"
             aria-invalid={error !== null}
             aria-describedby={error === null ? undefined : `${id}-error`}
-            className="w-full rounded border border-stone-600 bg-stone-900 px-2 py-1.5"
+            className="border-line-strong bg-raised w-full rounded-lg border px-2 py-1.5"
           />
           {error !== null && (
-            <p id={`${id}-error`} role="alert" className="text-sm text-red-300">
+            <p id={`${id}-error`} role="alert" className="text-fail text-sm">
               {error}
             </p>
           )}
@@ -77,13 +77,13 @@ export function BoardNameDialog({
           <button
             type="button"
             onClick={onCancel}
-            className="rounded border border-stone-500 px-3 py-1.5 hover:bg-stone-700"
+            className="border-line-strong hover:bg-hover rounded-lg border px-3 py-1.5"
           >
             Cancel
           </button>
           <button
             type="submit"
-            className="rounded bg-amber-500 px-3 py-1.5 font-semibold text-stone-950 hover:bg-amber-400"
+            className="bg-accent text-on-accent hover:bg-accent-hover rounded-lg px-3 py-1.5 font-semibold"
           >
             {confirmLabel}
           </button>

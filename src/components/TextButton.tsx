@@ -13,7 +13,7 @@ export function TextButton({ onClick, disabled = false, children }: TextButtonPr
       type="button"
       disabled={disabled}
       onClick={onClick}
-      className="text-amber-300 underline hover:text-amber-200 disabled:opacity-50"
+      className="text-accent-ink hover:text-accent-ink-hover underline disabled:opacity-50"
     >
       {children}
     </button>

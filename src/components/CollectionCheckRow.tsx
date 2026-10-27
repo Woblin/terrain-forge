@@ -8,9 +8,9 @@ interface CollectionCheckRowProps {
 }
 
 const LEVELS: Readonly<Record<CheckLevel, { label: string; className: string }>> = {
-  ok: { label: '✓ Ready', className: 'bg-green-900/60 text-green-200' },
-  warning: { label: '! Worth a look', className: 'bg-amber-900/60 text-amber-200' },
-  problem: { label: '✕ Unlikely to work', className: 'bg-red-900/60 text-red-200' },
+  ok: { label: '✓ Ready', className: 'bg-pass-soft text-pass' },
+  warning: { label: '! Worth a look', className: 'bg-warn-soft text-warn-ink' },
+  problem: { label: '✕ Unlikely to work', className: 'bg-fail-soft text-fail' },
 };
 
 /** How well the library suits one game system, and a way to try a board for it. */
@@ -24,12 +24,12 @@ export function CollectionCheckRow({ check, unit }: CollectionCheckRowProps) {
         <p className="font-medium">{check.preset.name}</p>
         <span className={`rounded-full px-2 py-0.5 text-xs ${level.className}`}>{level.label}</span>
       </div>
-      <p className="text-xs text-stone-400">
+      <p className="text-muted text-xs">
         Your terrain covers {percent(check.coverage)} of a {formatLength(width, unit)} ×{' '}
         {formatLength(depth, unit)} board. Boards use {percent(min)} to {percent(max)}.
       </p>
       {check.findings.length > 0 && (
-        <ul className="list-disc space-y-1 pl-5 text-sm text-stone-300">
+        <ul className="text-soft list-disc space-y-1 pl-5 text-sm">
           {check.findings.map((finding) => (
             <li key={finding.message}>{finding.message}</li>
           ))}
@@ -38,7 +38,7 @@ export function CollectionCheckRow({ check, unit }: CollectionCheckRowProps) {
       <Link
         to="/board"
         state={{ presetId: check.preset.id }}
-        className="inline-block text-sm text-amber-300 underline hover:text-amber-200"
+        className="text-accent-ink hover:text-accent-ink-hover inline-block text-sm underline"
       >
         Try a board for {check.preset.name}
       </Link>

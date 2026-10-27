@@ -12,7 +12,6 @@ import {
   type PieceDraft,
   type PieceFields,
 } from '../domain/library';
-import { AppHeader } from '../components/AppHeader';
 import { CollectionCheck } from '../components/CollectionCheck';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { EmptyLibrary } from '../components/EmptyLibrary';
@@ -108,8 +107,7 @@ export function LibraryPage() {
   }
 
   return (
-    <div className="min-h-screen bg-stone-900 text-stone-100">
-      <AppHeader />
+    <>
       <main className="mx-auto grid max-w-6xl gap-4 p-4 lg:grid-cols-[minmax(0,1fr)_26rem]">
         <section aria-labelledby="library-heading" className="space-y-4">
           <div className="flex flex-wrap items-end justify-between gap-3">
@@ -117,7 +115,7 @@ export function LibraryPage() {
               <h1 id="library-heading" className="text-2xl font-bold">
                 Your terrain
               </h1>
-              <p className="text-sm text-stone-400">{totals(pieces)}</p>
+              <p className="text-muted text-sm">{totals(pieces)}</p>
             </div>
             <button
               type="button"
@@ -125,7 +123,7 @@ export function LibraryPage() {
               onClick={() => {
                 openForm('Add a piece', EMPTY_DRAFT, null);
               }}
-              className="rounded bg-amber-500 px-3 py-1.5 font-semibold text-stone-950 hover:bg-amber-400 disabled:opacity-50"
+              className="bg-accent text-on-accent hover:bg-accent-hover rounded-lg px-3 py-1.5 font-semibold disabled:opacity-50"
             >
               Add a piece
             </button>
@@ -199,11 +197,11 @@ export function LibraryPage() {
           {pieces.length > 0 && (
             <CollectionCheck pieces={pieces} preferences={preferences} unit={unit} />
           )}
-          <p className="text-sm text-stone-400">
+          <p className="text-muted text-sm">
             {pieces.length === 0
               ? 'Until you add pieces, boards use the built-in sample set.'
               : 'New boards use the pieces in your library.'}{' '}
-            <Link to="/board" className="text-amber-300 underline hover:text-amber-200">
+            <Link to="/board" className="text-accent-ink hover:text-accent-ink-hover underline">
               Go to the board
             </Link>
           </p>
@@ -236,7 +234,7 @@ export function LibraryPage() {
           onCancel={photoEditor.cancel}
         />
       )}
-    </div>
+    </>
   );
 }
 

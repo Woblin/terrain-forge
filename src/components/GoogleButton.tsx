@@ -11,7 +11,7 @@ export function GoogleButton({ label, busy, onClick }: GoogleButtonProps) {
       type="button"
       disabled={busy}
       onClick={onClick}
-      className="flex w-full items-center justify-center gap-2 rounded bg-white px-3 py-2 font-semibold text-stone-900 hover:bg-stone-200 disabled:opacity-50"
+      className="border-line-strong flex w-full items-center justify-center gap-2 rounded-lg border bg-white px-3 py-2 font-semibold text-zinc-900 hover:bg-zinc-100 disabled:opacity-50"
     >
       <svg aria-hidden="true" viewBox="0 0 48 48" className="h-5 w-5">
         <path

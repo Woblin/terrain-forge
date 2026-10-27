@@ -13,7 +13,7 @@ export function BoardThumbnail({ board }: BoardThumbnailProps) {
     <svg
       viewBox={`0 0 ${String(width)} ${String(depth)}`}
       aria-hidden="true"
-      className="w-28 shrink-0 rounded bg-stone-700"
+      className="bg-mat w-28 shrink-0 rounded-lg"
     >
       {board.layout.placements.map((placement, index) => {
         const piece = board.pieces.find((candidate) => candidate.id === placement.pieceId);

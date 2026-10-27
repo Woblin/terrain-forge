@@ -22,7 +22,7 @@ interface EmailFormProps {
   onSubmit: (mode: AccountFormMode, draft: AccountDraft) => void;
 }
 
-const INPUT = 'w-full rounded border border-stone-600 bg-stone-900 px-2 py-1.5';
+const INPUT = 'w-full rounded-lg border border-line-strong bg-raised px-2 py-1.5';
 
 const TITLES: Readonly<Record<AccountFormMode, string>> = {
   signIn: 'Sign in with email',
@@ -60,7 +60,7 @@ export function EmailForm({ mode, busy, error, notice, onModeChange, onSubmit }:
     const message = errors[name];
     return (
       <div className="space-y-1">
-        <label htmlFor={`${id}-${name}`} className="block text-sm text-stone-300">
+        <label htmlFor={`${id}-${name}`} className="text-soft block text-sm">
           {label}
         </label>
         <input
@@ -76,7 +76,7 @@ export function EmailForm({ mode, busy, error, notice, onModeChange, onSubmit }:
           className={INPUT}
         />
         {message !== undefined && (
-          <p id={`${id}-${name}-error`} className="text-xs text-red-300">
+          <p id={`${id}-${name}-error`} className="text-fail text-xs">
             {message}
           </p>
         )}
@@ -89,7 +89,7 @@ export function EmailForm({ mode, busy, error, notice, onModeChange, onSubmit }:
       onSubmit={submit}
       noValidate
       aria-labelledby={`${id}-title`}
-      className="space-y-3 rounded-lg bg-stone-800 p-4"
+      className="border-line bg-surface space-y-3 rounded-2xl border p-4 shadow-sm"
     >
       <h2 id={`${id}-title`} className="text-lg font-semibold">
         {TITLES[mode]}
@@ -107,16 +107,16 @@ export function EmailForm({ mode, busy, error, notice, onModeChange, onSubmit }:
       {mode === 'createAccount' && field('repeat', 'Repeat password', 'password', 'new-password')}
       <div aria-live="polite" className="text-sm">
         {error !== null && (
-          <p role="alert" className="text-red-300">
+          <p role="alert" className="text-fail">
             {error}
           </p>
         )}
-        {notice !== null && <p className="text-emerald-300">{notice}</p>}
+        {notice !== null && <p className="text-pass">{notice}</p>}
       </div>
       <button
         type="submit"
         disabled={busy}
-        className="w-full rounded bg-amber-500 px-3 py-1.5 font-semibold text-stone-950 hover:bg-amber-400 disabled:opacity-50"
+        className="bg-accent text-on-accent hover:bg-accent-hover w-full rounded-lg px-3 py-1.5 font-semibold disabled:opacity-50"
       >
         {busy ? 'Working…' : SUBMIT_LABELS[mode]}
       </button>

@@ -23,29 +23,29 @@ export function SavedBoardRow({
 }: SavedBoardRowProps) {
   const setup = resolveGameSetup(board.layout.presetId, board.layout.deploymentId);
   return (
-    <li className="flex flex-wrap items-center gap-3 rounded-lg bg-stone-800 p-3">
+    <li className="border-line bg-surface flex flex-wrap items-center gap-3 rounded-2xl border p-3 shadow-sm">
       <BoardThumbnail board={board} />
       <div className="min-w-0 flex-1 space-y-1">
         <h2 className="font-semibold break-words">{board.name}</h2>
-        <p className="text-sm text-stone-300">
+        <p className="text-soft text-sm">
           {setup === undefined
             ? 'A game Terrain Forge no longer knows'
             : `${setup.preset.name}, ${setup.deployment.name}`}
         </p>
-        <p className="flex flex-wrap gap-x-3 text-xs text-stone-400">
-          <span className={board.passed ? 'text-green-300' : 'text-amber-300'}>
+        <p className="text-muted flex flex-wrap gap-x-3 text-xs">
+          <span className={board.passed ? 'text-pass' : 'text-accent-ink'}>
             {board.passed ? 'Balance rules passed' : 'Some balance rules failed'}
           </span>
           {board.edited && <span>Edited by hand</span>}
           <span>Changed {savedDate(board.savedAt)}</span>
-          {unsaved && <span className="text-amber-300">Open with unsaved changes</span>}
+          {unsaved && <span className="text-accent-ink">Open with unsaved changes</span>}
         </p>
       </div>
       <div className="flex flex-wrap gap-2 text-sm">
         <button
           type="button"
           onClick={onOpen}
-          className="rounded bg-amber-500 px-3 py-1.5 font-semibold text-stone-950 hover:bg-amber-400"
+          className="bg-accent text-on-accent hover:bg-accent-hover rounded-lg px-3 py-1.5 font-semibold"
         >
           Open
         </button>
@@ -61,7 +61,7 @@ export function SavedBoardRow({
             type="button"
             onClick={onClick}
             aria-label={`${label} ${board.name}`}
-            className="rounded border border-stone-500 px-3 py-1.5 hover:bg-stone-700"
+            className="border-line-strong hover:bg-hover rounded-lg border px-3 py-1.5"
           >
             {label}
           </button>
