@@ -41,6 +41,8 @@ export type EditorAction =
       /** True when the board comes from other terrain, so undo cannot go back to the old one. */
       readonly newHistory?: boolean;
     }
+  /** A saved board, opened with a fresh history. */
+  | { readonly type: 'loaded'; readonly layout: Layout; readonly edited: boolean }
   | { readonly type: 'placed'; readonly updates: readonly PieceUpdate[] }
   | {
       readonly type: 'added';
@@ -71,6 +73,8 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
   switch (action.type) {
     case 'generated':
       return generated(action.newHistory === true ? withoutHistory(state) : state, action.layout);
+    case 'loaded':
+      return loaded(withoutHistory(state), action.layout, action.edited);
     case 'placed':
       return placed(state, action.updates);
     case 'added':
@@ -122,6 +126,11 @@ function generated(state: EditorState, layout: Layout): EditorState {
   }));
   const next = commit(state, { origin, pieces, edited: false });
   return { ...next, selected: null, nextKey: state.nextKey + placements.length };
+}
+
+function loaded(state: EditorState, layout: Layout, edited: boolean): EditorState {
+  const next = generated(state, layout);
+  return next.present === null ? next : { ...next, present: { ...next.present, edited } };
 }
 
 /** An empty editor that keeps counting piece keys, so no key is ever used twice. */

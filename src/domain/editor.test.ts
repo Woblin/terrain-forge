@@ -219,4 +219,22 @@ describe('editorReducer', () => {
     });
     expect(cleared.selected).toBeNull();
   });
+
+  it('opens a saved board with a fresh history and its edited flag', () => {
+    const before = run(
+      { type: 'generated', layout: layout(1) },
+      { type: 'generated', layout: layout(2) },
+    );
+    const opened = editorReducer(before, { type: 'loaded', layout: layout(3, 3), edited: true });
+    expect(opened.past).toEqual([]);
+    expect(opened.future).toEqual([]);
+    expect(opened.present?.edited).toBe(true);
+    expect(opened.present && currentLayout(opened.present)).toEqual(layout(3, 3));
+    expect(opened.present?.pieces.map((piece) => piece.key)).toEqual([
+      'piece-4',
+      'piece-5',
+      'piece-6',
+    ]);
+    expect(canUndo(opened)).toBe(false);
+  });
 });
