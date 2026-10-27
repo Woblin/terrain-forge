@@ -1,16 +1,22 @@
 import { useId } from 'react';
+import type { RuleId } from '../domain/fairness';
 import { deploymentsFor } from '../domain/gameSetup';
 import { PRESETS, type GameSystemPreset } from '../domain/presets';
 import { formatLength, type LengthUnit } from '../domain/units';
 import type { GeneratorStatus } from '../hooks/useGenerator';
+import { RuleSwitches } from './RuleSwitches';
 
 interface GeneratorControlsProps {
   preset: GameSystemPreset;
   deploymentId: string;
   status: GeneratorStatus;
   unit: LengthUnit;
+  enabledRules: readonly RuleId[];
+  /** Why the player's game settings could not be loaded or saved, if they could not. */
+  settingsError: string | null;
   onPresetChange: (presetId: string) => void;
   onDeploymentChange: (deploymentId: string) => void;
+  onRuleChange: (rule: RuleId, enabled: boolean) => void;
   onGenerate: () => void;
 }
 
@@ -20,8 +26,11 @@ export function GeneratorControls({
   deploymentId,
   status,
   unit,
+  enabledRules,
+  settingsError,
   onPresetChange,
   onDeploymentChange,
+  onRuleChange,
   onGenerate,
 }: GeneratorControlsProps) {
   const presetId = useId();
@@ -79,6 +88,8 @@ export function GeneratorControls({
           ))}
         </select>
       </div>
+      <RuleSwitches enabledRules={enabledRules} onRuleChange={onRuleChange} />
+      {settingsError !== null && <p className="text-sm text-amber-200">{settingsError}</p>}
       <button
         type="button"
         onClick={onGenerate}

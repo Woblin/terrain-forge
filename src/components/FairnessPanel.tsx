@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import type { BoardAnalysis } from '../domain/boardAnalysis';
-import type { FairnessReport, RuleId } from '../domain/fairness';
+import { RULE_IDS, type FairnessReport, type RuleId } from '../domain/fairness';
 import type { BalanceRules } from '../domain/presets';
 import type { LengthUnit } from '../domain/units';
+import { ClosestBoardNote } from './ClosestBoardNote';
 import { FairnessRuleRow } from './FairnessRuleRow';
 import { FairnessVerdict } from './FairnessVerdict';
 import { RULE_NAMES, ruleRows } from './fairnessRows';
@@ -13,6 +14,8 @@ interface FairnessPanelProps {
   current: boolean;
   error: string | null;
   balance: BalanceRules | null;
+  /** The rules the board was generated with; the others show as off. */
+  enabledRules: readonly RuleId[];
   edited: boolean;
   /** How many pieces break the placement rules (gaps, table edge, deployment zones). */
   misplaced: number;
@@ -30,6 +33,7 @@ export function FairnessPanel({
   current,
   error,
   balance,
+  enabledRules,
   edited,
   misplaced,
   warnings,
@@ -64,7 +68,14 @@ export function FairnessPanel({
         </p>
       ) : (
         <>
-          <FairnessVerdict report={report} edited={edited} />
+          <FairnessVerdict
+            report={report}
+            edited={edited}
+            allRulesOn={enabledRules.length === RULE_IDS.length}
+          />
+          {!edited && report.failedRules.length > 0 && (
+            <ClosestBoardNote failedRules={report.failedRules} />
+          )}
           {misplaced > 0 && (
             <p className="text-sm text-rose-300">
               ⚠ {misplaced === 1 ? '1 piece breaks' : `${String(misplaced)} pieces break`} the
@@ -94,6 +105,7 @@ export function FairnessPanel({
                   key={row.id}
                   row={row}
                   failed={report.failedRules.includes(row.id)}
+                  off={!enabledRules.includes(row.id)}
                 />
               ))}
             </tbody>

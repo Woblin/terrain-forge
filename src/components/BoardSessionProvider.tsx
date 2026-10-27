@@ -1,5 +1,5 @@
 import { useMemo, useState, type ReactNode } from 'react';
-import { PRESETS } from '../domain/presets';
+import { DEFAULT_PRESET_ID } from '../domain/presets';
 import type { TerrainPiece } from '../domain/terrain';
 import {
   BoardSessionContext,
@@ -75,7 +75,7 @@ export function BoardSessionProvider({ children }: { children: ReactNode }) {
 function freshSession(owner: string): SessionState {
   return {
     owner,
-    choice: { presetId: PRESETS[0]?.id ?? '', deploymentId: DEFAULT_DEPLOYMENT_ID },
+    choice: { presetId: DEFAULT_PRESET_ID, deploymentId: DEFAULT_DEPLOYMENT_ID },
     source: { kind: 'own' },
     notice: null,
     view: DEFAULT_VIEW,

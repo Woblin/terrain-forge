@@ -10,6 +10,8 @@ import {
   type BoardPiece,
   type PieceUpdate,
 } from '../domain/editor';
+import type { RuleId } from '../domain/fairness';
+import { enabledRulesFor, startingPreset } from '../domain/gamePreferences';
 import { resolveGameSetup, type GameSetup } from '../domain/gameSetup';
 import { prepareCollection } from '../domain/generator';
 import { add, type Point } from '../domain/geometry';
@@ -17,7 +19,7 @@ import { pieceById } from '../domain/layoutTerrain';
 import { findMirrorTwin, withTwin } from '../domain/mirror';
 import type { PlacementRules } from '../domain/placement';
 import { sameTerrain } from '../domain/libraryLink';
-import { findPreset, PRESETS, type GameSystemPreset } from '../domain/presets';
+import { findPreset } from '../domain/presets';
 import { seedToCode } from '../domain/random';
 import { SAMPLE_COLLECTION } from '../domain/sampleCollection';
 import { boardLinkSearch, parseBoardLink, type ParsedBoardLink } from '../domain/shareLink';
@@ -51,12 +53,13 @@ import {
   type BoardSession,
   type CollectionSource,
 } from '../hooks/boardSessionContext';
+import { useGamePreferences } from '../hooks/gamePreferencesContext';
 import { useTerrainLibrary } from '../hooks/libraryContext';
 import { useUnits } from '../hooks/unitsContext';
 
-const DEFAULT_PRESET = PRESETS[0] as GameSystemPreset;
 const NO_PIECES: readonly BoardPiece[] = [];
 const NO_WARNINGS: readonly string[] = [];
+const NO_RULES: readonly RuleId[] = [];
 
 /** Sizes that stay easy to hit with a finger whatever the board's scale, in CSS pixels. */
 const HIT_OUTLINE_PX = 24;
@@ -71,14 +74,20 @@ type Entry =
   | {
       readonly kind: 'new';
       readonly link: ParsedBoardLink;
-      readonly choice: BoardChoice;
+      /** Null for the game the player starts on, which is known once their settings load. */
+      readonly choice: BoardChoice | null;
       readonly source: CollectionSource;
+      /** The rules a shared link was made with; null for the player's own. */
+      readonly enabledRules: readonly RuleId[] | null;
+      /** True when the player picked this game on another page, so it becomes their default. */
+      readonly picked: boolean;
     };
 
 /** Generate a board, see how fair it is, and edit it by hand. */
 export function BoardPage() {
   const { unit } = useUnits();
   const library = useTerrainLibrary();
+  const settings = useGamePreferences();
   const session = useBoardSession();
   const { editor, dispatch, choice, setChoice, source, setSource, notice, setNotice, setView } =
     session;
@@ -109,7 +118,7 @@ export function BoardPage() {
       origin === undefined ? undefined : resolveGameSetup(origin.presetId, origin.deploymentId),
     [origin],
   );
-  const chosenPreset = findPreset(choice.presetId) ?? DEFAULT_PRESET;
+  const chosenPreset = findPreset(choice.presetId) ?? startingPreset(settings.preferences);
   const board = setup?.board ?? chosenPreset.defaultBoard;
   const inchesPerPixel = boardPixels > 0 ? board.width / boardPixels : 0.1;
 
@@ -134,15 +143,16 @@ export function BoardPage() {
   );
   const fairnessInput = useMemo(
     () =>
-      setup === undefined || prepared === undefined
+      origin === undefined || setup === undefined || prepared === undefined
         ? null
         : fairnessInputFor(
             setup,
             collection,
             shownPieces.map((piece) => piece.placement),
             prepared.balance,
+            origin.enabledRules,
           ),
-    [setup, collection, prepared, shownPieces],
+    [origin, setup, collection, prepared, shownPieces],
   );
   const analysis = useBoardAnalysis(fairnessInput);
   const problems = useMemo(
@@ -159,10 +169,26 @@ export function BoardPage() {
     latestOwn.current = ownCollection;
   }, [ownCollection]);
 
+  /** The rules the player has on for a game. */
+  function playerRules(next: BoardChoice): RuleId[] {
+    const preset = findPreset(next.presetId);
+    return preset === undefined ? [] : enabledRulesFor(preset, settings.preferences);
+  }
+
+  /** The game the player starts on, keeping the deployment picked before if it is that game. */
+  function startingChoice(): BoardChoice {
+    const presetId = startingPreset(settings.preferences).id;
+    return {
+      presetId,
+      deploymentId: choice.presetId === presetId ? choice.deploymentId : DEFAULT_DEPLOYMENT_ID,
+    };
+  }
+
   async function runGeneration(
     next: BoardChoice,
     seed: number,
     from: CollectionSource,
+    enabledRules: readonly RuleId[],
   ): Promise<void> {
     const target = resolveGameSetup(next.presetId, next.deploymentId);
     if (target === undefined) {
@@ -175,10 +201,11 @@ export function BoardPage() {
       preset: target.preset,
       deployment: target.deployment,
       seed,
+      enabledRules,
     });
     if (from.kind === 'own' && latestOwn.current !== pieces) {
       // The library changed while the board was made; make it again from the terrain as it is.
-      await runGeneration(next, seed, from);
+      await runGeneration(next, seed, from, enabledRules);
       return;
     }
     if (result?.ok === true) {
@@ -187,10 +214,10 @@ export function BoardPage() {
     }
   }
 
-  /** A new board is always made from the player's own terrain. */
-  function generateNew(seed: number): void {
+  /** A new board is always made from the player's own terrain, with their rules. */
+  function generateNew(seed: number, next: BoardChoice = choice): void {
     setNotice(null);
-    void runGeneration(choice, seed, OWN);
+    void runGeneration(next, seed, OWN, playerRules(next));
   }
 
   const libraryLoaded = library.status !== 'loading';
@@ -201,21 +228,29 @@ export function BoardPage() {
     entryOwner.current ??= library.owner;
     if (entryOwner.current === library.owner && entry.kind === 'new') {
       const from = linksToOwn(entry.source, ownCollection) ? OWN : entry.source;
+      const next = entry.choice ?? startingChoice();
       dispatch({ type: 'cleared' });
-      setChoice(entry.choice);
+      setChoice(next);
+      if (entry.picked) {
+        settings.choosePreset(next.presetId);
+      }
       setSource(from);
       setNotice(linkNotice(entry.link));
       const seed = entry.link.kind === 'valid' ? entry.link.link.seed : randomSeed();
-      void runGeneration(entry.choice, seed, from);
+      void runGeneration(next, seed, from, entry.enabledRules ?? playerRules(next));
     } else if (editor.present === null) {
-      generateNew(randomSeed());
+      const next = startingChoice();
+      setChoice(next);
+      generateNew(randomSeed(), next);
     }
   });
+  // A board waits for the player's settings, so that it starts on their game and rules.
+  const ready = libraryLoaded && settings.ready;
   useEffect(() => {
-    if (libraryLoaded) {
+    if (ready) {
       startBoard();
     }
-  }, [libraryLoaded, library.owner]);
+  }, [ready, library.owner]);
 
   /** Takes pieces that left the library off the board, or starts over on other terrain. */
   const followCollection = useEffectEvent((seen: readonly TerrainPiece[] | null) => {
@@ -323,8 +358,14 @@ export function BoardPage() {
             deploymentId={choice.deploymentId}
             status={status}
             unit={unit}
+            enabledRules={enabledRulesFor(chosenPreset, settings.preferences)}
+            settingsError={settings.error}
             onPresetChange={(presetId) => {
               setChoice({ presetId, deploymentId: DEFAULT_DEPLOYMENT_ID });
+              settings.choosePreset(presetId);
+            }}
+            onRuleChange={(rule, enabled) => {
+              settings.switchRule(chosenPreset, rule, enabled);
             }}
             onDeploymentChange={(deploymentId) => {
               setChoice({ ...choice, deploymentId });
@@ -458,6 +499,7 @@ export function BoardPage() {
             current={analysis.current}
             error={analysis.error}
             balance={fairnessInput?.balance ?? null}
+            enabledRules={fairnessInput?.enabledRules ?? NO_RULES}
             edited={present?.edited ?? false}
             misplaced={problems.size}
             warnings={prepared?.warnings ?? NO_WARNINGS}
@@ -507,22 +549,24 @@ function boardEntry(
   }
   const link = parseBoardLink(search);
   if (link.kind === 'valid') {
+    const { presetId, deploymentId, pieces, enabledRules } = link.link;
     return {
       kind: 'new',
       link,
-      choice: { presetId: link.link.presetId, deploymentId: link.link.deploymentId },
-      source: { kind: 'link', pieces: link.link.pieces ?? SAMPLE_COLLECTION },
+      choice: { presetId, deploymentId },
+      source: { kind: 'link', pieces: pieces ?? SAMPLE_COLLECTION },
+      enabledRules: enabledRules ?? findPreset(presetId)?.defaultRules ?? null,
+      picked: false,
     };
   }
+  const presetId = asked?.presetId;
   return {
     kind: 'new',
     link,
-    choice: {
-      presetId: asked?.presetId ?? session.choice.presetId,
-      deploymentId:
-        asked?.presetId === undefined ? session.choice.deploymentId : DEFAULT_DEPLOYMENT_ID,
-    },
+    choice: presetId === undefined ? null : { presetId, deploymentId: DEFAULT_DEPLOYMENT_ID },
     source: OWN,
+    enabledRules: null,
+    picked: presetId !== undefined,
   };
 }
 
