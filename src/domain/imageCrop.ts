@@ -27,6 +27,14 @@ export interface CropView {
 }
 
 /** Saved photos are this many pixels on their long side. */
+/** A cropped, resized and encoded photo, ready to show or to save. */
+export interface EncodedPhoto {
+  readonly blob: Blob;
+  readonly width: number;
+  readonly height: number;
+  readonly mimeType: 'image/webp' | 'image/jpeg';
+}
+
 export const PHOTO_LONG_SIDE = 384;
 /** A saved photo may be at most this many bytes. */
 export const PHOTO_MAX_BYTES = 150 * 1024;

@@ -17,9 +17,12 @@ import { CollectionCheck } from '../components/CollectionCheck';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { EmptyLibrary } from '../components/EmptyLibrary';
 import { LibraryMessages } from '../components/LibraryMessages';
+import { NotSavedNote } from '../components/NotSavedNote';
 import { PhotoCropper } from '../components/PhotoCropper';
 import { PieceForm } from '../components/PieceForm';
 import { PieceList } from '../components/PieceList';
+import { SaveStatus } from '../components/SaveStatus';
+import { useAuth } from '../hooks/authContext';
 import { useTerrainLibrary } from '../hooks/libraryContext';
 import { usePhotoEditor } from '../hooks/usePhotoEditor';
 import { useUnits } from '../hooks/unitsContext';
@@ -37,6 +40,7 @@ interface OpenForm {
 export function LibraryPage() {
   const { unit } = useUnits();
   const library = useTerrainLibrary();
+  const auth = useAuth();
   const [form, setForm] = useState<OpenForm | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -124,16 +128,14 @@ export function LibraryPage() {
               Add a piece
             </button>
           </div>
-          {!library.persistent && (
-            <p className="rounded-lg border border-amber-400/50 bg-amber-950/50 p-3 text-sm text-amber-100">
-              Your library isn&apos;t saved yet: it lasts until you reload the page. Sign-in to save
-              it is coming next.
-            </p>
+          {!library.persistent && library.status !== 'loading' && (
+            <NotSavedNote signedIn={auth.user !== null} />
           )}
+          {library.persistent && <SaveStatus saving={library.saving} />}
           <LibraryMessages
             loadError={library.loadError}
             problems={library.problems}
-            actionError={photoEditor.error ?? actionError}
+            actionError={photoEditor.error ?? actionError ?? library.writeError}
             loading={library.status === 'loading' || photoEditor.busy === 'loading'}
           />
           {pieces.length === 0 && library.status === 'ready' ? (

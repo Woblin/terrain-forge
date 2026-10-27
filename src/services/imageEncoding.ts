@@ -5,16 +5,9 @@ import {
   PHOTO_QUALITIES,
   workingSize,
   type CropView,
+  type EncodedPhoto,
   type Size,
 } from '../domain/imageCrop';
-
-/** A cropped, resized and encoded photo, ready to show or to save. */
-export interface EncodedPhoto {
-  readonly blob: Blob;
-  readonly width: number;
-  readonly height: number;
-  readonly mimeType: 'image/webp' | 'image/jpeg';
-}
 
 /** Photos larger than this are refused before decoding. */
 const MAX_FILE_BYTES = 20 * 1024 * 1024;

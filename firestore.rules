@@ -9,6 +9,13 @@ service cloud.firestore {
       return request.auth != null && request.auth.uid == uid;
     }
 
+    // Saving needs a verified email. Google accounts arrive verified; email accounts once the
+    // player clicks the link. Reading and deleting stay open to the owner, so an account can
+    // always be deleted.
+    function canSave(uid) {
+      return isOwner(uid) && request.auth.token.email_verified == true;
+    }
+
     // A side of a footprint, in inches.
     function validSide(value) {
       return value is number && value >= 0.5 && value <= 36;
@@ -47,10 +54,10 @@ service cloud.firestore {
     // One document per terrain piece in the player's library.
     match /users/{uid}/terrainPieces/{pieceId} {
       allow read, delete: if isOwner(uid);
-      allow create: if isOwner(uid)
+      allow create: if canSave(uid)
         && validPiece(request.resource.data)
         && request.resource.data.createdAt == request.time;
-      allow update: if isOwner(uid)
+      allow update: if canSave(uid)
         && validPiece(request.resource.data)
         && request.resource.data.createdAt == resource.data.createdAt;
     }
@@ -58,7 +65,7 @@ service cloud.firestore {
     // One low-resolution photo per terrain piece, at most 150 KB.
     match /users/{uid}/terrainImages/{pieceId} {
       allow read, delete: if isOwner(uid);
-      allow create, update: if isOwner(uid)
+      allow create, update: if canSave(uid)
         && request.resource.data.keys().hasOnly(
           ['data', 'mimeType', 'width', 'height', 'ratio', 'updatedAt'])
         && request.resource.data.keys().hasAll(

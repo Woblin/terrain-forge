@@ -159,6 +159,12 @@ export function BoardPage() {
     [setup, shownPieces, collection, unit],
   );
 
+  // Generation reads the player's terrain when it finishes, to see if it changed meanwhile.
+  const latestOwn = useRef(ownCollection);
+  useEffect(() => {
+    latestOwn.current = ownCollection;
+  }, [ownCollection]);
+
   async function runGeneration(
     next: BoardChoice,
     seed: number,
@@ -168,13 +174,19 @@ export function BoardPage() {
     if (target === undefined) {
       return;
     }
+    const pieces = from.kind === 'link' ? from.pieces : latestOwn.current;
     const result = await generate({
       board: target.board,
-      pieces: from.kind === 'link' ? from.pieces : ownCollection,
+      pieces,
       preset: target.preset,
       deployment: target.deployment,
       seed,
     });
+    if (from.kind === 'own' && latestOwn.current !== pieces) {
+      // The library changed while the board was made; make it again from the terrain as it is.
+      await runGeneration(next, seed, from);
+      return;
+    }
     if (result?.ok === true) {
       setSource(from);
       dispatch({ type: 'generated', layout: result.layout, newHistory: from !== source });
@@ -194,8 +206,6 @@ export function BoardPage() {
   });
   useEffect(() => {
     if (libraryLoaded) {
-      // The board's state changes only once the worker replies, never during this effect.
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       generateFirstBoard();
     }
   }, [libraryLoaded]);

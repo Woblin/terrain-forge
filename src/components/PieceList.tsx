@@ -1,6 +1,6 @@
 import { canSetQuantity, groupByType, type LibraryPiece } from '../domain/library';
 import type { LengthUnit } from '../domain/units';
-import type { StoredPhoto } from '../hooks/useTerrainImages';
+import type { StoredPhoto } from '../hooks/useLibraryPhotos';
 import { PieceRow } from './PieceRow';
 import { TERRAIN_STYLES } from './terrainStyles';
 

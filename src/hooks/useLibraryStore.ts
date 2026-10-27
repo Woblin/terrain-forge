@@ -1,83 +1,122 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { withoutPhoto, withPhoto, type LibraryPiece } from '../domain/library';
-import type { EncodedPhoto } from '../services/imageEncoding';
+import type { EncodedPhoto } from '../domain/imageCrop';
 import type { LibrarySnapshot, LibraryStore } from '../services/libraryStore';
 import type { TerrainLibrary } from './libraryContext';
-import { useTerrainImages } from './useTerrainImages';
+import { useLibraryPhotos } from './useLibraryPhotos';
 
 type LoadState =
   | { readonly status: 'loading' }
   | { readonly status: 'ready'; readonly snapshot: LibrarySnapshot }
   | { readonly status: 'failed'; readonly message: string };
 
+/** What the store last reported, and which store reported it. */
+interface Report {
+  readonly store: LibraryStore;
+  readonly load: LoadState;
+  readonly writeError: string | null;
+}
+
+const LOADING: LoadState = { status: 'loading' };
 const NO_PIECES: readonly LibraryPiece[] = [];
 const NO_PROBLEMS: readonly string[] = [];
 
-/** Follows the library in a store and wraps its writes for the pages. */
-export function useLibraryStore(store: LibraryStore): TerrainLibrary {
-  const [load, setLoad] = useState<LoadState>({ status: 'loading' });
-  const images = useTerrainImages();
+/**
+ * Follows the library in a store and wraps its writes for the pages. `owner` names whose library
+ * it is, so pages can tell when it is swapped for another one.
+ */
+export function useLibraryStore(store: LibraryStore, owner: string): TerrainLibrary {
+  const [report, setReport] = useState<Report>({ store, load: LOADING, writeError: null });
+  // A report from the store used before is not about this one.
+  const current = report.store === store ? report : { store, load: LOADING, writeError: null };
+  const { load, writeError } = current;
+  const snapshot = load.status === 'ready' ? load.snapshot : null;
+  const pieces = snapshot?.pieces ?? NO_PIECES;
+  const images = useLibraryPhotos(store, pieces);
 
   useEffect(
     () =>
-      store.subscribe(
-        (snapshot) => {
-          setLoad({ status: 'ready', snapshot });
+      store.subscribe({
+        onChange: (next) => {
+          setReport((previous) => ({
+            store,
+            load: { status: 'ready', snapshot: next },
+            writeError: previous.store === store ? previous.writeError : null,
+          }));
         },
-        (message) => {
-          setLoad({ status: 'failed', message });
+        onError: (message) => {
+          setReport({ store, load: { status: 'failed', message }, writeError: null });
         },
-      ),
+        onWriteFailed: (message) => {
+          setReport((previous) => ({
+            store,
+            load: previous.store === store ? previous.load : LOADING,
+            writeError: message,
+          }));
+        },
+      }),
     [store],
+  );
+
+  const clearWriteError = useCallback(() => {
+    setReport((previous) =>
+      previous.writeError === null ? previous : { ...previous, writeError: null },
+    );
+  }, []);
+
+  /** Runs a write and turns a failure into the message the store gave. */
+  const attempt = useCallback(
+    async (write: () => Promise<void>): Promise<string | null> => {
+      clearWriteError();
+      try {
+        await write();
+        return null;
+      } catch (error) {
+        return error instanceof Error ? error.message : 'Something went wrong. Try again.';
+      }
+    },
+    [clearWriteError],
   );
 
   const addPieces = useCallback(
-    (pieces: readonly LibraryPiece[]) => attempt(store.add(pieces)),
-    [store],
+    (added: readonly LibraryPiece[], photos?: ReadonlyMap<string, EncodedPhoto>) =>
+      attempt(() => store.add(added, photos)),
+    [store, attempt],
   );
-  const updatePiece = useCallback((piece: LibraryPiece) => attempt(store.update(piece)), [store]);
-  const { setPhoto: keepPhoto, removePhoto: dropPhoto } = images;
-
+  const updatePiece = useCallback(
+    (piece: LibraryPiece) => attempt(() => store.update(piece)),
+    [store, attempt],
+  );
   const deletePiece = useCallback(
-    async (piece: LibraryPiece) => {
-      const failure = await attempt(store.remove(piece.id));
-      if (failure === null) {
-        dropPhoto(piece.id);
-      }
-      return failure;
-    },
-    [store, dropPhoto],
+    (piece: LibraryPiece) => attempt(() => store.remove(piece.id)),
+    [store, attempt],
   );
-
+  const { remember } = images;
   const setPhoto = useCallback(
-    async (piece: LibraryPiece, photo: EncodedPhoto) => {
-      const failure = await attempt(store.update(withPhoto(piece)));
-      if (failure === null) {
-        keepPhoto(piece.id, photo);
-      }
-      return failure;
+    (piece: LibraryPiece, photo: EncodedPhoto) => {
+      const changed = withPhoto(piece);
+      const version = changed.image?.version ?? 0;
+      return attempt(async () => {
+        remember(piece.id, version, photo);
+        await store.setPhoto(changed, photo);
+      });
     },
-    [store, keepPhoto],
+    [store, attempt, remember],
   );
-
   const removePhoto = useCallback(
-    async (piece: LibraryPiece) => {
-      const failure = await attempt(store.update(withoutPhoto(piece)));
-      if (failure === null) {
-        dropPhoto(piece.id);
-      }
-      return failure;
-    },
-    [store, dropPhoto],
+    (piece: LibraryPiece) => attempt(() => store.setPhoto(withoutPhoto(piece), null)),
+    [store, attempt],
   );
 
-  const snapshot = load.status === 'ready' ? load.snapshot : null;
   return useMemo(
     () => ({
+      owner,
       status: load.status,
-      pieces: snapshot?.pieces ?? NO_PIECES,
+      pieces,
       persistent: store.persistent,
+      saving: snapshot?.saving ?? false,
       loadError: load.status === 'failed' ? load.message : null,
+      writeError: writeError ?? images.error,
       problems: snapshot?.problems ?? NO_PROBLEMS,
       photos: images.photos,
       newId: () => store.newId(),
@@ -88,9 +127,13 @@ export function useLibraryStore(store: LibraryStore): TerrainLibrary {
       removePhoto,
     }),
     [
+      owner,
       load,
+      pieces,
       snapshot,
       store,
+      writeError,
+      images.error,
       images.photos,
       addPieces,
       updatePiece,
@@ -99,14 +142,4 @@ export function useLibraryStore(store: LibraryStore): TerrainLibrary {
       removePhoto,
     ],
   );
-}
-
-/** Runs a write and turns a failure into the message the store gave. */
-async function attempt(write: Promise<void>): Promise<string | null> {
-  try {
-    await write;
-    return null;
-  } catch (error) {
-    return error instanceof Error ? error.message : 'Something went wrong. Try again.';
-  }
 }

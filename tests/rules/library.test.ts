@@ -18,8 +18,9 @@ import {
   type Firestore,
 } from 'firebase/firestore';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import type { EncodedPhoto } from '../../src/domain/imageCrop';
 import type { LibraryPiece } from '../../src/domain/library';
-import { createFirestoreLibrary } from '../../src/services/terrainLibrary';
+import { createFirestoreLibrary, deleteLibrary } from '../../src/services/terrainLibrary';
 import type { LibrarySnapshot } from '../../src/services/libraryStore';
 import { pieceDocument } from '../../src/services/terrainLibrarySchema';
 
@@ -39,8 +40,13 @@ function firestoreOf(context: RulesTestContext): Firestore {
   return context.firestore() as unknown as Firestore;
 }
 
+/** Alice has verified her email, so she may save. */
 function asAlice(): Firestore {
-  return firestoreOf(env.authenticatedContext('alice'));
+  return firestoreOf(env.authenticatedContext('alice', { email_verified: true }));
+}
+
+function asUnverifiedAlice(): Firestore {
+  return firestoreOf(env.authenticatedContext('alice', { email_verified: false }));
 }
 
 function newPiece(fields: Record<string, unknown> = {}) {
@@ -98,6 +104,17 @@ describe('terrain pieces', () => {
     await assertFails(getDoc(doc(nobody, path)));
     await assertFails(setDoc(doc(bob, 'users/alice/terrainPieces/other'), newPiece()));
     await assertFails(deleteDoc(doc(bob, path)));
+  });
+
+  it('let an owner without a verified email read and delete, but not save', async () => {
+    await assertSucceeds(setDoc(doc(asAlice(), path), newPiece()));
+    const unverified = asUnverifiedAlice();
+    await assertFails(setDoc(doc(unverified, 'users/alice/terrainPieces/new'), newPiece()));
+    await assertFails(
+      updateDoc(doc(unverified, path), { quantity: 6, updatedAt: serverTimestamp() }),
+    );
+    await assertSucceeds(getDoc(doc(unverified, path)));
+    await assertSucceeds(deleteDoc(doc(unverified, path)));
   });
 
   it.each([
@@ -158,6 +175,12 @@ describe('terrain images', () => {
     await assertSucceeds(setDoc(doc(asAlice(), path), image()));
     await assertFails(getDoc(doc(firestoreOf(env.authenticatedContext('bob')), path)));
   });
+
+  it('need a verified email to save, but not to delete', async () => {
+    await assertFails(setDoc(doc(asUnverifiedAlice(), path), image()));
+    await assertSucceeds(setDoc(doc(asAlice(), path), image()));
+    await assertSucceeds(deleteDoc(doc(asUnverifiedAlice(), path)));
+  });
 });
 
 describe('the Firestore library service', () => {
@@ -168,40 +191,103 @@ describe('the Firestore library service', () => {
     }
   }
 
-  it('adds, updates and deletes pieces within the rules, and reads them back', async () => {
-    const library = createFirestoreLibrary(asAlice(), 'alice');
+  function follow(db: Firestore, uid = 'alice') {
+    const library = createFirestoreLibrary(db, uid);
     const seen: LibrarySnapshot[] = [];
     const errors: string[] = [];
-    const stop = library.subscribe(
-      (snapshot) => seen.push(snapshot),
-      (message) => errors.push(message),
-    );
+    const refused: string[] = [];
+    const stop = library.subscribe({
+      onChange: (snapshot) => seen.push(snapshot),
+      onError: (message) => errors.push(message),
+      onWriteFailed: (message) => refused.push(message),
+    });
+    return { library, seen, errors, refused, stop };
+  }
+
+  const photo: EncodedPhoto = {
+    blob: new Blob([new Uint8Array([1, 2, 3, 4])], { type: 'image/webp' }),
+    width: 384,
+    height: 192,
+    mimeType: 'image/webp',
+  };
+
+  it('adds, updates and deletes pieces within the rules, and reads them back', async () => {
+    const { library, seen, errors, refused, stop } = follow(asAlice());
     try {
       const id = library.newId();
       await library.add([{ ...ruin, id }]);
-      await library.update({ ...ruin, id, quantity: 6, image: { version: 1, ratio: 2 } });
+      await library.update({ ...ruin, id, quantity: 6 });
+      await waitUntil(() => seen.at(-1)?.pieces[0]?.quantity === 6 && !seen.at(-1)?.saving);
       const stored = await getDoc(doc(asAlice(), `users/alice/terrainPieces/${id}`));
-      expect(stored.data()).toMatchObject({ quantity: 6, image: { version: 1, ratio: 2 } });
-      await setDoc(doc(asAlice(), `users/alice/terrainImages/${id}`), image());
+      expect(stored.data()).toMatchObject({ quantity: 6, image: null });
+      expect(seen.some((snapshot) => snapshot.saving)).toBe(true);
       await library.remove(id);
-      expect((await getDoc(doc(asAlice(), `users/alice/terrainImages/${id}`))).exists()).toBe(
-        false,
-      );
-      await waitUntil(() => seen.at(-1)?.pieces.length === 0);
+      await waitUntil(() => seen.at(-1)?.pieces.length === 0 && !seen.at(-1)?.saving);
       expect(seen.at(-1)?.pieces).toEqual([]);
-      expect(seen.some((snapshot) => snapshot.pieces[0]?.quantity === 6)).toBe(true);
       expect(errors).toEqual([]);
+      expect(refused).toEqual([]);
     } finally {
       stop();
     }
   });
 
-  it('turns a refused write into a message for the player', async () => {
-    const library = createFirestoreLibrary(asAlice(), 'alice');
-    await expect(library.update(ruin)).rejects.toThrow(
-      'Could not save "Large ruin". Check your connection and try again.',
-    );
-    const bobsView = createFirestoreLibrary(firestoreOf(env.authenticatedContext('bob')), 'alice');
-    await expect(bobsView.add([ruin])).rejects.toThrow('Could not save "Large ruin".');
+  it('saves photos with their pieces, reads them back, and deletes them', async () => {
+    const { library, seen, refused, stop } = follow(asAlice());
+    try {
+      const id = library.newId();
+      const withImage = { ...ruin, id, image: { version: 1, ratio: 2 } };
+      await library.add([withImage], new Map([[id, photo]]));
+      await waitUntil(() => seen.at(-1)?.saving === false && seen.at(-1)?.pieces.length === 1);
+      const read = await library.readPhoto(id);
+      expect(read).toMatchObject({ width: 384, height: 192, mimeType: 'image/webp' });
+      expect(new Uint8Array(await (read?.blob.arrayBuffer() ?? new ArrayBuffer(0)))).toEqual(
+        new Uint8Array([1, 2, 3, 4]),
+      );
+
+      await library.setPhoto({ ...withImage, image: { version: 2, ratio: 2 } }, photo);
+      await library.setPhoto({ ...withImage, image: null }, null);
+      await waitUntil(
+        () => seen.at(-1)?.saving === false && seen.at(-1)?.pieces[0]?.image === null,
+      );
+      expect(seen.at(-1)?.pieces[0]?.image).toBeNull();
+      expect(await library.readPhoto(id)).toBeNull();
+
+      await library.setPhoto(withImage, photo);
+      await library.remove(id);
+      await waitUntil(() => seen.at(-1)?.saving === false && seen.at(-1)?.pieces.length === 0);
+      expect((await getDoc(doc(asAlice(), `users/alice/terrainImages/${id}`))).exists()).toBe(
+        false,
+      );
+      expect(refused).toEqual([]);
+    } finally {
+      stop();
+    }
+  });
+
+  it('reports a write the server refuses, after showing it', async () => {
+    const unverified = follow(asUnverifiedAlice());
+    try {
+      await unverified.library.add([ruin]);
+      await waitUntil(() => unverified.refused.length > 0);
+      expect(unverified.refused).toEqual([
+        'Could not save "Large ruin". It was taken out of your library again.',
+      ]);
+      await waitUntil(() => unverified.seen.at(-1)?.pieces.length === 0);
+      expect(unverified.seen.some((snapshot) => snapshot.pieces.length === 1)).toBe(true);
+      expect(unverified.seen.at(-1)?.pieces).toEqual([]);
+    } finally {
+      unverified.stop();
+    }
+  });
+
+  it('deletes everything a player saved, for account deletion', async () => {
+    const db = asAlice();
+    await setDoc(doc(db, 'users/alice/terrainPieces/a'), newPiece());
+    await setDoc(doc(db, 'users/alice/terrainPieces/b'), newPiece());
+    await setDoc(doc(db, 'users/alice/terrainImages/a'), image());
+    await deleteLibrary(asUnverifiedAlice(), 'alice');
+    for (const path of ['terrainPieces/a', 'terrainPieces/b', 'terrainImages/a']) {
+      expect((await getDoc(doc(db, `users/alice/${path}`))).exists()).toBe(false);
+    }
   });
 });
