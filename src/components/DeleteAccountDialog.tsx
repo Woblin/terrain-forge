@@ -10,7 +10,7 @@ interface DeleteAccountDialogProps {
   onCancel: () => void;
 }
 
-/** Asks the player to confirm it is them before their account and terrain are deleted. */
+/** Asks the player to confirm it is them before their account, terrain and boards are deleted. */
 export function DeleteAccountDialog({
   usesPassword,
   busy,
@@ -53,8 +53,8 @@ export function DeleteAccountDialog({
           Delete your account?
         </h2>
         <p className="text-sm text-stone-300">
-          Your account, every terrain piece and every photo are deleted for good. This can&apos;t be
-          undone.
+          Your account, every terrain piece, photo and saved board are deleted for good. This
+          can&apos;t be undone.
         </p>
         {usesPassword ? (
           <div className="space-y-1">

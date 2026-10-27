@@ -99,5 +99,53 @@ service cloud.firestore {
         && request.resource.data.schemaVersion == 1
         && request.resource.data.updatedAt == request.time;
     }
+
+    function validId(value) {
+      return value is string && value.size() >= 1 && value.size() <= 40;
+    }
+
+    // A board's size, in inches.
+    function validBoardSize(board) {
+      return board is map
+        && board.keys().hasOnly(['width', 'depth'])
+        && board.keys().hasAll(['width', 'depth'])
+        && board.width is number && board.width > 0 && board.width <= 240
+        && board.depth is number && board.depth > 0 && board.depth <= 240;
+    }
+
+    // The pieces and placements inside are checked by the app, since rules cannot loop over a
+    // list; the lists are capped here so a board stays small.
+    function validBoard(board) {
+      return board.keys().hasOnly(
+          ['name', 'presetId', 'deploymentId', 'board', 'seed', 'generatorVersion', 'enabledRules',
+           'pieces', 'placements', 'edited', 'passed', 'schemaVersion', 'createdAt', 'updatedAt'])
+        && board.keys().hasAll(
+          ['name', 'presetId', 'deploymentId', 'board', 'seed', 'generatorVersion', 'enabledRules',
+           'pieces', 'placements', 'edited', 'passed', 'schemaVersion', 'createdAt', 'updatedAt'])
+        && board.name is string && board.name.size() >= 1 && board.name.size() <= 60
+        && validId(board.presetId)
+        && validId(board.deploymentId)
+        && validBoardSize(board.board)
+        && board.seed is int && board.seed >= 0
+        && board.generatorVersion is int && board.generatorVersion >= 1
+        && board.enabledRules is list && board.enabledRules.size() <= 6
+        && board.pieces is list && board.pieces.size() <= 50
+        && board.placements is list && board.placements.size() <= 100
+        && board.edited is bool
+        && board.passed is bool
+        && board.schemaVersion == 1
+        && board.updatedAt == request.time;
+    }
+
+    // One document per saved board: its layout and a copy of the terrain it was made from.
+    match /users/{uid}/boards/{boardId} {
+      allow read, delete: if isOwner(uid);
+      allow create: if canSave(uid)
+        && validBoard(request.resource.data)
+        && request.resource.data.createdAt == request.time;
+      allow update: if canSave(uid)
+        && validBoard(request.resource.data)
+        && request.resource.data.createdAt == resource.data.createdAt;
+    }
   }
 }
