@@ -62,7 +62,7 @@ export function AccountPage() {
             Delete your account
           </h2>
           <p className="text-sm text-stone-400">
-            Deletes the account with all your terrain pieces and photos.
+            Deletes the account with all your terrain pieces, photos and saved boards.
           </p>
           <button
             type="button"

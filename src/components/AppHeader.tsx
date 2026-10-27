@@ -1,4 +1,5 @@
 import { Link, NavLink } from 'react-router';
+import { useAuth } from '../hooks/authContext';
 import { AccountMenu } from './AccountMenu';
 import { UnitToggle } from './UnitToggle';
 import { VerifyEmailBanner } from './VerifyEmailBanner';
@@ -8,8 +9,11 @@ const NAV = [
   { to: '/library', label: 'Your terrain' },
 ] as const;
 
+const SIGNED_IN_NAV = [...NAV, { to: '/boards', label: 'My boards' }] as const;
+
 /** The bar at the top of every page: home, the main pages, the unit setting and the account. */
 export function AppHeader() {
+  const { user } = useAuth();
   return (
     <>
       <header className="flex flex-wrap items-center justify-between gap-3 border-b border-stone-800 px-4 py-3">
@@ -18,7 +22,7 @@ export function AppHeader() {
             Terrain Forge
           </Link>
           <nav aria-label="Main" className="flex gap-1 text-sm">
-            {NAV.map((item) => (
+            {(user === null ? NAV : SIGNED_IN_NAV).map((item) => (
               <NavLink
                 key={item.to}
                 to={item.to}

@@ -29,6 +29,8 @@ Terrain Forge is a web app that generates a battlefield layout for tabletop warg
 - Sign in with Google or with an email and password to keep your terrain library and photos
 - Email accounts save once the email address is verified
 - Use the app without an account; your terrain then lasts until you reload the page
+- Save boards to your account and open them again from **My boards**, hand edits included; a saved board keeps a copy of its terrain, so later library changes leave it as it was
+- A board made before signing in stays on screen, so it can be saved right after
 - Delete your account and everything saved with it from the account page
 - Access your terrain from any device
 
@@ -105,7 +107,7 @@ firebase deploy
 - [x] Board editor (drag and drop, rotate, add, remove)
 - [x] Terrain library
 - [x] Firebase Authentication (Google and email, verified email needed to save)
-- [ ] Save and load battlefields
+- [x] Save and load battlefields
 - [ ] Presets for popular game systems
 - [ ] Export or share a battlefield (image / link)
 

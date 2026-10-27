@@ -9,7 +9,7 @@ import { PieceThumbnail } from './PieceThumbnail';
 interface PiecePaletteProps {
   collection: readonly TerrainPiece[];
   /** Where the pieces come from. */
-  source: 'library' | 'sample' | 'link';
+  source: 'library' | 'sample' | 'link' | 'saved';
   pieces: readonly BoardPiece[];
   photos: ReadonlyMap<string, StoredPhoto>;
   unit: LengthUnit;
@@ -21,6 +21,7 @@ const SOURCES: Readonly<Record<PiecePaletteProps['source'], string>> = {
   library: 'Your terrain library.',
   sample: 'The built-in sample set, until you add your own terrain.',
   link: 'The terrain from the shared link. A new board uses your own terrain.',
+  saved: 'The terrain kept with this board. A new board can use it or your library.',
 };
 
 const BUTTON =

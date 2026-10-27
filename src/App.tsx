@@ -3,6 +3,7 @@ import { AuthProvider } from './components/AuthProvider';
 import { BoardSessionProvider } from './components/BoardSessionProvider';
 import { GamePreferencesProvider } from './components/GamePreferencesProvider';
 import { LibraryProvider } from './components/LibraryProvider';
+import { SavedBoardsProvider } from './components/SavedBoardsProvider';
 import { UnitsProvider } from './components/UnitsProvider';
 import { UnsavedPiecesPrompt } from './components/UnsavedPiecesPrompt';
 import { FirebaseContext } from './hooks/firebaseContext';
@@ -10,6 +11,7 @@ import { AccountPage } from './pages/AccountPage';
 import { BoardPage } from './pages/BoardPage';
 import { HomePage } from './pages/HomePage';
 import { LibraryPage } from './pages/LibraryPage';
+import { SavedBoardsPage } from './pages/SavedBoardsPage';
 import { SignInPage } from './pages/SignInPage';
 import type { FirebaseServices } from './services/firebase';
 
@@ -24,18 +26,21 @@ export function App({ firebase }: AppProps) {
         <AuthProvider>
           <GamePreferencesProvider>
             <LibraryProvider>
-              <BoardSessionProvider>
-                <BrowserRouter>
-                  <Routes>
-                    <Route path="/" element={<HomePage />} />
-                    <Route path="/board" element={<BoardPage />} />
-                    <Route path="/library" element={<LibraryPage />} />
-                    <Route path="/sign-in" element={<SignInPage />} />
-                    <Route path="/account" element={<AccountPage />} />
-                  </Routes>
-                  <UnsavedPiecesPrompt />
-                </BrowserRouter>
-              </BoardSessionProvider>
+              <SavedBoardsProvider>
+                <BoardSessionProvider>
+                  <BrowserRouter>
+                    <Routes>
+                      <Route path="/" element={<HomePage />} />
+                      <Route path="/board" element={<BoardPage />} />
+                      <Route path="/boards" element={<SavedBoardsPage />} />
+                      <Route path="/library" element={<LibraryPage />} />
+                      <Route path="/sign-in" element={<SignInPage />} />
+                      <Route path="/account" element={<AccountPage />} />
+                    </Routes>
+                    <UnsavedPiecesPrompt />
+                  </BrowserRouter>
+                </BoardSessionProvider>
+              </SavedBoardsProvider>
             </LibraryProvider>
           </GamePreferencesProvider>
         </AuthProvider>
