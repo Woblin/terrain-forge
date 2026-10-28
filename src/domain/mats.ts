@@ -30,7 +30,7 @@ export interface Mat {
   readonly tone: number;
 }
 
-/** Most mat pictures are 620 × 413 pixels. */
+/** The mat pictures are 620 × 413 pixels. */
 const PICTURE_ASPECT = 620 / 413;
 
 const PLAIN_MAT: Mat = { id: 'plain', name: 'Plain', tileWidth: null, aspect: 1, tone: 0 };
@@ -40,7 +40,7 @@ export const MATS: readonly Mat[] = [
   { id: 'grass', name: 'Grass', tileWidth: 24, aspect: PICTURE_ASPECT, tone: 0.3 },
   { id: 'rocky-grass', name: 'Rocky grass', tileWidth: 24, aspect: PICTURE_ASPECT, tone: 0.45 },
   { id: 'fields', name: 'Fields', tileWidth: 24, aspect: PICTURE_ASPECT, tone: 0.4 },
-  { id: 'rocky-ground', name: 'Rocky ground', tileWidth: 15, aspect: 1, tone: 0.3 },
+  { id: 'rocky-ground', name: 'Rocky ground', tileWidth: 24, aspect: PICTURE_ASPECT, tone: 0.35 },
   { id: 'lava', name: 'Lava', tileWidth: 24, aspect: PICTURE_ASPECT, tone: 0.2 },
   { id: 'desert', name: 'Desert', tileWidth: 24, aspect: PICTURE_ASPECT, tone: 0.5 },
   { id: 'snow', name: 'Snow', tileWidth: 24, aspect: PICTURE_ASPECT, tone: 0.6 },
