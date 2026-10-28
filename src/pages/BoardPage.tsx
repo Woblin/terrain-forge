@@ -5,6 +5,8 @@ import { boardCentre } from '../domain/board';
 import { drawsUpright, fitBoard, inchesPerPixel, screenMoveToBoard } from '../domain/boardFit';
 import { fairnessInputFor } from '../domain/boardAnalysis';
 import { checkBoard } from '../domain/boardChecks';
+import type { Board } from '../domain/board';
+import { edgeGaps, nearestGaps } from '../domain/edgeDistance';
 import {
   canRedo,
   canUndo,
@@ -14,7 +16,7 @@ import {
   type PieceUpdate,
 } from '../domain/editor';
 import { evaluateFairness, RULE_IDS, type RuleId } from '../domain/fairness';
-import { enabledRulesFor, startingPreset } from '../domain/gamePreferences';
+import { enabledRulesFor, startingPreset, usesDefaultRules } from '../domain/gamePreferences';
 import { resolveGameSetup, type GameSetup } from '../domain/gameSetup';
 import { prepareCollection } from '../domain/generator';
 import { add, type Point } from '../domain/geometry';
@@ -22,7 +24,8 @@ import { pieceById } from '../domain/layoutTerrain';
 import { findMirrorTwin, withTwin } from '../domain/mirror';
 import type { PlacementRules } from '../domain/placement';
 import { sameTerrain } from '../domain/libraryLink';
-import { findPreset } from '../domain/presets';
+import { placingOrder, stepPiece } from '../domain/placingOrder';
+import { findPreset, showsLaneByDefault } from '../domain/presets';
 import { seedToCode } from '../domain/random';
 import { SAMPLE_COLLECTION } from '../domain/sampleCollection';
 import {
@@ -45,6 +48,7 @@ import { BoardView } from '../components/BoardView';
 import { BoardWorkspace } from '../components/BoardWorkspace';
 import { BUTTON_STYLES } from '../components/buttonStyles';
 import { DeploymentZones } from '../components/DeploymentZones';
+import { EdgeDistanceOverlay, type MeasuredPiece } from '../components/EdgeDistanceOverlay';
 import { EditorStatus } from '../components/EditorStatus';
 import { FairnessAnnouncer } from '../components/FairnessAnnouncer';
 import { FairnessPanel } from '../components/FairnessPanel';
@@ -53,6 +57,8 @@ import { GeneratorControls } from '../components/GeneratorControls';
 import { HiddenAreaOverlay } from '../components/HiddenAreaOverlay';
 import { IconButton } from '../components/IconButton';
 import { LaneOverlay } from '../components/LaneOverlay';
+import { MeasureStepper } from '../components/MeasureStepper';
+import { measureDetail } from '../components/measureText';
 import { PiecePalette } from '../components/PiecePalette';
 import { PhoneBoardButtons } from '../components/PhoneBoardButtons';
 import { pieceLabel } from '../components/pieceLabel';
@@ -74,6 +80,8 @@ import { randomSeed, useGenerator } from '../hooks/useGenerator';
 import { useLeaveWarning } from '../hooks/useLeaveWarning';
 import {
   DEFAULT_DEPLOYMENT_ID,
+  DEFAULT_VIEW_OPTIONS,
+  isDefaultView,
   useBoardSession,
   type BoardChoice,
   type BoardSession,
@@ -149,7 +157,7 @@ export function BoardPage() {
     opened,
     setOpened,
   } = session;
-  const { snap, movePairs, showPhotos, showLane, showHidden } = session.view;
+  const { snap, movePairs, showPhotos, showHidden, showDistances } = session.view;
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const ownCollection = library.pieces.length > 0 ? library.pieces : SAMPLE_COLLECTION;
@@ -160,6 +168,8 @@ export function BoardPage() {
   const { status, generate } = useGenerator();
   const layout = useBoardLayout();
   const targets = useCoarsePointer() ? TOUCH_TARGETS : MOUSE_TARGETS;
+  // A phone has no room for every piece's distances, so it measures the selected piece only.
+  const measuresOnePiece = layout === 'phone' || layout === 'sideways';
   const frameRef = useRef<SVGGElement>(null);
   const [boardArea, boardAreaRef, boardSpace] = useElementSize<HTMLDivElement>();
 
@@ -200,6 +210,7 @@ export function BoardPage() {
   );
   const chosenPreset = findPreset(choice.presetId) ?? startingPreset(settings.preferences);
   const board = setup?.board ?? chosenPreset.defaultBoard;
+  const showLane = session.view.showLane ?? showsLaneByDefault(setup?.preset ?? chosenPreset);
   const upright = drawsUpright(board, boardSpace);
   const drawnSize = fitBoard(board, boardSpace, upright);
   const pixelSize = inchesPerPixel(board, drawnSize, upright) ?? UNMEASURED_PIXEL_SIZE;
@@ -566,10 +577,29 @@ export function BoardPage() {
     shownSelected === undefined
       ? undefined
       : pieceById(collection, shownSelected.placement.pieceId);
+  const measured =
+    showDistances && selectedPiece !== undefined && shownSelected !== undefined
+      ? measureDetail(selectedPiece, shownSelected.placement, board, unit, upright)
+      : null;
   const selection =
     selectedPiece === undefined || shownSelected === undefined
       ? null
-      : { name: selectedPiece.name, problems: problems.get(shownSelected.key) ?? NO_WARNINGS };
+      : {
+          name: selectedPiece.name,
+          problems: problems.get(shownSelected.key) ?? NO_WARNINGS,
+          ...(measured === null ? {} : { detail: measured }),
+        };
+  const order = useMemo(() => placingOrder(pieces), [pieces]);
+  const measuredPieces = showDistances
+    ? piecesToMeasure(shownPieces, collection, board, editor.selected, measuresOnePiece)
+    : [];
+
+  function stepThrough(step: 1 | -1): void {
+    const key = stepPiece(order, editor.selected, step);
+    if (key !== null) {
+      dispatch({ type: 'selected', key });
+    }
+  }
   const report = analysis.analysis?.report ?? null;
 
   const legend =
@@ -590,6 +620,13 @@ export function BoardPage() {
         }}
         onRuleChange={(rule, enabled) => {
           settings.switchRule(chosenPreset, rule, enabled);
+        }}
+        canReset={
+          !usesDefaultRules(chosenPreset, settings.preferences) || !isDefaultView(session.view)
+        }
+        onReset={() => {
+          settings.resetRules(chosenPreset);
+          setView(DEFAULT_VIEW_OPTIONS);
         }}
         onDeploymentChange={(deploymentId) => {
           setChoice({ ...choice, deploymentId });
@@ -712,6 +749,16 @@ export function BoardPage() {
           upright={upright}
         />
       )}
+      {measuredPieces.length > 0 && (
+        <EdgeDistanceOverlay
+          pieces={measuredPieces}
+          board={board}
+          unit={unit}
+          upright={upright}
+          pixelSize={pixelSize}
+          fontPixels={measuresOnePiece ? 11 : 12}
+        />
+      )}
       {shownSelected !== undefined && selectedPiece !== undefined && (
         <RotateHandle
           center={shownSelected.placement.position}
@@ -758,6 +805,8 @@ export function BoardPage() {
             snap={snap}
             movePairs={movePairs}
             showPhotos={showPhotos}
+            showDistances={showDistances}
+            hasPieces={order.length > 0}
             onUndo={undo}
             onRedo={redo}
             onTurn={turn}
@@ -771,6 +820,10 @@ export function BoardPage() {
             onShowPhotosChange={(value) => {
               setView({ showPhotos: value });
             }}
+            onShowDistancesChange={(value) => {
+              setView({ showDistances: value });
+            }}
+            onStep={stepThrough}
           />
         }
         boardAreaRef={boardAreaRef}
@@ -802,7 +855,7 @@ export function BoardPage() {
           <PhoneBoardButtons
             canUndo={canUndo(editor)}
             canRedo={canRedo(editor)}
-            layers={session.view}
+            layers={{ ...session.view, showLane }}
             onUndo={undo}
             onRedo={redo}
             onLayersChange={setView}
@@ -814,7 +867,7 @@ export function BoardPage() {
           selectedPiece === undefined ? null : (
             <SelectionBar
               name={selection.name}
-              detail={pieceDetail(selectedPiece, shownSelected.placement, unit)}
+              detail={measured ?? pieceDetail(selectedPiece, shownSelected.placement, unit)}
               problems={selection.problems}
               onTurn={turn}
               onRemove={removeSelected}
@@ -823,6 +876,19 @@ export function BoardPage() {
               }}
             />
           )
+        }
+        measureBar={
+          showDistances && measuresOnePiece ? (
+            <MeasureStepper
+              current={
+                selection === null || editor.selected === null
+                  ? null
+                  : { name: selection.name, position: order.indexOf(editor.selected) + 1 }
+              }
+              total={order.length}
+              onStep={stepThrough}
+            />
+          ) : null
         }
         summary={
           <div className="flex items-center gap-2">
@@ -870,6 +936,38 @@ export function BoardPage() {
       )}
     </>
   );
+}
+
+/**
+ * The gaps to draw while measuring: every piece's two nearest edges and all four for the
+ * selected piece, which the others fade behind; or only the selected piece's.
+ */
+function piecesToMeasure(
+  pieces: readonly BoardPiece[],
+  collection: readonly TerrainPiece[],
+  board: Board,
+  selected: string | null,
+  selectedOnly: boolean,
+): MeasuredPiece[] {
+  // The selected piece comes last, so that its lines and labels are drawn on top.
+  const ordered = [...pieces].sort(
+    (a, b) => Number(a.key === selected) - Number(b.key === selected),
+  );
+  return ordered.flatMap((boardPiece) => {
+    const isSelected = boardPiece.key === selected;
+    if (selectedOnly && !isSelected) {
+      return [];
+    }
+    const { footprint } = pieceById(collection, boardPiece.placement.pieceId);
+    const gaps = edgeGaps(footprint, boardPiece.placement, board);
+    return [
+      {
+        key: boardPiece.key,
+        gaps: isSelected ? gaps : nearestGaps(gaps, board),
+        faded: selected !== null && !isSelected,
+      },
+    ];
+  });
 }
 
 /** The selected piece's size and turn, in one short line. */

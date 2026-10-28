@@ -25,8 +25,28 @@ export interface BoardViewOptions {
   readonly snap: boolean;
   readonly movePairs: boolean;
   readonly showPhotos: boolean;
-  readonly showLane: boolean;
+  /** Null until the player switches it, so that it follows the game's default. */
+  readonly showLane: boolean | null;
   readonly showHidden: boolean;
+  /** Distances from each piece to the board edges, for setting the board out on the table. */
+  readonly showDistances: boolean;
+}
+
+/** How a board is shown before the player changes anything. */
+export const DEFAULT_VIEW_OPTIONS: BoardViewOptions = {
+  snap: true,
+  movePairs: true,
+  showPhotos: true,
+  showLane: null,
+  showHidden: false,
+  showDistances: false,
+};
+
+/** Whether the view is as it starts, so that there is nothing to reset. */
+export function isDefaultView(view: BoardViewOptions): boolean {
+  return (Object.keys(DEFAULT_VIEW_OPTIONS) as (keyof BoardViewOptions)[]).every(
+    (option) => view[option] === DEFAULT_VIEW_OPTIONS[option],
+  );
 }
 
 /**

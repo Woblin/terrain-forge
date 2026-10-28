@@ -51,9 +51,12 @@ export const DEFAULT_PRESET_ID = 'warhammer-fantasy';
 
 /**
  * Neither Warhammer Fantasy nor One Page Rules asks for deployment zones hidden from the enemy:
- * both deploy unit by unit in full view.
+ * both deploy unit by unit in full view. Long clear lanes (R5) are off too, at the product
+ * owner's request.
  */
-const ALL_BUT_HIDDEN_DEPLOYMENT = RULE_IDS.filter((rule) => rule !== 'hiddenDeployment');
+const RANK_AND_FILE_RULES = RULE_IDS.filter(
+  (rule) => rule !== 'hiddenDeployment' && rule !== 'clearLane',
+);
 
 const DEFAULT_TERRAIN_EFFECTS: TerrainEffects = {
   ruin: { los: 'blocks', cover: 'heavy' },
@@ -107,7 +110,7 @@ export const PRESETS: readonly GameSystemPreset[] = [
     minGap: 3,
     reach: 6,
     balance: { ...SHARED_BALANCE, maxClearLane: 58, coverage: { min: 0.25, max: 0.35 } },
-    defaultRules: ALL_BUT_HIDDEN_DEPLOYMENT,
+    defaultRules: RANK_AND_FILE_RULES,
     ...SHARED_SETTINGS,
   },
   {
@@ -117,7 +120,7 @@ export const PRESETS: readonly GameSystemPreset[] = [
     minGap: 4,
     reach: 8,
     balance: { ...SHARED_BALANCE, maxClearLane: 58, coverage: { min: 0.15, max: 0.25 } },
-    defaultRules: ALL_BUT_HIDDEN_DEPLOYMENT,
+    defaultRules: RANK_AND_FILE_RULES,
     ...SHARED_SETTINGS,
   },
 ];
@@ -133,4 +136,9 @@ export function defaultPreset(): GameSystemPreset {
     throw new Error(`The default game "${DEFAULT_PRESET_ID}" is not in the presets.`);
   }
   return preset;
+}
+
+/** Whether the board shows the longest clear lane before the player switches it: when R5 is on by default. */
+export function showsLaneByDefault(preset: GameSystemPreset): boolean {
+  return preset.defaultRules.includes('clearLane');
 }

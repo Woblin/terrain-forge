@@ -45,3 +45,21 @@ export function withRuleSwitched(
   const off = RULE_IDS.filter((other) => !next.includes(other));
   return { ...preferences, rulesOff: { ...preferences.rulesOff, [preset.id]: off } };
 }
+
+/** Puts a game's rules back to its preset's defaults, forgetting the player's switches for it. */
+export function withRulesReset(
+  preferences: GamePreferences,
+  preset: GameSystemPreset,
+): GamePreferences {
+  const rulesOff = Object.fromEntries(
+    Object.entries(preferences.rulesOff).filter(([presetId]) => presetId !== preset.id),
+  );
+  return { ...preferences, rulesOff };
+}
+
+/** Whether the rules that are on for a game are its preset's defaults. */
+export function usesDefaultRules(preset: GameSystemPreset, preferences: GamePreferences): boolean {
+  const on = enabledRulesFor(preset, preferences);
+  const defaults = inRuleOrder(preset.defaultRules);
+  return on.length === defaults.length && on.every((rule, i) => rule === defaults[i]);
+}

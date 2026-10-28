@@ -6,6 +6,7 @@ export interface LayerSettings {
   readonly showPhotos: boolean;
   readonly showLane: boolean;
   readonly showHidden: boolean;
+  readonly showDistances: boolean;
 }
 
 interface LayersMenuProps {
@@ -18,6 +19,14 @@ export function LayersMenu({ settings, onChange }: LayersMenuProps) {
   return (
     <fieldset>
       <legend className="sr-only">Board options</legend>
+      <Switch
+        checked={settings.showDistances}
+        onChange={(showDistances) => {
+          onChange({ showDistances });
+        }}
+      >
+        Measure distances
+      </Switch>
       <Switch
         checked={settings.snap}
         onChange={(snap) => {

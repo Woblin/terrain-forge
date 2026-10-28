@@ -13,6 +13,8 @@ export interface GamePreferencesSetting {
   /** Remembers the game the player picked, so the next board starts on it. */
   readonly choosePreset: (presetId: string) => void;
   readonly switchRule: (preset: GameSystemPreset, rule: RuleId, enabled: boolean) => void;
+  /** Puts a game's balance rules back to its defaults. */
+  readonly resetRules: (preset: GameSystemPreset) => void;
 }
 
 export const GamePreferencesContext = createContext<GamePreferencesSetting | null>(null);

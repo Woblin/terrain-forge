@@ -1,9 +1,12 @@
 import {
+  ChevronLeftIcon,
+  ChevronRightIcon,
   Columns2Icon,
   ImageIcon,
   MagnetIcon,
   Redo2Icon,
   RotateCcwIcon,
+  RulerIcon,
   RotateCwIcon,
   Trash2Icon,
   Undo2Icon,
@@ -17,6 +20,9 @@ interface BoardToolbarProps {
   snap: boolean;
   movePairs: boolean;
   showPhotos: boolean;
+  showDistances: boolean;
+  /** Whether there are pieces to step through while measuring. */
+  hasPieces: boolean;
   onUndo: () => void;
   onRedo: () => void;
   onTurn: (degrees: number) => void;
@@ -24,6 +30,8 @@ interface BoardToolbarProps {
   onSnapChange: (snap: boolean) => void;
   onMovePairsChange: (movePairs: boolean) => void;
   onShowPhotosChange: (show: boolean) => void;
+  onShowDistancesChange: (show: boolean) => void;
+  onStep: (step: 1 | -1) => void;
 }
 
 const DIVIDER = <span className="bg-line-strong mx-1 h-5 w-px" aria-hidden="true" />;
@@ -36,6 +44,8 @@ export function BoardToolbar({
   snap,
   movePairs,
   showPhotos,
+  showDistances,
+  hasPieces,
   onUndo,
   onRedo,
   onTurn,
@@ -43,6 +53,8 @@ export function BoardToolbar({
   onSnapChange,
   onMovePairsChange,
   onShowPhotosChange,
+  onShowDistancesChange,
+  onStep,
 }: BoardToolbarProps) {
   return (
     <div
@@ -95,6 +107,35 @@ export function BoardToolbar({
           onShowPhotosChange(!showPhotos);
         }}
       />
+      {DIVIDER}
+      <IconButton
+        icon={RulerIcon}
+        label="Measure distances"
+        pressed={showDistances}
+        onClick={() => {
+          onShowDistancesChange(!showDistances);
+        }}
+      />
+      {showDistances && (
+        <>
+          <IconButton
+            icon={ChevronLeftIcon}
+            label="Previous piece"
+            disabled={!hasPieces}
+            onClick={() => {
+              onStep(-1);
+            }}
+          />
+          <IconButton
+            icon={ChevronRightIcon}
+            label="Next piece"
+            disabled={!hasPieces}
+            onClick={() => {
+              onStep(1);
+            }}
+          />
+        </>
+      )}
     </div>
   );
 }

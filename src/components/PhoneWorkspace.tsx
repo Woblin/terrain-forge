@@ -5,9 +5,11 @@ import type { WorkspaceSlots } from './workspaceSlots';
 
 /** The board filling the screen, with everything else in a sheet pulled up from the bottom. */
 export function PhoneWorkspace(props: WorkspaceSlots) {
-  const { notice, boardAreaRef, board, phoneButtons, selectionBar, summary } = props;
+  const { notice, boardAreaRef, board, phoneButtons, selectionBar, measureBar, summary } = props;
   const [height, setHeight] = useState<SheetHeight>('peek');
   const hasSelection = selectionBar !== null;
+  // While measuring, the board makes room for the selection bar so it covers no distances.
+  const measuring = measureBar !== null;
   const [hadSelection, setHadSelection] = useState(hasSelection);
   // A piece just selected, such as one added from the Pieces tab, gets the board to itself.
   if (hasSelection !== hadSelection) {
@@ -19,9 +21,11 @@ export function PhoneWorkspace(props: WorkspaceSlots) {
   return (
     <main className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
       <section aria-label="Board editor" className="flex min-h-0 flex-1 flex-col">
+        {/* Above the board rather than over it, so the board makes room and no piece is hidden. */}
+        {measureBar !== null && <div className="shrink-0 pt-3 pr-17 pl-3">{measureBar}</div>}
         <div
           ref={boardAreaRef}
-          className="flex min-h-0 flex-1 items-center justify-center p-3 pb-[5.5rem]"
+          className={`flex min-h-0 flex-1 items-center justify-center p-3 ${measuring && hasSelection && height === 'peek' ? 'pb-[11.5rem]' : 'pb-[5.5rem]'}`}
         >
           {board}
         </div>

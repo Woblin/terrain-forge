@@ -5,7 +5,9 @@ import {
   INITIAL_GAME_PREFERENCES,
   startingPreset,
   withDefaultPreset,
+  usesDefaultRules,
   withRuleSwitched,
+  withRulesReset,
 } from './gamePreferences';
 import { findPreset, type GameSystemPreset } from './presets';
 
@@ -54,14 +56,40 @@ describe('withRuleSwitched', () => {
 
   it('switches a rule that is off by default on', () => {
     const next = withRuleSwitched(INITIAL_GAME_PREFERENCES, fantasy, 'hiddenDeployment', true);
-    expect(enabledRulesFor(fantasy, next)).toEqual(RULE_IDS);
-    expect(next.rulesOff[fantasy.id]).toEqual([]);
+    expect(enabledRulesFor(fantasy, next)).toEqual(RULE_IDS.filter((rule) => rule !== 'clearLane'));
+    expect(next.rulesOff[fantasy.id]).toEqual(['clearLane']);
   });
 
   it('keeps the other rules of that game as they were', () => {
     const once = withRuleSwitched(INITIAL_GAME_PREFERENCES, fantasy, 'coverage', false);
     const twice = withRuleSwitched(once, fantasy, 'coverage', true);
     expect(enabledRulesFor(fantasy, twice)).toEqual(fantasy.defaultRules);
-    expect(twice.rulesOff[fantasy.id]).toEqual(['hiddenDeployment']);
+    expect(twice.rulesOff[fantasy.id]).toEqual(['hiddenDeployment', 'clearLane']);
+  });
+});
+
+describe('withRulesReset', () => {
+  it("forgets one game's switches and keeps the others", () => {
+    const switched = withRuleSwitched(
+      withRuleSwitched(INITIAL_GAME_PREFERENCES, fantasy, 'clearLane', true),
+      warhammer40k,
+      'coverage',
+      false,
+    );
+    const reset = withRulesReset(switched, fantasy);
+    expect(enabledRulesFor(fantasy, reset)).toEqual(fantasy.defaultRules);
+    expect(reset.rulesOff[fantasy.id]).toBeUndefined();
+    expect(reset.rulesOff[warhammer40k.id]).toEqual(['coverage']);
+  });
+});
+
+describe('usesDefaultRules', () => {
+  it('is true until a rule is switched, and again once it is switched back', () => {
+    expect(usesDefaultRules(fantasy, INITIAL_GAME_PREFERENCES)).toBe(true);
+    const once = withRuleSwitched(INITIAL_GAME_PREFERENCES, fantasy, 'clearLane', true);
+    expect(usesDefaultRules(fantasy, once)).toBe(false);
+    expect(usesDefaultRules(fantasy, withRuleSwitched(once, fantasy, 'clearLane', false))).toBe(
+      true,
+    );
   });
 });
