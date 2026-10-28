@@ -3,7 +3,6 @@ import { useId, useState, type ChangeEvent, type ReactNode, type SubmitEvent } f
 import {
   EMPTY_ACCOUNT_DRAFT,
   hasErrors,
-  MIN_PASSWORD_LENGTH,
   validateAccountDraft,
   type AccountDraft,
   type AccountErrors,
@@ -12,6 +11,7 @@ import {
 } from '../domain/account';
 import { BUTTON_STYLES } from './buttonStyles';
 import { FIELD_ERROR_STYLES, LABEL_STYLES, LARGE_FIELD_STYLES } from './fieldStyles';
+import { PasswordChecklist } from './PasswordChecklist';
 import { TextButton } from './TextButton';
 
 interface EmailFormProps {
@@ -29,8 +29,8 @@ interface FieldSetup {
   readonly name: AccountField;
   readonly label: string;
   readonly autoComplete: string;
-  /** Shown under the label before anything is wrong, such as how long a password must be. */
-  readonly hint?: string;
+  /** True for a new password, which shows the password policy as a checklist under the field. */
+  readonly checklist?: boolean;
 }
 
 const TITLES: Readonly<Record<AccountFormMode, string>> = {
@@ -91,7 +91,7 @@ export function EmailForm({ mode, busy, error, notice, onModeChange, onSubmit }:
       setup,
       <div className="relative">
         <input
-          {...inputProps(setup.name, setup.hint !== undefined)}
+          {...inputProps(setup.name, setup.checklist === true)}
           type={showPassword ? 'text' : 'password'}
           autoComplete={setup.autoComplete}
           className={`${LARGE_FIELD_STYLES} pr-12`}
@@ -118,15 +118,18 @@ export function EmailForm({ mode, busy, error, notice, onModeChange, onSubmit }:
     );
   }
 
-  /** The props every field's input shares; the hint or the error describes it. */
-  function inputProps(name: AccountField, hasHint: boolean) {
+  /** The props every field's input shares; the error and the checklist describe it. */
+  function inputProps(name: AccountField, hasChecklist: boolean) {
     const wrong = errors[name] !== undefined;
-    const describedBy = wrong ? `${id}-${name}-error` : hasHint ? `${id}-${name}-hint` : undefined;
+    const describedBy = [
+      ...(wrong ? [`${id}-${name}-error`] : []),
+      ...(hasChecklist ? [`${id}-${name}-checklist`] : []),
+    ].join(' ');
     return {
       id: `${id}-${name}`,
       value: draft[name],
       'aria-invalid': wrong,
-      'aria-describedby': describedBy,
+      'aria-describedby': describedBy === '' ? undefined : describedBy,
       onChange: (event: ChangeEvent<HTMLInputElement>) => {
         setDraft({ ...draft, [name]: event.target.value });
       },
@@ -141,15 +144,21 @@ export function EmailForm({ mode, busy, error, notice, onModeChange, onSubmit }:
           {setup.label}
         </label>
         {input}
-        {setup.hint !== undefined && message === undefined && (
-          <p id={`${id}-${setup.name}-hint`} className="text-muted mt-1.5 text-xs">
-            {setup.hint}
-          </p>
-        )}
         {message !== undefined && (
-          <p id={`${id}-${setup.name}-error`} className={FIELD_ERROR_STYLES}>
+          // The checklist already marks what is missing, so only screen readers get the sentence.
+          <p
+            id={`${id}-${setup.name}-error`}
+            className={setup.checklist === true ? 'sr-only' : FIELD_ERROR_STYLES}
+          >
             {message}
           </p>
+        )}
+        {setup.checklist === true && (
+          <PasswordChecklist
+            id={`${id}-${setup.name}-checklist`}
+            password={draft[setup.name]}
+            showMissing={message !== undefined}
+          />
         )}
       </div>
     );
@@ -168,7 +177,7 @@ export function EmailForm({ mode, busy, error, notice, onModeChange, onSubmit }:
                 name: 'password',
                 label: 'Password',
                 autoComplete: 'new-password',
-                hint: `At least ${String(MIN_PASSWORD_LENGTH)} characters.`,
+                checklist: true,
               }
             : { name: 'password', label: 'Password', autoComplete: 'current-password' },
         )}

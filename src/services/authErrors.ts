@@ -1,3 +1,6 @@
+const PASSWORD_POLICY =
+  'Pick a stronger password: at least 8 characters, with a lowercase and an uppercase letter, a number and a special character.';
+
 /** Firebase Auth error codes the player can do something about, each with what to tell them. */
 const MESSAGES: Readonly<Record<string, string>> = {
   'auth/invalid-credential': 'Email or password is wrong.',
@@ -6,8 +9,8 @@ const MESSAGES: Readonly<Record<string, string>> = {
   'auth/invalid-email': 'Check the email address.',
   'auth/email-already-in-use':
     'There is already an account with this email. Sign in instead, or reset the password.',
-  'auth/weak-password': 'Pick a longer password: at least 8 characters.',
-  'auth/password-does-not-meet-requirements': 'Pick a longer password: at least 8 characters.',
+  'auth/weak-password': PASSWORD_POLICY,
+  'auth/password-does-not-meet-requirements': PASSWORD_POLICY,
   'auth/too-many-requests': 'Too many attempts. Wait a few minutes and try again.',
   'auth/network-request-failed': 'Could not reach the sign-in service. Check your connection.',
   'auth/user-disabled': 'This account has been switched off.',
