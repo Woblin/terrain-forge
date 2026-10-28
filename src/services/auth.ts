@@ -31,10 +31,23 @@ export type Reauthentication =
  * when the player's token is refreshed, which is how a newly verified email reaches the app.
  */
 export function watchUser(auth: Auth, onChange: (user: AppUser | null) => void): () => void {
+  // Reading the token takes a moment; only the answer for the latest change is passed on.
+  let latest = 0;
+  const refreshed = new Set<string>();
   return onIdTokenChanged(
     auth,
     (user) => {
-      onChange(user === null ? null : appUser(user));
+      latest += 1;
+      const change = latest;
+      if (user === null) {
+        onChange(null);
+        return;
+      }
+      void tokenSaysVerified(user, refreshed).then((verified) => {
+        if (change === latest) {
+          onChange(appUser(user, verified));
+        }
+      });
     },
     (error) => {
       console.error('Following the sign-in state failed.', error);
@@ -153,11 +166,37 @@ function googleProvider(): GoogleAuthProvider {
   return provider;
 }
 
-function appUser(user: User): AppUser {
+/**
+ * Whether the player's token says their email is verified. The Firestore rules read the token,
+ * not the account, so right after the player verifies, the account says yes before the token does;
+ * counting them as verified then would let the app save and the server refuse it. A token older
+ * than the verification is refreshed once, which calls `onIdTokenChanged` again.
+ */
+async function tokenSaysVerified(user: User, refreshed: Set<string>): Promise<boolean> {
+  try {
+    const { claims } = await user.getIdTokenResult();
+    if (claims.email_verified === true) {
+      return true;
+    }
+    if (user.emailVerified && !refreshed.has(user.uid)) {
+      refreshed.add(user.uid);
+      user.getIdToken(true).catch((error: unknown) => {
+        console.error('Refreshing the sign-in token failed.', error);
+      });
+    }
+    return false;
+  } catch (error) {
+    // Without a token, for example offline with an expired one, the account is all there is.
+    console.error('Reading the sign-in token failed.', error);
+    return user.emailVerified;
+  }
+}
+
+function appUser(user: User, emailVerified: boolean): AppUser {
   return {
     uid: user.uid,
     email: user.email,
-    emailVerified: user.emailVerified,
+    emailVerified,
     methods: user.providerData.flatMap((info) => signInMethod(info.providerId)),
   };
 }
