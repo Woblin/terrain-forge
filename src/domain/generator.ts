@@ -1,19 +1,16 @@
 import { boardArea, type Board, type DeploymentMap } from './board';
+import { isPassable, regimentClearance } from './clearance';
 import { laneBreakingChoice } from './laneBreaking';
 import { evaluateFairness, inRuleOrder, type FairnessReport, type RuleId } from './fairness';
-import {
-  expandCollection,
-  pairPieces,
-  placeUnits,
-  type PlacedPiece,
-  type PlacementRules,
-} from './placement';
+import { expandCollection, placeUnits, type PlacedPiece, type PlacementRules } from './placement';
+import { buildUnits, orderForTarget } from './placementUnits';
 import type { BalanceRules, GameSystemPreset } from './presets';
 import { createRandom, randomBetween, shuffle, type RandomSource } from './random';
+import { spreadChoice } from './spread';
 import { footprintArea, type PlacedTerrain, type Placement, type TerrainPiece } from './terrain';
 
 /** Bump when a change makes the same seed give a different layout. */
-export const GENERATOR_VERSION = 2;
+export const GENERATOR_VERSION = 3;
 
 const CANDIDATE_COUNT = 16;
 /** With a small collection, at least this share of it must make it onto the board. */
@@ -70,6 +67,8 @@ export const RULE_ADVICE: Readonly<Record<RuleId, string>> = {
 /**
  * Builds candidate layouts from the seed and returns the fairest one that passes every rule that
  * is on. When none passes, it returns the closest one, so a small collection still gets a board.
+ * Where units must be able to march across, a board they cannot cross only wins if every board
+ * blocks them.
  */
 export function generateLayout(request: GenerationRequest): GenerationResult {
   const { board, pieces, preset, deployment, seed } = request;
@@ -84,7 +83,7 @@ export function generateLayout(request: GenerationRequest): GenerationResult {
   const candidates = Array.from({ length: CANDIDATE_COUNT }, () =>
     buildCandidate(usable, request, balance, random),
   );
-  const best = closest(candidates);
+  const best = closest(candidates, request);
   return {
     ok: true,
     layout: {
@@ -177,22 +176,24 @@ function buildCandidate(
 ): Candidate {
   const { board, preset, deployment, enabledRules } = request;
   const area = boardArea(board);
-  const units = pairPieces(shuffle(random, pieces));
   const target = randomBetween(random, balance.coverage.min, balance.coverage.max) * area;
+  const built = buildUnits(shuffle(random, pieces), preset.spacing, random);
+  const units = orderForTarget(built, target, random);
   const rules: PlacementRules = {
     board,
     deployment,
     edgeMargin: preset.edgeMargin,
-    minGap: preset.minGap,
+    spacing: preset.spacing,
   };
   // Steering pieces into long lanes only pays off while R5 counts.
-  const choice = enabledRules.includes('clearLane')
+  const lanes = enabledRules.includes('clearLane')
     ? laneBreakingChoice({
         ...rules,
         effects: preset.terrainEffects,
         maxLane: balance.maxClearLane,
       })
     : undefined;
+  const choice = spreadChoice(board, lanes);
   const placed = placeUnits(
     units,
     { target, max: balance.coverage.max * area },
@@ -212,6 +213,21 @@ function buildCandidate(
   return { pieces: placed, report };
 }
 
+function passable(pieces: readonly PlacedPiece[], request: GenerationRequest): boolean {
+  const { board, deployment, preset } = request;
+  if (preset.clearance === null) {
+    return true;
+  }
+  const clearance = regimentClearance({
+    board,
+    deployment,
+    pieces,
+    spacing: preset.spacing,
+    rules: preset.clearance,
+  });
+  return isPassable(clearance, preset.clearance);
+}
+
 function toPlacedTerrain(piece: PlacedPiece, preset: GameSystemPreset): PlacedTerrain {
   return {
     pieceId: piece.piece.id,
@@ -220,19 +236,22 @@ function toPlacedTerrain(piece: PlacedPiece, preset: GameSystemPreset): PlacedTe
   };
 }
 
-/** The candidate that fails the fewest rules, and among those the most even one. */
-function closest(candidates: readonly Candidate[]): Candidate {
-  const [first, ...rest] = candidates;
+/**
+ * The candidate that fails the fewest rules, and among those the most even one, skipping boards
+ * the game's widest unit cannot cross while there is another. Candidates are checked for that in
+ * order, so most boards need only one check.
+ */
+function closest(candidates: readonly Candidate[], request: GenerationRequest): Candidate {
+  const ranked = [...candidates].sort(byCloseness);
+  const [first] = ranked;
   if (first === undefined) {
     throw new Error('The generator built no candidate boards.');
   }
-  return rest.reduce(
-    (best, candidate) => (closerThan(candidate.report, best.report) ? candidate : best),
-    first,
-  );
+  return ranked.find((candidate) => passable(candidate.pieces, request)) ?? first;
 }
 
-function closerThan(a: FairnessReport, b: FairnessReport): boolean {
-  const failed = a.failedRules.length - b.failedRules.length;
-  return failed !== 0 ? failed < 0 : a.imbalance < b.imbalance;
+/** Fewest failed rules first, then the most even; equal candidates keep their order. */
+function byCloseness(a: Candidate, b: Candidate): number {
+  const failed = a.report.failedRules.length - b.report.failedRules.length;
+  return failed !== 0 ? failed : a.report.imbalance - b.report.imbalance;
 }

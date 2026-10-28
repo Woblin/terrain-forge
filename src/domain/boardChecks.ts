@@ -73,8 +73,12 @@ export function describeViolation(
   switch (violation.kind) {
     case 'offBoard':
       return `Keep ${formatLength(rules.edgeMargin, unit)} clear of the table edge`;
+    case 'edgeGap':
+      return `${formatLength(violation.distance, unit)} from the table edge: keep ${formatLength(rules.spacing.edge?.hug ?? 0, unit)} or less, or ${formatLength(rules.spacing.edge?.open ?? 0, unit)} or more`;
+    case 'overlaps':
+      return `Overlaps ${nameOf(violation.other)}`;
     case 'tooClose':
-      return `${formatLength(violation.distance, unit)} from ${nameOf(violation.other)}, needs ${formatLength(rules.minGap, unit)}`;
+      return `${formatLength(violation.distance, unit)} from ${nameOf(violation.other)}, needs ${formatLength(violation.needed, unit)} (or ${formatLength(rules.spacing.joinGap, unit)} or less to join them)`;
     case 'zoneCrowded':
       return `More than one piece stands fully inside Player ${violation.player}'s zone`;
   }

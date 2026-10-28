@@ -44,7 +44,11 @@ describe('the sample collection on every game system', () => {
       const placed = placements.map((placement) =>
         placePiece(pieceById(SAMPLE_COLLECTION, placement.pieceId), placement),
       );
-      const rules = { ...setup, edgeMargin: setup.preset.edgeMargin, minGap: setup.preset.minGap };
+      const rules = {
+        ...setup,
+        edgeMargin: setup.preset.edgeMargin,
+        spacing: setup.preset.spacing,
+      };
       expect(boardViolations(placed, rules).flat()).toEqual([]);
       const analysis = analyseBoard(sampleInput(setup, placements));
       expect(analysis.report).toEqual(result.report);

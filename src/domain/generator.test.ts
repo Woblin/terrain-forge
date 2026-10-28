@@ -1,9 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { boardPolygon, longEdgeDeployment, standardDeployments } from './board';
+import { isPassable, regimentClearance } from './clearance';
 import { containsPolygon, polygonDistance } from './geometry';
 import { RULE_IDS } from './fairness';
 import { GENERATOR_VERSION, generateLayout, type GenerationRequest } from './generator';
+import { boardViolations, placePiece } from './placement';
 import { findPreset, PRESETS, type GameSystemPreset } from './presets';
+import { ROBIN_COLLECTION } from './robinCollection';
 import { placeFootprint, type TerrainPiece } from './terrain';
 
 const SLOW_TEST_TIMEOUT = 60_000;
@@ -143,7 +146,8 @@ function expectLegalPlacements(
   polygons.forEach((polygon, i) => {
     expect(containsPolygon(boardPolygon(board), polygon)).toBe(true);
     polygons.slice(i + 1).forEach((other) => {
-      expect(polygonDistance(polygon, other)).toBeGreaterThanOrEqual(rules.minGap - 1e-9);
+      const gap = polygonDistance(polygon, other);
+      expect(gap <= rules.spacing.joinGap + 1e-9 || gap >= rules.spacing.minGap - 1e-9).toBe(true);
     });
   });
 }
@@ -319,6 +323,83 @@ describe('generateLayout with too little terrain', () => {
   );
 });
 
+describe("generateLayout on the product owner's Warhammer Fantasy terrain", () => {
+  const fantasy = preset('warhammer-fantasy');
+  const fantasyBoard = fantasy.defaultBoard;
+  const cases = standardDeployments(fantasyBoard, fantasy.zoneDepth).flatMap((deployment) =>
+    [1, 2, 3, 4, 5].map((seed) => ({ deployment, seed })),
+  );
+
+  it.each(cases)(
+    'leaves room for regiments on $deployment.id, seed $seed',
+    ({ deployment, seed }) => {
+      const result = generateLayout({
+        board: fantasyBoard,
+        pieces: ROBIN_COLLECTION,
+        preset: fantasy,
+        deployment,
+        seed,
+        enabledRules: fantasy.defaultRules,
+      });
+      if (!result.ok) {
+        throw new Error(result.reason);
+      }
+      expect(result.report.failedRules).toEqual([]);
+      const placed = result.layout.placements.map((placement) => {
+        const piece = ROBIN_COLLECTION.find((entry) => entry.id === placement.pieceId);
+        if (piece === undefined) {
+          throw new Error(`Unknown piece ${placement.pieceId}`);
+        }
+        return placePiece(piece, placement);
+      });
+      expect(placed.length).toBeGreaterThanOrEqual(11);
+      const rules = { board: fantasyBoard, deployment, edgeMargin: 1, spacing: fantasy.spacing };
+      expect(boardViolations(placed, rules).flat()).toEqual([]);
+      const clearance = fantasy.clearance;
+      if (clearance === null) {
+        throw new Error('Warhammer Fantasy should check clearance');
+      }
+      const marched = regimentClearance({
+        board: fantasyBoard,
+        deployment,
+        pieces: placed,
+        spacing: fantasy.spacing,
+        rules: clearance,
+      });
+      expect(isPassable(marched, clearance)).toBe(true);
+    },
+    SLOW_TEST_TIMEOUT,
+  );
+
+  it(
+    'joins Stone Walls end to end on some boards',
+    () => {
+      const joined = [1, 2, 3, 4, 5, 6].some((seed) => {
+        const result = generateLayout({
+          board: fantasyBoard,
+          pieces: ROBIN_COLLECTION,
+          preset: fantasy,
+          deployment: longEdgeDeployment(fantasyBoard, fantasy.zoneDepth),
+          seed,
+          enabledRules: fantasy.defaultRules,
+        });
+        const walls = result.ok
+          ? result.layout.placements
+              .filter((placement) => placement.pieceId === 'stone-wall')
+              .map((placement) =>
+                placeFootprint({ kind: 'rect', width: 5.12, depth: 0.59 }, placement),
+              )
+          : [];
+        return walls.some((wall, i) =>
+          walls.slice(i + 1).some((other) => polygonDistance(wall, other) < 0.05),
+        );
+      });
+      expect(joined).toBe(true);
+    },
+    SLOW_TEST_TIMEOUT,
+  );
+});
+
 describe('generateLayout regression', () => {
   it(
     'keeps seed 2024 stable; bump GENERATOR_VERSION if this changes on purpose',
@@ -334,20 +415,22 @@ describe('generateLayout regression', () => {
       expect({ version: GENERATOR_VERSION, summary }).toMatchInlineSnapshot(`
         {
           "summary": [
-            "building 41.39,16.50 165",
-            "building 18.61,27.50 345",
-            "ruin-large 47.91,28.96 315",
-            "ruin-large 12.09,15.04 135",
-            "ruin-large 28.76,13.41 75",
-            "ruin-large 31.24,30.59 255",
-            "forest 6.04,34.51 285",
-            "forest 53.96,9.49 105",
-            "ruin-small 54.47,38.72 15",
-            "ruin-small 5.53,5.28 195",
-            "barricade 1.65,19.21 90",
-            "barricade 58.35,24.79 270",
+            "building 20.33,24.11 15",
+            "building 39.67,19.89 195",
+            "ruin-large 51.13,32.36 0",
+            "barricade 41.79,30.21 0",
+            "crater 47.42,38.28 90",
+            "ruin-large 8.87,11.64 180",
+            "barricade 18.21,13.79 180",
+            "crater 12.58,5.72 270",
+            "ruin-large 54.03,12.99 90",
+            "ruin-large 5.97,31.01 270",
+            "ruin-large 27.39,9.62 60",
+            "ruin-large 32.61,34.38 240",
+            "barricade 51.97,23.43 180",
+            "barricade 8.03,20.57 0",
           ],
-          "version": 2,
+          "version": 3,
         }
       `);
     },

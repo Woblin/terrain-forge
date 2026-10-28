@@ -28,6 +28,7 @@ export function laneBreakingChoice(setup: LaneSetup): SpotChoice {
   return {
     spots: SPOTS_PER_UNIT,
     rank: (candidate, placed) => laneExcess([...placed, ...candidate], setup),
+    goodEnough: (bestRank) => bestRank === 0,
   };
 }
 

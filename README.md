@@ -22,7 +22,7 @@ Terrain Forge is a web app that generates a battlefield layout for tabletop warg
 
 ### Terrain library
 - Build a library of the terrain you actually own
-- Define each piece's footprint, size and type (e.g. ruins, forest, obstacle, building)
+- Define each piece's footprint, size and type (e.g. ruins, forest, obstacle, wall, building)
 - Generate battlefields using only the terrain in your collection
 
 ### User accounts
