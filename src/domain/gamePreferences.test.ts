@@ -54,14 +54,14 @@ describe('withRuleSwitched', () => {
 
   it('switches a rule that is off by default on', () => {
     const next = withRuleSwitched(INITIAL_GAME_PREFERENCES, fantasy, 'hiddenDeployment', true);
-    expect(enabledRulesFor(fantasy, next)).toEqual(RULE_IDS);
-    expect(next.rulesOff[fantasy.id]).toEqual([]);
+    expect(enabledRulesFor(fantasy, next)).toEqual(RULE_IDS.filter((rule) => rule !== 'clearLane'));
+    expect(next.rulesOff[fantasy.id]).toEqual(['clearLane']);
   });
 
   it('keeps the other rules of that game as they were', () => {
     const once = withRuleSwitched(INITIAL_GAME_PREFERENCES, fantasy, 'coverage', false);
     const twice = withRuleSwitched(once, fantasy, 'coverage', true);
     expect(enabledRulesFor(fantasy, twice)).toEqual(fantasy.defaultRules);
-    expect(twice.rulesOff[fantasy.id]).toEqual(['hiddenDeployment']);
+    expect(twice.rulesOff[fantasy.id]).toEqual(['hiddenDeployment', 'clearLane']);
   });
 });

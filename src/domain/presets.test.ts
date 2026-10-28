@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { RULE_IDS } from './fairness';
-import { DEFAULT_PRESET_ID, defaultPreset, findPreset, PRESETS } from './presets';
+import {
+  DEFAULT_PRESET_ID,
+  defaultPreset,
+  findPreset,
+  PRESETS,
+  showsLaneByDefault,
+} from './presets';
 import { TERRAIN_TYPES } from './terrain';
 
 describe('PRESETS', () => {
@@ -24,16 +30,28 @@ describe('PRESETS', () => {
 
 describe('default rules', () => {
   it.each(['warhammer-fantasy', 'one-page-rules'])(
-    '%s does not ask for hidden deployment',
+    '%s does not ask for hidden deployment or short lanes',
     (id) => {
       expect(findPreset(id)?.defaultRules).toEqual(
-        RULE_IDS.filter((rule) => rule !== 'hiddenDeployment'),
+        RULE_IDS.filter((rule) => rule !== 'hiddenDeployment' && rule !== 'clearLane'),
       );
     },
   );
 
   it.each(['warhammer-40k', 'age-of-sigmar'])('%s uses every rule', (id) => {
     expect(findPreset(id)?.defaultRules).toEqual(RULE_IDS);
+  });
+});
+
+describe('showsLaneByDefault', () => {
+  it.each([
+    ['warhammer-fantasy', false],
+    ['one-page-rules', false],
+    ['warhammer-40k', true],
+    ['age-of-sigmar', true],
+  ])('%s shows the lane: %s', (id, shows) => {
+    const preset = findPreset(id);
+    expect(preset !== undefined && showsLaneByDefault(preset)).toBe(shows);
   });
 });
 

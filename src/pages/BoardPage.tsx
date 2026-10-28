@@ -25,7 +25,7 @@ import { findMirrorTwin, withTwin } from '../domain/mirror';
 import type { PlacementRules } from '../domain/placement';
 import { sameTerrain } from '../domain/libraryLink';
 import { placingOrder, stepPiece } from '../domain/placingOrder';
-import { findPreset } from '../domain/presets';
+import { findPreset, showsLaneByDefault } from '../domain/presets';
 import { seedToCode } from '../domain/random';
 import { SAMPLE_COLLECTION } from '../domain/sampleCollection';
 import {
@@ -155,7 +155,7 @@ export function BoardPage() {
     opened,
     setOpened,
   } = session;
-  const { snap, movePairs, showPhotos, showLane, showHidden, showDistances } = session.view;
+  const { snap, movePairs, showPhotos, showHidden, showDistances } = session.view;
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const ownCollection = library.pieces.length > 0 ? library.pieces : SAMPLE_COLLECTION;
@@ -208,6 +208,7 @@ export function BoardPage() {
   );
   const chosenPreset = findPreset(choice.presetId) ?? startingPreset(settings.preferences);
   const board = setup?.board ?? chosenPreset.defaultBoard;
+  const showLane = session.view.showLane ?? showsLaneByDefault(setup?.preset ?? chosenPreset);
   const upright = drawsUpright(board, boardSpace);
   const drawnSize = fitBoard(board, boardSpace, upright);
   const pixelSize = inchesPerPixel(board, drawnSize, upright) ?? UNMEASURED_PIXEL_SIZE;
@@ -845,7 +846,7 @@ export function BoardPage() {
           <PhoneBoardButtons
             canUndo={canUndo(editor)}
             canRedo={canRedo(editor)}
-            layers={session.view}
+            layers={{ ...session.view, showLane }}
             onUndo={undo}
             onRedo={redo}
             onLayersChange={setView}

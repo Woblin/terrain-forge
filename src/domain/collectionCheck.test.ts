@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { checkCollection, checkCollectionFor } from './collectionCheck';
+import { RULE_IDS } from './fairness';
 import { findPreset, PRESETS, type GameSystemPreset } from './presets';
 import { SAMPLE_COLLECTION } from './sampleCollection';
 import type { TerrainPiece } from './terrain';
@@ -53,10 +54,18 @@ describe('checkCollection', () => {
   });
 
   it('only names what the rules that are on need sight blockers for', () => {
-    const fantasy = checkCollectionFor([forest], preset('warhammer-fantasy'));
-    const messages = fantasy.findings.map((finding) => finding.message).join(' ');
+    const lanesOnly = checkCollectionFor(
+      [forest],
+      preset('warhammer-40k'),
+      RULE_IDS.filter((rule) => rule !== 'hiddenDeployment'),
+    );
+    const messages = lanesOnly.findings.map((finding) => finding.message).join(' ');
     expect(messages).toContain('break up long firing lanes');
     expect(messages).not.toContain('hide the deployment zones');
+    const fantasy = checkCollectionFor([forest], preset('warhammer-fantasy'));
+    expect(fantasy.findings.map((finding) => finding.message).join(' ')).not.toContain(
+      'Nothing here blocks line of sight',
+    );
     const noSight = checkCollectionFor([forest], preset('warhammer-40k'), ['coverage']);
     expect(noSight.findings.map((finding) => finding.message).join(' ')).not.toContain(
       'Nothing here blocks line of sight',

@@ -27,7 +27,7 @@ const DEFAULT_VIEW: BoardViewOptions = {
   snap: true,
   movePairs: true,
   showPhotos: true,
-  showLane: true,
+  showLane: null,
   showHidden: false,
   showDistances: false,
 };
