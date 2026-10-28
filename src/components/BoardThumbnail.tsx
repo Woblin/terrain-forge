@@ -4,16 +4,17 @@ import { TERRAIN_STYLES } from './terrainStyles';
 
 interface BoardThumbnailProps {
   board: SavedBoard;
+  className?: string;
 }
 
 /** A small picture of a saved board: its terrain as plain shapes, without photos. */
-export function BoardThumbnail({ board }: BoardThumbnailProps) {
+export function BoardThumbnail({ board, className = 'w-28 rounded-lg' }: BoardThumbnailProps) {
   const { width, depth } = board.layout.board;
   return (
     <svg
       viewBox={`0 0 ${String(width)} ${String(depth)}`}
       aria-hidden="true"
-      className="bg-mat w-28 shrink-0 rounded-lg"
+      className={`bg-mat shrink-0 ${className}`}
     >
       {board.layout.placements.map((placement, index) => {
         const piece = board.pieces.find((candidate) => candidate.id === placement.pieceId);

@@ -2,6 +2,7 @@ import { HandIcon, MountainIcon, ScaleIcon, SparklesIcon, type LucideIcon } from
 import { Link } from 'react-router';
 import { BoardPicture } from '../components/BoardPicture';
 import { BUTTON_STYLES } from '../components/buttonStyles';
+import { RecentBoards } from '../components/RecentBoards';
 import { SAMPLE_COLLECTION } from '../domain/sampleCollection';
 import { useExampleBoard } from '../hooks/useExampleBoard';
 
@@ -56,6 +57,9 @@ export function HomePage() {
           </div>
         )}
       </section>
+      <div className="px-4 pb-12 empty:hidden md:px-8 lg:px-16">
+        <RecentBoards />
+      </div>
       <section aria-label="What Terrain Forge does" className="px-4 pb-16 md:px-8 lg:px-16">
         <ul className="grid gap-4 md:grid-cols-3">
           {FEATURES.map((feature) => (

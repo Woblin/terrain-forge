@@ -177,3 +177,19 @@ function terrainOnly(piece: TerrainPiece): TerrainPiece {
   const { id, name, type, footprint, quantity } = piece;
   return { id, name, type, footprint: { ...footprint }, quantity };
 }
+
+/** How My boards lists the boards. */
+export type BoardOrder = 'newest' | 'name';
+
+/** The boards newest first, or by name A to Z with the newest first among equal names. */
+export function sortSavedBoards(boards: readonly SavedBoard[], order: BoardOrder): SavedBoard[] {
+  const newestFirst = [...boards].sort((a, b) => b.savedAt - a.savedAt);
+  return order === 'newest'
+    ? newestFirst
+    : newestFirst.sort((a, b) => a.name.localeCompare(b.name, 'en', { sensitivity: 'base' }));
+}
+
+/** The boards changed most recently, newest first. */
+export function recentBoards(boards: readonly SavedBoard[], count: number): SavedBoard[] {
+  return sortSavedBoards(boards, 'newest').slice(0, count);
+}

@@ -1,39 +1,40 @@
+import { PlusIcon } from 'lucide-react';
 import { useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router';
-import { copyName, hasUnsavedChanges, type SavedBoard } from '../domain/savedBoard';
+import { Link, useLocation } from 'react-router';
+import { copyName, sortSavedBoards, type BoardOrder, type SavedBoard } from '../domain/savedBoard';
 import { BoardNameDialog } from '../components/BoardNameDialog';
+import { BUTTON_STYLES } from '../components/buttonStyles';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { LibraryMessages } from '../components/LibraryMessages';
 import { SaveStatus } from '../components/SaveStatus';
-import { SavedBoardRow } from '../components/SavedBoardRow';
+import { SavedBoardCard } from '../components/SavedBoardCard';
+import { SegmentedControl, type Segment } from '../components/SegmentedControl';
 import { useBoardSession } from '../hooks/boardSessionContext';
+import { useBoardOpener } from '../hooks/useBoardOpener';
 import { useSavedBoards } from '../hooks/savedBoardsContext';
+
+const ORDERS: readonly Segment<BoardOrder>[] = [
+  { value: 'newest', label: 'Newest' },
+  { value: 'name', label: 'Name' },
+];
 
 /** What the player is being asked about, for one board. */
 type Asking =
   | { readonly kind: 'rename'; readonly board: SavedBoard }
   | { readonly kind: 'duplicate'; readonly board: SavedBoard }
-  | { readonly kind: 'delete'; readonly board: SavedBoard }
-  | { readonly kind: 'discard'; readonly board: SavedBoard };
+  | { readonly kind: 'delete'; readonly board: SavedBoard };
 
 /** The boards saved in the player's account: open, rename, duplicate and delete them. */
 export function SavedBoardsPage() {
   const savedBoards = useSavedBoards();
   const session = useBoardSession();
-  const navigate = useNavigate();
+  const opener = useBoardOpener();
   const location = useLocation();
   const [asking, setAsking] = useState<Asking | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [order, setOrder] = useState<BoardOrder>('newest');
   const { opened, setOpened } = session;
-  const { present } = session.editor;
-  const unsaved = hasUnsavedChanges(opened, present);
-  // Opening a saved board replaces the board on the board page, with no undo.
-  const atRisk = unsaved || (opened === null && present?.edited === true);
   const { boards } = savedBoards;
-
-  function open(board: SavedBoard): void {
-    void navigate(`/board?saved=${encodeURIComponent(board.id)}`);
-  }
 
   function rename(board: SavedBoard, name: string): void {
     savedBoards.rename(board.id, name);
@@ -48,21 +49,32 @@ export function SavedBoardsPage() {
 
   return (
     <>
-      <main className="mx-auto max-w-4xl space-y-4 p-4">
+      <main className="flex-1 space-y-5 px-4 py-6 md:px-8 lg:py-8">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold">My boards</h1>
+            <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">My boards</h1>
             {savedBoards.access === 'account' && savedBoards.status === 'ready' && (
               <p className="text-muted text-sm">{countText(boards.length)}</p>
             )}
           </div>
-          <Link
-            to="/board"
-            state={{ newBoard: true }}
-            className="border-line-strong hover:bg-hover rounded-lg border px-3 py-1.5 text-sm"
-          >
-            New board
-          </Link>
+          <div className="flex items-center gap-3">
+            {boards.length > 1 && (
+              <SegmentedControl
+                legend="Sort by"
+                segments={ORDERS}
+                value={order}
+                onChange={setOrder}
+              />
+            )}
+            <Link
+              to="/board"
+              state={{ newBoard: true }}
+              className={`${BUTTON_STYLES.primary} text-sm`}
+            >
+              <PlusIcon className="size-4" aria-hidden="true" />
+              New board
+            </Link>
+          </div>
         </div>
         {savedBoards.access === 'signedOut' && (
           <p className="text-soft">
@@ -89,38 +101,37 @@ export function SavedBoardsPage() {
               loading={savedBoards.status === 'loading'}
             />
             {boards.length === 0 && savedBoards.status === 'ready' ? (
-              <div className="border-line bg-surface space-y-3 rounded-2xl border p-4 shadow-sm">
+              <div className="border-line-strong space-y-3 rounded-2xl border border-dashed p-8 text-center">
                 <p className="text-soft">No saved boards yet.</p>
-                <Link
-                  to="/board"
-                  className="bg-accent text-on-accent hover:bg-accent-hover inline-block rounded-lg px-3 py-1.5 font-semibold"
-                >
+                <p className="text-muted text-sm">
+                  Generate a board you like, then save it from the Setup panel.
+                </p>
+                <Link to="/board" className={BUTTON_STYLES.secondary}>
                   Go to the board
                 </Link>
               </div>
             ) : (
-              <ul className="space-y-3">
-                {boards.map((board) => (
-                  <SavedBoardRow
+              <ul className="grid gap-3 md:grid-cols-[repeat(auto-fill,minmax(17rem,1fr))] md:gap-4">
+                {sortSavedBoards(boards, order).map((board) => (
+                  <SavedBoardCard
                     key={board.id}
                     board={board}
-                    unsaved={unsaved && opened?.id === board.id}
+                    unsaved={opener.unsavedId === board.id}
+                    heading="h2"
                     onOpen={() => {
-                      if (atRisk && opened?.id !== board.id) {
-                        setAsking({ kind: 'discard', board });
-                      } else {
-                        open(board);
-                      }
+                      opener.request(board);
                     }}
-                    onRename={() => {
-                      setAsking({ kind: 'rename', board });
-                    }}
-                    onDuplicate={() => {
-                      setActionError(null);
-                      setAsking({ kind: 'duplicate', board });
-                    }}
-                    onDelete={() => {
-                      setAsking({ kind: 'delete', board });
+                    manage={{
+                      onRename: () => {
+                        setAsking({ kind: 'rename', board });
+                      },
+                      onDuplicate: () => {
+                        setActionError(null);
+                        setAsking({ kind: 'duplicate', board });
+                      },
+                      onDelete: () => {
+                        setAsking({ kind: 'delete', board });
+                      },
                     }}
                   />
                 ))}
@@ -178,27 +189,19 @@ export function SavedBoardsPage() {
           }}
         />
       )}
-      {asking?.kind === 'discard' && (
+      {opener.pending !== null && (
         <ConfirmDialog
           title="Leave your unsaved changes?"
-          message={`${opened === null ? 'The board on the board page is not saved' : `"${savedName(boards, opened.id) ?? opened.name}" has changes that are not saved`}. Opening "${asking.board.name}" replaces it.`}
+          message={opener.discardMessage}
           confirmLabel="Open anyway"
           busy={false}
           error={null}
-          onConfirm={() => {
-            open(asking.board);
-          }}
-          onCancel={() => {
-            setAsking(null);
-          }}
+          onConfirm={opener.confirm}
+          onCancel={opener.cancel}
         />
       )}
     </>
   );
-}
-
-function savedName(boards: readonly SavedBoard[], boardId: string): string | undefined {
-  return boards.find((board) => board.id === boardId)?.name;
 }
 
 function countText(count: number): string {

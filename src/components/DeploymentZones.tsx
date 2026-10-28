@@ -7,10 +7,12 @@ interface DeploymentZonesProps {
   deployment: DeploymentMap;
   /** The board is drawn turned a quarter turn, so labels turn back to stay readable. */
   upright: boolean;
+  /** False to leave out the player names, for pictures too small to read them. */
+  labelled: boolean;
 }
 
 /** Both players' deployment zones, hatched in different directions and labelled. */
-export function DeploymentZones({ deployment, upright }: DeploymentZonesProps) {
+export function DeploymentZones({ deployment, upright, labelled }: DeploymentZonesProps) {
   const id = useId().replace(/[^a-zA-Z0-9_-]/g, '');
   return (
     <g aria-hidden="true" pointerEvents="none">
@@ -43,17 +45,21 @@ export function DeploymentZones({ deployment, upright }: DeploymentZonesProps) {
           <g key={player}>
             <polygon points={points} className={PLAYER_STYLES[player].zone} />
             <polygon points={points} fill={`url(#${id}-hatch-${player})`} />
-            <text
-              x={middle.x}
-              y={middle.y}
-              textAnchor="middle"
-              dominantBaseline="middle"
-              fontSize={1.6}
-              transform={upright ? `rotate(90 ${String(middle.x)} ${String(middle.y)})` : undefined}
-              className={`${PLAYER_STYLES[player].text} font-semibold`}
-            >
-              Player {player}
-            </text>
+            {labelled && (
+              <text
+                x={middle.x}
+                y={middle.y}
+                textAnchor="middle"
+                dominantBaseline="middle"
+                fontSize={1.6}
+                transform={
+                  upright ? `rotate(90 ${String(middle.x)} ${String(middle.y)})` : undefined
+                }
+                className={`${PLAYER_STYLES[player].text} font-semibold`}
+              >
+                Player {player}
+              </text>
+            )}
           </g>
         );
       })}

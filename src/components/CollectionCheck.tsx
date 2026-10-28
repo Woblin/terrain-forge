@@ -23,10 +23,7 @@ export function CollectionCheck({ pieces, preferences, unit }: CollectionCheckPr
       aria-labelledby="collection-check-heading"
       className="border-line bg-surface rounded-2xl border p-4 shadow-sm"
     >
-      <h2
-        id="collection-check-heading"
-        className="text-muted text-sm font-semibold tracking-wide uppercase"
-      >
+      <h2 id="collection-check-heading" className="font-semibold">
         Is your terrain enough?
       </h2>
       <ul className="divide-line divide-y">

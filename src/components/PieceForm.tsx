@@ -1,3 +1,4 @@
+import { XIcon } from 'lucide-react';
 import { useId, useState, type SubmitEvent } from 'react';
 import {
   draftFootprint,
@@ -11,7 +12,10 @@ import {
 } from '../domain/library';
 import { TERRAIN_TYPES, type TerrainType } from '../domain/terrain';
 import type { LengthUnit } from '../domain/units';
+import { BUTTON_STYLES } from './buttonStyles';
+import { FIELD_STYLES, LABEL_STYLES } from './fieldStyles';
 import { FootprintPreview } from './FootprintPreview';
+import { IconButton } from './IconButton';
 import { TERRAIN_STYLES } from './terrainStyles';
 
 interface PieceFormProps {
@@ -28,7 +32,6 @@ interface PieceFormProps {
   onCancel: () => void;
 }
 
-const INPUT = 'w-full rounded-lg border border-line-strong bg-raised px-2 py-1.5';
 const NO_ERRORS: DraftErrors = {};
 
 /** Adding or changing one piece: name, type, shape, size and how many the player owns. */
@@ -75,7 +78,7 @@ export function PieceForm({
   function fieldError(field: DraftField) {
     const message = errors[field];
     return message === undefined ? null : (
-      <p id={`${id}-${field}-error`} className="text-fail text-xs">
+      <p id={`${id}-${field}-error`} className="text-fail mt-1 text-xs">
         {message}
       </p>
     );
@@ -86,143 +89,144 @@ export function PieceForm({
       onSubmit={submit}
       aria-labelledby={`${id}-title`}
       noValidate
-      className="border-line bg-surface space-y-3 rounded-2xl border p-4 shadow-sm"
+      className="flex h-full flex-col"
     >
-      <h2 id={`${id}-title`} className="text-lg font-semibold">
-        {title}
-      </h2>
-      <div className="space-y-1">
-        <label htmlFor={`${id}-name`} className="text-soft block text-sm">
-          Name
-        </label>
-        <input
-          {...fieldProps('name')}
-          value={draft.name}
-          maxLength={LIBRARY_LIMITS.nameLength}
-          onChange={(event) => {
-            change({ name: event.target.value });
-          }}
-          className={INPUT}
-        />
-        {fieldError('name')}
+      <div className="border-line flex shrink-0 items-center justify-between gap-2 border-b py-3 pr-3 pl-5">
+        <h2 id={`${id}-title`} className="text-lg font-semibold">
+          {title}
+        </h2>
+        <IconButton icon={XIcon} label="Close" onClick={onCancel} disabled={saving} />
       </div>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4">
         <div className="space-y-1">
-          <label htmlFor={`${id}-type`} className="text-soft block text-sm">
-            Type
+          <label htmlFor={`${id}-name`} className={LABEL_STYLES}>
+            Name
           </label>
-          <select
-            id={`${id}-type`}
-            value={draft.type}
+          <input
+            {...fieldProps('name')}
+            value={draft.name}
+            maxLength={LIBRARY_LIMITS.nameLength}
             onChange={(event) => {
-              const type = TERRAIN_TYPES.find((option) => option === event.target.value);
-              if (type !== undefined) {
-                change({ type });
-              }
+              change({ name: event.target.value });
             }}
-            className={INPUT}
-          >
-            {TERRAIN_TYPES.map((type: TerrainType) => (
-              <option key={type} value={type}>
-                {TERRAIN_STYLES[type].name}
-              </option>
-            ))}
-          </select>
+            className={FIELD_STYLES}
+          />
+          {fieldError('name')}
         </div>
-        <fieldset className="space-y-1">
-          <legend className="text-soft text-sm">Shape</legend>
-          <div className="flex gap-3 pt-1.5 text-sm">
-            {(['rect', 'ellipse'] as const).map((shape) => (
-              <label key={shape} className="flex items-center gap-1.5">
-                <input
-                  type="radio"
-                  name={`${id}-shape`}
-                  checked={draft.shape === shape}
-                  onChange={() => {
-                    change({ shape });
-                  }}
-                  className="accent-amber-500"
-                />
-                {shape === 'rect' ? 'Rectangle' : 'Oval'}
-              </label>
-            ))}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1">
+            <label htmlFor={`${id}-type`} className={LABEL_STYLES}>
+              Type
+            </label>
+            <select
+              id={`${id}-type`}
+              value={draft.type}
+              onChange={(event) => {
+                const type = TERRAIN_TYPES.find((option) => option === event.target.value);
+                if (type !== undefined) {
+                  change({ type });
+                }
+              }}
+              className={FIELD_STYLES}
+            >
+              {TERRAIN_TYPES.map((type: TerrainType) => (
+                <option key={type} value={type}>
+                  {TERRAIN_STYLES[type].name}
+                </option>
+              ))}
+            </select>
           </div>
-        </fieldset>
-      </div>
-      <div className="grid grid-cols-3 gap-3">
-        <div className="space-y-1">
-          <label htmlFor={`${id}-width`} className="text-soft block text-sm">
-            Width ({unitName})
-          </label>
-          <input
-            {...fieldProps('width')}
-            inputMode="decimal"
-            value={draft.width}
-            onChange={(event) => {
-              change({ width: event.target.value });
-            }}
-            className={INPUT}
-          />
+          <fieldset className="space-y-1">
+            <legend className={LABEL_STYLES}>Shape</legend>
+            <div className="flex h-10 items-center gap-4 text-sm pointer-coarse:h-11">
+              {(['rect', 'ellipse'] as const).map((shape) => (
+                <label key={shape} className="flex items-center gap-1.5">
+                  <input
+                    type="radio"
+                    name={`${id}-shape`}
+                    checked={draft.shape === shape}
+                    onChange={() => {
+                      change({ shape });
+                    }}
+                    className="accent-accent size-4"
+                  />
+                  {shape === 'rect' ? 'Rectangle' : 'Oval'}
+                </label>
+              ))}
+            </div>
+          </fieldset>
         </div>
-        <div className="space-y-1">
-          <label htmlFor={`${id}-depth`} className="text-soft block text-sm">
-            Depth ({unitName})
-          </label>
-          <input
-            {...fieldProps('depth')}
-            inputMode="decimal"
-            value={draft.depth}
-            onChange={(event) => {
-              change({ depth: event.target.value });
-            }}
-            className={INPUT}
-          />
+        <div className="grid grid-cols-3 gap-3">
+          <div className="space-y-1">
+            <label htmlFor={`${id}-width`} className={LABEL_STYLES}>
+              Width ({unitName})
+            </label>
+            <input
+              {...fieldProps('width')}
+              inputMode="decimal"
+              value={draft.width}
+              onChange={(event) => {
+                change({ width: event.target.value });
+              }}
+              className={FIELD_STYLES}
+            />
+          </div>
+          <div className="space-y-1">
+            <label htmlFor={`${id}-depth`} className={LABEL_STYLES}>
+              Depth ({unitName})
+            </label>
+            <input
+              {...fieldProps('depth')}
+              inputMode="decimal"
+              value={draft.depth}
+              onChange={(event) => {
+                change({ depth: event.target.value });
+              }}
+              className={FIELD_STYLES}
+            />
+          </div>
+          <div className="space-y-1">
+            <label htmlFor={`${id}-quantity`} className={LABEL_STYLES}>
+              How many
+            </label>
+            <input
+              {...fieldProps('quantity')}
+              inputMode="numeric"
+              value={draft.quantity}
+              onChange={(event) => {
+                change({ quantity: event.target.value });
+              }}
+              className={FIELD_STYLES}
+            />
+          </div>
         </div>
-        <div className="space-y-1">
-          <label htmlFor={`${id}-quantity`} className="text-soft block text-sm">
-            How many
-          </label>
-          <input
-            {...fieldProps('quantity')}
-            inputMode="numeric"
-            value={draft.quantity}
-            onChange={(event) => {
-              change({ quantity: event.target.value });
-            }}
-            className={INPUT}
-          />
+        {fieldError('width')}
+        {fieldError('depth')}
+        {fieldError('quantity')}
+        <FootprintPreview type={draft.type} footprint={draftFootprint(draft, unit)} unit={unit} />
+        <div aria-live="polite">
+          {errors.library !== undefined && (
+            <p role="alert" className="text-fail text-sm">
+              {errors.library}
+            </p>
+          )}
+          {error !== null && (
+            <p role="alert" className="text-fail text-sm">
+              {error}
+            </p>
+          )}
         </div>
       </div>
-      {fieldError('width')}
-      {fieldError('depth')}
-      {fieldError('quantity')}
-      <FootprintPreview type={draft.type} footprint={draftFootprint(draft, unit)} unit={unit} />
-      <div aria-live="polite">
-        {errors.library !== undefined && (
-          <p role="alert" className="text-fail text-sm">
-            {errors.library}
-          </p>
-        )}
-        {error !== null && (
-          <p role="alert" className="text-fail text-sm">
-            {error}
-          </p>
-        )}
-      </div>
-      <div className="flex justify-end gap-2">
+      <div className="border-line flex shrink-0 gap-2 border-t px-5 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
         <button
           type="button"
           onClick={onCancel}
           disabled={saving}
-          className="border-line-strong hover:bg-hover rounded-lg border px-3 py-1.5 disabled:opacity-50"
+          className={BUTTON_STYLES.secondary}
         >
           Cancel
         </button>
-        <button
-          type="submit"
-          disabled={saving}
-          className="bg-accent text-on-accent hover:bg-accent-hover rounded-lg px-3 py-1.5 font-semibold disabled:opacity-50"
-        >
+        <button type="submit" disabled={saving} className={`flex-1 ${BUTTON_STYLES.primary}`}>
           {saving ? 'Saving…' : 'Save piece'}
         </button>
       </div>

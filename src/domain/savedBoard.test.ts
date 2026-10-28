@@ -13,8 +13,11 @@ import {
   libraryHasTerrain,
   photoFits,
   placedTerrain,
+  recentBoards,
   SAVED_BOARD_LIMITS,
   savedBoardContent,
+  sortSavedBoards,
+  type SavedBoard,
 } from './savedBoard';
 import type { TerrainPiece } from './terrain';
 
@@ -147,5 +150,25 @@ describe('saved terrain and the library', () => {
     );
     expect(photoFits(ruin, { ...forest })).toBe(false);
     expect(photoFits(ruin, undefined)).toBe(false);
+  });
+});
+
+describe('ordering saved boards', () => {
+  function saved(id: string, name: string, savedAt: number): SavedBoard {
+    return { ...savedBoardContent(snapshotOf(false), [ruin, forest], name, true), id, savedAt };
+  }
+  const boards = [saved('b', 'beach', 200), saved('a', 'Alpha', 100), saved('c', 'Beach', 300)];
+
+  it('lists the newest first', () => {
+    expect(sortSavedBoards(boards, 'newest').map((board) => board.id)).toEqual(['c', 'b', 'a']);
+  });
+
+  it('lists by name ignoring case, newest first among equal names', () => {
+    expect(sortSavedBoards(boards, 'name').map((board) => board.id)).toEqual(['a', 'c', 'b']);
+  });
+
+  it('picks the most recent boards', () => {
+    expect(recentBoards(boards, 2).map((board) => board.id)).toEqual(['c', 'b']);
+    expect(recentBoards([], 3)).toEqual([]);
   });
 });
