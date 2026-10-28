@@ -10,12 +10,19 @@ import {
   type PieceDraft,
   type PieceFields,
 } from '../domain/library';
-import { TERRAIN_TYPES, type TerrainType } from '../domain/terrain';
+import {
+  TERRAIN_TYPES,
+  type Footprint,
+  type TerrainPiece,
+  type TerrainType,
+} from '../domain/terrain';
 import type { LengthUnit } from '../domain/units';
+import { useDraftPhoto, type PhotoChange } from '../hooks/useDraftPhoto';
 import { BUTTON_STYLES } from './buttonStyles';
 import { FIELD_ERROR_STYLES, FIELD_STYLES, LABEL_STYLES } from './fieldStyles';
 import { FootprintPreview } from './FootprintPreview';
 import { IconButton } from './IconButton';
+import { PiecePhotoField } from './PiecePhotoField';
 import { TERRAIN_STYLES } from './terrainStyles';
 
 interface PieceFormProps {
@@ -28,7 +35,9 @@ interface PieceFormProps {
   saving: boolean;
   /** Why the last save failed. */
   error: string | null;
-  onSave: (fields: PieceFields) => void;
+  /** The URL of the edited piece's saved photo, once it has loaded. */
+  savedPhotoUrl: string | undefined;
+  onSave: (fields: PieceFields, photo: PhotoChange) => void;
   onCancel: () => void;
 }
 
@@ -36,13 +45,14 @@ const NO_ERRORS: DraftErrors = {};
 /** The fields in the order they appear, to move focus to the first one that is wrong. */
 const FIELD_ORDER: readonly DraftField[] = ['name', 'width', 'depth', 'quantity'];
 
-/** Adding or changing one piece: name, type, shape, size and how many the player owns. */
+/** Adding or changing one piece: name, type, shape, size, how many the player owns, and a photo. */
 export function PieceForm({
   title,
   initial,
   unit,
   library,
   editing,
+  savedPhotoUrl,
   saving,
   error,
   onSave,
@@ -51,6 +61,9 @@ export function PieceForm({
   const id = useId();
   const [draft, setDraft] = useState(initial);
   const [errors, setErrors] = useState<DraftErrors>(NO_ERRORS);
+  const draftPhoto = useDraftPhoto();
+  const footprint = draftFootprint(draft, unit);
+  const photo = shownPhoto(draftPhoto.change, editing, savedPhotoUrl);
   const unitName = unit === 'in' ? 'inches' : 'cm';
 
   function change(next: Partial<PieceDraft>): void {
@@ -62,7 +75,7 @@ export function PieceForm({
     const result = validatePieceDraft(draft, unit, library, editing);
     if (result.ok) {
       setErrors(NO_ERRORS);
-      onSave(result.fields);
+      onSave(result.fields, draftPhoto.change);
     } else {
       setErrors(result.errors);
       const firstWrong = FIELD_ORDER.find((field) => result.errors[field] !== undefined);
@@ -209,7 +222,18 @@ export function PieceForm({
             {fieldError('quantity')}
           </div>
         </div>
-        <FootprintPreview type={draft.type} footprint={draftFootprint(draft, unit)} unit={unit} />
+        <FootprintPreview
+          type={draft.type}
+          footprint={footprint}
+          unit={unit}
+          photoUrl={photo?.url}
+        />
+        <PiecePhotoField
+          piece={footprint === null ? null : draftPiece(draft, footprint)}
+          photo={photo}
+          disabled={saving}
+          onChange={draftPhoto.set}
+        />
         <div aria-live="polite">
           {errors.library !== undefined && (
             <p role="alert" className="text-fail text-sm">
@@ -238,4 +262,29 @@ export function PieceForm({
       </div>
     </form>
   );
+}
+
+/** The photo the form shows: the one just picked or removed, or else the piece's saved one. */
+function shownPhoto(
+  change: PhotoChange,
+  editing: LibraryPiece | null,
+  savedPhotoUrl: string | undefined,
+): { readonly ratio: number; readonly url: string | undefined } | null {
+  if (change.changed) {
+    return change.photo;
+  }
+  const image = editing?.image ?? null;
+  return image === null ? null : { ratio: image.ratio, url: savedPhotoUrl };
+}
+
+/** The piece the form describes so far, for cropping its photo to the right shape. */
+function draftPiece(draft: PieceDraft, footprint: Footprint): TerrainPiece {
+  const name = draft.name.trim();
+  return {
+    id: 'draft',
+    name: name === '' ? 'the new piece' : name,
+    type: draft.type,
+    footprint,
+    quantity: 1,
+  };
 }

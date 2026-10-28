@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { withoutPhoto, withPhoto, type LibraryPiece } from '../domain/library';
-import type { EncodedPhoto } from '../domain/imageCrop';
+import type { CroppedPhoto, EncodedPhoto } from '../domain/imageCrop';
 import type { LibrarySnapshot, LibraryStore } from '../services/libraryStore';
 import type { TerrainLibrary } from './libraryContext';
 import { useLibraryPhotos } from './useLibraryPhotos';
@@ -78,10 +78,19 @@ export function useLibraryStore(store: LibraryStore, owner: string): TerrainLibr
     [clearWriteError],
   );
 
+  const { remember } = images;
   const addPieces = useCallback(
     (added: readonly LibraryPiece[], photos?: ReadonlyMap<string, EncodedPhoto>) =>
-      attempt(() => store.add(added, photos)),
-    [store, attempt],
+      attempt(async () => {
+        for (const piece of added) {
+          const photo = photos?.get(piece.id);
+          if (photo !== undefined && piece.image !== null) {
+            remember(piece.id, piece.image.version, photo);
+          }
+        }
+        await store.add(added, photos);
+      }),
+    [store, attempt, remember],
   );
   const updatePiece = useCallback(
     (piece: LibraryPiece) => attempt(() => store.update(piece)),
@@ -91,10 +100,9 @@ export function useLibraryStore(store: LibraryStore, owner: string): TerrainLibr
     (piece: LibraryPiece) => attempt(() => store.remove(piece.id)),
     [store, attempt],
   );
-  const { remember } = images;
   const setPhoto = useCallback(
-    (piece: LibraryPiece, photo: EncodedPhoto) => {
-      const changed = withPhoto(piece);
+    (piece: LibraryPiece, { photo, ratio }: CroppedPhoto) => {
+      const changed = withPhoto(piece, ratio);
       const version = changed.image?.version ?? 0;
       return attempt(async () => {
         remember(piece.id, version, photo);

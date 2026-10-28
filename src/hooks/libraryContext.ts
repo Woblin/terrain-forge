@@ -1,6 +1,6 @@
 import { createContext, useContext } from 'react';
 import type { LibraryPiece } from '../domain/library';
-import type { EncodedPhoto } from '../domain/imageCrop';
+import type { CroppedPhoto, EncodedPhoto } from '../domain/imageCrop';
 import type { StoredPhoto } from './useLibraryPhotos';
 
 /** The owner of a library that is not saved, signed out or before the email is verified. */
@@ -34,7 +34,9 @@ export interface TerrainLibrary {
   ) => Promise<string | null>;
   readonly updatePiece: (piece: LibraryPiece) => Promise<string | null>;
   readonly deletePiece: (piece: LibraryPiece) => Promise<string | null>;
-  readonly setPhoto: (piece: LibraryPiece, photo: EncodedPhoto) => Promise<string | null>;
+  /** Saves the piece, with any other changes to it, and its newly cropped photo. */
+  readonly setPhoto: (piece: LibraryPiece, cropped: CroppedPhoto) => Promise<string | null>;
+  /** Saves the piece, with any other changes to it, without its photo. */
   readonly removePhoto: (piece: LibraryPiece) => Promise<string | null>;
 }
 

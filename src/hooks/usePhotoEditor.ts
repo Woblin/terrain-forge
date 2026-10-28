@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { footprintRatio, type CropView, type EncodedPhoto } from '../domain/imageCrop';
+import { footprintRatio, type CroppedPhoto, type CropView } from '../domain/imageCrop';
 import type { TerrainPiece } from '../domain/terrain';
 import { encodeCrop, loadWorkingImage } from '../services/imageEncoding';
 
@@ -20,7 +20,7 @@ export interface PhotoEditor {
 
 /** Opening a photo for a piece, cropping it, and handing the encoded result on. */
 export function usePhotoEditor(
-  onSaved: (pieceId: string, photo: EncodedPhoto) => void,
+  onSaved: (piece: TerrainPiece, cropped: CroppedPhoto) => void,
 ): PhotoEditor {
   const [editing, setEditing] = useState<PhotoInEditing | null>(null);
   const [busy, setBusy] = useState<PhotoEditor['busy']>(null);
@@ -46,8 +46,9 @@ export function usePhotoEditor(
     setBusy('saving');
     setError(null);
     try {
-      const photo = await encodeCrop(editing.image, view, footprintRatio(editing.piece.footprint));
-      onSaved(editing.piece.id, photo);
+      const ratio = footprintRatio(editing.piece.footprint);
+      const photo = await encodeCrop(editing.image, view, ratio);
+      onSaved(editing.piece, { photo, ratio });
       editing.image.close();
       setEditing(null);
     } catch (caught) {

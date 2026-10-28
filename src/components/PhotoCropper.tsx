@@ -129,6 +129,8 @@ export function PhotoCropper({ piece, image, saving, error, onSave, onCancel }: 
       aria-labelledby={titleId}
       onCancel={(event) => {
         event.preventDefault();
+        // React passes the event on to a dialog this one opened over, such as the piece form.
+        event.stopPropagation();
         if (!saving) {
           onCancel();
         }
