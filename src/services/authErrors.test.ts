@@ -33,7 +33,7 @@ describe('authErrorMessage', () => {
 
   it('names the whole password policy when Firebase refuses a password', () => {
     expect(authErrorMessage(failure('auth/password-does-not-meet-requirements'))).toMatch(
-      /8 characters, with a lowercase and an uppercase letter, a number and a special character/,
+      /at least 8 characters, a lowercase letter, an uppercase letter, a number, a special character/,
     );
   });
 

@@ -1,5 +1,8 @@
-const PASSWORD_POLICY =
-  'Pick a stronger password: at least 8 characters, with a lowercase and an uppercase letter, a number and a special character.';
+import { PASSWORD_RULES } from '../domain/account';
+
+const PASSWORD_POLICY = `Pick a stronger password. It needs ${PASSWORD_RULES.map((rule) =>
+  rule.label.toLowerCase(),
+).join(', ')}.`;
 
 /** Firebase Auth error codes the player can do something about, each with what to tell them. */
 const MESSAGES: Readonly<Record<string, string>> = {
