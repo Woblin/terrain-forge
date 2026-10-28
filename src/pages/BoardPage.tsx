@@ -676,7 +676,9 @@ export function BoardPage() {
       onPointerUp={drag.onPointerUp}
       onPointerCancel={drag.cancel}
     >
-      {setup !== undefined && <DeploymentZones deployment={setup.deployment} upright={upright} />}
+      {setup !== undefined && (
+        <DeploymentZones deployment={setup.deployment} upright={upright} labelled />
+      )}
       {showHidden && analysis.analysis !== null && (
         <HiddenAreaOverlay hidden={analysis.analysis.hidden} />
       )}

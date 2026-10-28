@@ -265,3 +265,34 @@ function kindsError(library: readonly LibraryPiece[]): string | undefined {
     ? `Your library holds at most ${String(LIBRARY_LIMITS.maxKinds)} different pieces. Raise the count of a piece you have, or delete one first.`
     : undefined;
 }
+
+/** What the player narrows the library down to: words in the name, and one terrain type or all. */
+export interface LibraryFilter {
+  readonly search: string;
+  readonly type: TerrainType | null;
+}
+
+export const NO_FILTER: LibraryFilter = { search: '', type: null };
+
+/**
+ * The pieces that match the filter, in type order and then by name. Every word of the search must
+ * appear in the piece's name, in any case and order.
+ */
+export function filterLibrary(
+  library: readonly LibraryPiece[],
+  filter: LibraryFilter,
+): LibraryPiece[] {
+  const words = filter.search.toLowerCase().split(/\s+/).filter(Boolean);
+  return groupByType(library)
+    .flatMap((group) => group.pieces)
+    .filter(
+      (piece) =>
+        (filter.type === null || piece.type === filter.type) &&
+        words.every((word) => piece.name.toLowerCase().includes(word)),
+    );
+}
+
+/** The terrain types the library has pieces of, in type order. */
+export function typesInLibrary(library: readonly LibraryPiece[]): TerrainType[] {
+  return TERRAIN_TYPES.filter((type) => library.some((piece) => piece.type === type));
+}

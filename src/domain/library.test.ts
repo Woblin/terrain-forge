@@ -6,10 +6,13 @@ import {
   draftFootprint,
   draftFromPiece,
   EMPTY_DRAFT,
+  filterLibrary,
   groupByType,
   LIBRARY_LIMITS,
   needsRecrop,
+  NO_FILTER,
   sampleLibrary,
+  typesInLibrary,
   validatePieceDraft,
   withoutPhoto,
   withPhoto,
@@ -203,5 +206,31 @@ describe('library helpers', () => {
     const groups = groupByType([forest, ruin, small]);
     expect(groups.map((group) => group.type)).toEqual(['ruin', 'forest']);
     expect(groups[0]?.pieces.map((piece) => piece.name)).toEqual(['Broken wall', 'Large ruin']);
+  });
+});
+
+describe('filterLibrary', () => {
+  const forest = { ...ruin, id: 'f', name: 'Dark forest', type: 'forest' as const };
+  const wall = { ...ruin, id: 'w', name: 'Broken wall' };
+  const library = [forest, ruin, wall];
+
+  it('keeps everything, in type order and by name, without a filter', () => {
+    expect(filterLibrary(library, NO_FILTER).map((piece) => piece.id)).toEqual(['w', 'a', 'f']);
+  });
+
+  it('matches every search word in the name, in any case and order', () => {
+    expect(filterLibrary(library, { search: 'RUIN large', type: null })).toEqual([ruin]);
+    expect(filterLibrary(library, { search: '  ', type: null })).toHaveLength(3);
+    expect(filterLibrary(library, { search: 'large forest', type: null })).toEqual([]);
+  });
+
+  it('keeps only the chosen type', () => {
+    expect(filterLibrary(library, { search: '', type: 'forest' })).toEqual([forest]);
+    expect(filterLibrary(library, { search: 'wall', type: 'forest' })).toEqual([]);
+  });
+
+  it('lists the types the library has, in type order', () => {
+    expect(typesInLibrary(library)).toEqual(['ruin', 'forest']);
+    expect(typesInLibrary([])).toEqual([]);
   });
 });

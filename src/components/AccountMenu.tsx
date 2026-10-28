@@ -3,11 +3,9 @@ import { useId, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router';
 import { useAuth } from '../hooks/authContext';
 import { BUTTON_STYLES } from './buttonStyles';
+import { MENU_ROW } from './menuStyles';
 import { ThemeSwitch } from './ThemeSwitch';
 import { UnitToggle } from './UnitToggle';
-
-const MENU_ROW =
-  'flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm hover:bg-hover focus-visible:outline-2 focus-visible:outline-accent-ink';
 
 /**
  * The top bar's menu: who is signed in, the account page, theme and units, and signing out.

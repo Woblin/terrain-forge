@@ -10,20 +10,29 @@ interface BoardPictureProps {
   /** The terrain to draw; just the empty table and zones while it is null. */
   layout: Layout | null;
   pieces: readonly TerrainPiece[];
+  /** Width and corner classes; full width by default. */
   className?: string;
+  /** False to leave out the player names, for small pictures. */
+  labelled?: boolean;
 }
 
 /** A board drawn as a picture, with nothing to click: for showing what a layout looks like. */
-export function BoardPicture({ setup, layout, pieces, className = '' }: BoardPictureProps) {
+export function BoardPicture({
+  setup,
+  layout,
+  pieces,
+  className = 'w-full',
+  labelled = true,
+}: BoardPictureProps) {
   const { width, depth } = setup.board;
   return (
     <svg
       viewBox={`0 0 ${String(width)} ${String(depth)}`}
       aria-hidden="true"
-      className={`bg-mat block h-auto w-full ${className}`}
+      className={`bg-mat block h-auto ${className}`}
     >
       <rect width={width} height={depth} className="fill-stone-800" />
-      <DeploymentZones deployment={setup.deployment} upright={false} />
+      <DeploymentZones deployment={setup.deployment} upright={false} labelled={labelled} />
       <g>
         {layout?.placements.map((placement, index) => {
           const piece = pieces.find((candidate) => candidate.id === placement.pieceId);
