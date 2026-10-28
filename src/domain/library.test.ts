@@ -10,7 +10,9 @@ import {
   groupByType,
   LIBRARY_LIMITS,
   needsRecrop,
+  newLibraryPiece,
   NO_FILTER,
+  photoFits,
   sampleLibrary,
   typesInLibrary,
   validatePieceDraft,
@@ -185,6 +187,22 @@ describe('photos', () => {
     expect(needsRecrop({ ...photographed, footprint: bigger })).toBe(false);
     const square = { kind: 'rect' as const, width: 12, depth: 12 };
     expect(needsRecrop({ ...photographed, footprint: square })).toBe(true);
+  });
+
+  it('tells whether a photo fits a footprint', () => {
+    expect(photoFits(2, ruin.footprint)).toBe(true);
+    expect(photoFits(2.03, ruin.footprint)).toBe(true);
+    expect(photoFits(1, ruin.footprint)).toBe(false);
+  });
+
+  it('makes a new piece with or without the photo it was added with', () => {
+    const fields = { name: ruin.name, type: ruin.type, footprint: ruin.footprint, quantity: 4 };
+    expect(newLibraryPiece(fields, 'b', null)).toEqual({ ...ruin, id: 'b' });
+    const withCrop = newLibraryPiece(fields, 'b', 2);
+    expect(withCrop.image).toEqual({ version: 1, ratio: 2 });
+    expect(needsRecrop(withCrop)).toBe(false);
+    // A photo cropped before the player changed the shape is kept, and asks to be re-cropped.
+    expect(needsRecrop(newLibraryPiece(fields, 'b', 1))).toBe(true);
   });
 });
 

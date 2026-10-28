@@ -35,6 +35,12 @@ export interface EncodedPhoto {
   readonly mimeType: 'image/webp' | 'image/jpeg';
 }
 
+/** An encoded photo and the footprint ratio it was cropped to. */
+export interface CroppedPhoto {
+  readonly photo: EncodedPhoto;
+  readonly ratio: number;
+}
+
 export const PHOTO_LONG_SIDE = 384;
 /** A saved photo may be at most this many bytes. */
 export const PHOTO_MAX_BYTES = 150 * 1024;

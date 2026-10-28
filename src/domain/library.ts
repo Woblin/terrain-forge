@@ -163,11 +163,22 @@ export function canSetQuantity(
 
 /** True when the piece's photo was cropped for a different footprint shape. */
 export function needsRecrop(piece: LibraryPiece): boolean {
-  if (piece.image === null) {
-    return false;
-  }
-  const ratio = footprintRatio(piece.footprint);
-  return Math.abs(piece.image.ratio - ratio) > RECROP_TOLERANCE * ratio;
+  return piece.image !== null && !photoFits(piece.image.ratio, piece.footprint);
+}
+
+/** True when a photo cropped to `ratio` fits the footprint without looking stretched. */
+export function photoFits(ratio: number, footprint: Footprint): boolean {
+  const needed = footprintRatio(footprint);
+  return Math.abs(ratio - needed) <= RECROP_TOLERANCE * needed;
+}
+
+/** A piece that is new to the library, with the ratio of the photo it comes with, if any. */
+export function newLibraryPiece(
+  fields: PieceFields,
+  id: string,
+  photoRatio: number | null,
+): LibraryPiece {
+  return { ...fields, id, image: photoRatio === null ? null : { version: 1, ratio: photoRatio } };
 }
 
 /** The piece with a newly cropped photo for its current footprint. */

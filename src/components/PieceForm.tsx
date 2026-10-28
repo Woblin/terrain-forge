@@ -10,12 +10,19 @@ import {
   type PieceDraft,
   type PieceFields,
 } from '../domain/library';
-import { TERRAIN_TYPES, type TerrainType } from '../domain/terrain';
+import {
+  TERRAIN_TYPES,
+  type Footprint,
+  type TerrainPiece,
+  type TerrainType,
+} from '../domain/terrain';
 import type { LengthUnit } from '../domain/units';
+import { useDraftPhoto, type DraftPhoto } from '../hooks/useDraftPhoto';
 import { BUTTON_STYLES } from './buttonStyles';
 import { FIELD_ERROR_STYLES, FIELD_STYLES, LABEL_STYLES } from './fieldStyles';
 import { FootprintPreview } from './FootprintPreview';
 import { IconButton } from './IconButton';
+import { PiecePhotoField } from './PiecePhotoField';
 import { TERRAIN_STYLES } from './terrainStyles';
 
 interface PieceFormProps {
@@ -28,7 +35,8 @@ interface PieceFormProps {
   saving: boolean;
   /** Why the last save failed. */
   error: string | null;
-  onSave: (fields: PieceFields) => void;
+  /** `photo` is the photo picked for a new piece; an edited piece's photo is changed on its card. */
+  onSave: (fields: PieceFields, photo: DraftPhoto | null) => void;
   onCancel: () => void;
 }
 
@@ -36,7 +44,10 @@ const NO_ERRORS: DraftErrors = {};
 /** The fields in the order they appear, to move focus to the first one that is wrong. */
 const FIELD_ORDER: readonly DraftField[] = ['name', 'width', 'depth', 'quantity'];
 
-/** Adding or changing one piece: name, type, shape, size and how many the player owns. */
+/**
+ * Adding or changing one piece: name, type, shape, size and how many the player owns. A new piece
+ * can come with a photo.
+ */
 export function PieceForm({
   title,
   initial,
@@ -51,6 +62,8 @@ export function PieceForm({
   const id = useId();
   const [draft, setDraft] = useState(initial);
   const [errors, setErrors] = useState<DraftErrors>(NO_ERRORS);
+  const draftPhoto = useDraftPhoto();
+  const footprint = draftFootprint(draft, unit);
   const unitName = unit === 'in' ? 'inches' : 'cm';
 
   function change(next: Partial<PieceDraft>): void {
@@ -62,7 +75,7 @@ export function PieceForm({
     const result = validatePieceDraft(draft, unit, library, editing);
     if (result.ok) {
       setErrors(NO_ERRORS);
-      onSave(result.fields);
+      onSave(result.fields, editing === null ? draftPhoto.photo : null);
     } else {
       setErrors(result.errors);
       const firstWrong = FIELD_ORDER.find((field) => result.errors[field] !== undefined);
@@ -209,7 +222,20 @@ export function PieceForm({
             {fieldError('quantity')}
           </div>
         </div>
-        <FootprintPreview type={draft.type} footprint={draftFootprint(draft, unit)} unit={unit} />
+        <FootprintPreview
+          type={draft.type}
+          footprint={footprint}
+          unit={unit}
+          photoUrl={editing === null ? draftPhoto.photo?.url : undefined}
+        />
+        {editing === null && (
+          <PiecePhotoField
+            piece={footprint === null ? null : draftPiece(draft, footprint)}
+            photo={draftPhoto.photo}
+            disabled={saving}
+            onChange={draftPhoto.set}
+          />
+        )}
         <div aria-live="polite">
           {errors.library !== undefined && (
             <p role="alert" className="text-fail text-sm">
@@ -238,4 +264,16 @@ export function PieceForm({
       </div>
     </form>
   );
+}
+
+/** The piece the form describes so far, for cropping its photo to the right shape. */
+function draftPiece(draft: PieceDraft, footprint: Footprint): TerrainPiece {
+  const name = draft.name.trim();
+  return {
+    id: 'new',
+    name: name === '' ? 'the new piece' : name,
+    type: draft.type,
+    footprint,
+    quantity: 1,
+  };
 }

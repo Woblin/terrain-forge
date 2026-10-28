@@ -78,10 +78,19 @@ export function useLibraryStore(store: LibraryStore, owner: string): TerrainLibr
     [clearWriteError],
   );
 
+  const { remember } = images;
   const addPieces = useCallback(
     (added: readonly LibraryPiece[], photos?: ReadonlyMap<string, EncodedPhoto>) =>
-      attempt(() => store.add(added, photos)),
-    [store, attempt],
+      attempt(async () => {
+        for (const piece of added) {
+          const photo = photos?.get(piece.id);
+          if (photo !== undefined && piece.image !== null) {
+            remember(piece.id, piece.image.version, photo);
+          }
+        }
+        await store.add(added, photos);
+      }),
+    [store, attempt, remember],
   );
   const updatePiece = useCallback(
     (piece: LibraryPiece) => attempt(() => store.update(piece)),
@@ -91,7 +100,6 @@ export function useLibraryStore(store: LibraryStore, owner: string): TerrainLibr
     (piece: LibraryPiece) => attempt(() => store.remove(piece.id)),
     [store, attempt],
   );
-  const { remember } = images;
   const setPhoto = useCallback(
     (piece: LibraryPiece, photo: EncodedPhoto) => {
       const changed = withPhoto(piece);
