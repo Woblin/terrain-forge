@@ -69,6 +69,7 @@ export function LibraryPage() {
   const shownFilter =
     filter.type !== null && !types.includes(filter.type) ? { ...filter, type: null } : filter;
   const shown = filterLibrary(pieces, shownFilter);
+  const filtering = shownFilter.search.trim() !== '' || shownFilter.type !== null;
   const canAdd = !busy && pieces.length < LIBRARY_LIMITS.maxKinds;
 
   /** Runs one change to the library at a time and shows what went wrong, if anything. */
@@ -93,13 +94,16 @@ export function LibraryPage() {
     const { editing } = form;
     setBusy(true);
     setFormError(null);
-    const failure =
+    const saved: LibraryPiece =
       editing === null
-        ? await library.addPieces([{ ...fields, id: library.newId(), image: null }])
-        : await library.updatePiece({ ...latestVersion(pieces, editing), ...fields });
+        ? { ...fields, id: library.newId(), image: null }
+        : { ...latestVersion(pieces, editing), ...fields };
+    const failure =
+      editing === null ? await library.addPieces([saved]) : await library.updatePiece(saved);
     setBusy(false);
     if (failure === null) {
       setForm(null);
+      showPiece(saved);
     } else {
       setFormError(failure);
     }
@@ -118,6 +122,13 @@ export function LibraryPage() {
         setForm(null);
       }
       setDeleting(null);
+    }
+  }
+
+  /** Clears the filter when it would hide the piece the player just saved. */
+  function showPiece(piece: LibraryPiece): void {
+    if (filterLibrary([piece], shownFilter).length === 0) {
+      setFilter(NO_FILTER);
     }
   }
 
@@ -173,6 +184,9 @@ export function LibraryPage() {
             {pieces.length > 0 && (
               <>
                 <LibraryFilterBar filter={shownFilter} types={types} onChange={setFilter} />
+                <p role="status" className="sr-only">
+                  {filtering ? matchText(shown.length) : ''}
+                </p>
                 {shown.length === 0 ? (
                   <p className="text-muted text-sm">
                     No pieces match.{' '}
@@ -309,4 +323,8 @@ function latestVersion(pieces: readonly LibraryPiece[], piece: LibraryPiece): Li
 function totals(pieces: readonly LibraryPiece[]): string {
   const { maxPieces } = LIBRARY_LIMITS;
   return `${String(pieces.length)} kinds of piece, ${String(countPieces(pieces))} of ${String(maxPieces)} pieces`;
+}
+
+function matchText(count: number): string {
+  return count === 1 ? '1 piece matches.' : `${String(count)} pieces match.`;
 }

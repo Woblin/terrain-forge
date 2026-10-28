@@ -17,6 +17,8 @@ interface SavedBoardCardProps {
   /** True when this is the board on the board page, with changes not saved yet. */
   unsaved: boolean;
   onOpen: () => void;
+  /** The heading level for the board's name, to fit under the page's own headings. */
+  heading: 'h2' | 'h3';
   /** Renaming, copying and deleting, in the ⋯ menu; left out where the card only opens. */
   manage?: BoardManagement;
 }
@@ -34,7 +36,13 @@ const MENU_ICON = 'text-muted size-4';
  * card opens the board; the ⋯ menu, if any, holds the rest. A row on phones, a card on wider
  * screens.
  */
-export function SavedBoardCard({ board, unsaved, onOpen, manage }: SavedBoardCardProps) {
+export function SavedBoardCard({
+  board,
+  unsaved,
+  onOpen,
+  heading: Heading,
+  manage,
+}: SavedBoardCardProps) {
   const setup = resolveGameSetup(board.layout.presetId, board.layout.deploymentId);
   const actions =
     manage === undefined
@@ -53,7 +61,7 @@ export function SavedBoardCard({ board, unsaved, onOpen, manage }: SavedBoardCar
       />
       <div className="min-w-0 flex-1 space-y-1 md:p-4">
         <div className="flex items-start gap-1">
-          <h2 className="min-w-0 flex-1 font-semibold break-words">
+          <Heading className="min-w-0 flex-1 font-semibold break-words">
             <button
               type="button"
               data-open
@@ -62,7 +70,7 @@ export function SavedBoardCard({ board, unsaved, onOpen, manage }: SavedBoardCar
             >
               {board.name}
             </button>
-          </h2>
+          </Heading>
           {actions.length > 0 && (
             <div className="relative z-10 -mt-1 -mr-1">
               <ActionsMenu label={`More for ${board.name}`}>

@@ -117,6 +117,7 @@ export function SavedBoardsPage() {
                     key={board.id}
                     board={board}
                     unsaved={opener.unsavedId === board.id}
+                    heading="h2"
                     onOpen={() => {
                       opener.request(board);
                     }}

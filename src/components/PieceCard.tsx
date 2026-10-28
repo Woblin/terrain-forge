@@ -52,15 +52,16 @@ export function PieceCard({
   const hasPhoto = photoUrl !== undefined;
   const recrop = hasPhoto && needsRecrop(piece);
   const style = TERRAIN_STYLES[piece.type];
+  const photoAction = !hasPhoto ? 'Add photo' : recrop ? 'Re-crop photo' : 'Replace photo';
   return (
     <li className="border-line bg-surface flex flex-col overflow-hidden rounded-2xl border shadow-sm">
       <PieceThumbnail piece={piece} photoUrl={photoUrl} className="aspect-[4/3] w-full" />
       <div className="flex flex-1 flex-col gap-2 p-3">
         <div className="flex items-start gap-1">
           <div className="min-w-0 flex-1">
-            <h3 className="truncate font-semibold" title={piece.name}>
+            <h2 className="truncate font-semibold" title={piece.name}>
               {piece.name}
-            </h3>
+            </h2>
             <p className="text-muted text-xs tabular-nums">
               {formatLength(width, unit)} × {formatLength(depth, unit)},{' '}
               {piece.footprint.kind === 'rect' ? 'rectangle' : 'oval'}
@@ -85,12 +86,12 @@ export function PieceCard({
                   className={`${MENU_ROW} has-[:focus-visible]:outline-accent-ink cursor-pointer has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-40 has-[:focus-visible]:outline-2`}
                 >
                   <ImagePlusIcon className={MENU_ICON} aria-hidden="true" />
-                  {!hasPhoto ? 'Add photo' : recrop ? 'Re-crop photo' : 'Replace photo'}
+                  {photoAction}
                   <input
                     type="file"
                     accept="image/*"
                     disabled={busy}
-                    aria-label={`${hasPhoto ? 'Replace the photo' : 'Add a photo'} of ${piece.name}`}
+                    aria-label={`${photoAction} of ${piece.name}`}
                     onChange={(event) => {
                       const file = event.target.files?.[0];
                       event.target.value = '';

@@ -1,5 +1,5 @@
 import { EllipsisIcon } from 'lucide-react';
-import { useId, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { useEffect, useId, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 
 interface ActionsMenuProps {
   /** Read out for the button, such as "More for Large ruin". */
@@ -20,10 +20,27 @@ export function ActionsMenu({ label, children }: ActionsMenuProps) {
   const menuId = useId();
   const button = useRef<HTMLButtonElement>(null);
   const [place, setPlace] = useState<CSSProperties>({});
+  const [open, setOpen] = useState(false);
 
   function close(): void {
     document.getElementById(menuId)?.hidePopover();
   }
+
+  // The menu is placed once, when it opens, so it closes rather than drift away from its button.
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+    function hide(): void {
+      document.getElementById(menuId)?.hidePopover();
+    }
+    window.addEventListener('scroll', hide, { capture: true, passive: true });
+    window.addEventListener('resize', hide);
+    return () => {
+      window.removeEventListener('scroll', hide, { capture: true });
+      window.removeEventListener('resize', hide);
+    };
+  }, [open, menuId]);
 
   return (
     <>
@@ -44,6 +61,9 @@ export function ActionsMenu({ label, children }: ActionsMenuProps) {
           if (event.newState === 'open' && button.current !== null) {
             setPlace(menuPlace(button.current.getBoundingClientRect()));
           }
+        }}
+        onToggle={(event) => {
+          setOpen(event.newState === 'open');
         }}
         style={place}
         className="border-line bg-surface text-ink shadow-shade m-0 w-56 rounded-xl border p-1.5 shadow-2xl"
