@@ -27,7 +27,33 @@ export function parseFirebaseEnv(env: Record<string, unknown>): FirebaseEnv {
     const missing = result.error.issues.map((issue) => issue.path.join('.')).join(', ');
     throw new Error(`Firebase configuration is missing or invalid: ${missing}. Check .env.local.`);
   }
+  rejectDemoProject(result.data);
   return result.data;
+}
+
+/**
+ * The demo values from `.env.example` only work with the local emulators. Against the real
+ * Firebase they fail later with "API key not valid", so they are refused at startup instead.
+ */
+function rejectDemoProject(env: FirebaseEnv): void {
+  if (env.VITE_USE_EMULATORS === 'true') {
+    return;
+  }
+  const demo = (
+    [
+      ['VITE_FIREBASE_API_KEY', env.VITE_FIREBASE_API_KEY],
+      ['VITE_FIREBASE_PROJECT_ID', env.VITE_FIREBASE_PROJECT_ID],
+    ] as const
+  ).filter(([, value]) => value.startsWith('demo-'));
+  if (demo.length > 0) {
+    const names = demo.map(([name]) => name).join(' and ');
+    const verb = demo.length === 1 ? 'still has the demo value' : 'still have the demo values';
+    throw new Error(
+      `${names} ${verb} from .env.example, which only works with the local emulators. Copy ` +
+        'the real values from the Firebase console (Project settings, Your apps) into .env.local, ' +
+        'or set VITE_USE_EMULATORS=true, then restart the app.',
+    );
+  }
 }
 
 export function initFirebase(env: FirebaseEnv): FirebaseServices {

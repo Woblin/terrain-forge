@@ -21,6 +21,22 @@ describe('authErrorMessage', () => {
     expect(authErrorMessage(failure('auth/network-request-failed'))).toMatch(/connection/);
   });
 
+  it('points to the API key when Firebase does not accept it', () => {
+    for (const code of [
+      'auth/api-key-not-valid.-please-pass-a-valid-api-key.',
+      'auth/api-key-expired.-please-renew-the-api-key.',
+      'auth/invalid-api-key',
+    ]) {
+      expect(authErrorMessage(failure(code))).toMatch(/VITE_FIREBASE_API_KEY/);
+    }
+  });
+
+  it('names the whole password policy when Firebase refuses a password', () => {
+    expect(authErrorMessage(failure('auth/password-does-not-meet-requirements'))).toMatch(
+      /8 characters, with a lowercase and an uppercase letter, a number and a special character/,
+    );
+  });
+
   it('says nothing when the player closed the Google window', () => {
     expect(authErrorMessage(failure('auth/popup-closed-by-user'))).toBeNull();
     expect(authErrorMessage(failure('auth/cancelled-popup-request'))).toBeNull();
