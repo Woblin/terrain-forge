@@ -29,6 +29,7 @@ const content: SavedBoardContent = {
   ],
   edited: true,
   passed: false,
+  matId: 'rocky-grass',
 };
 
 describe('saved board documents', () => {
@@ -39,12 +40,22 @@ describe('saved board documents', () => {
     });
   });
 
+  it('read a board saved before mats, or with an unknown mat, as plain', () => {
+    const withoutMat: Record<string, unknown> = { ...boardDocument(content) };
+    delete withoutMat.matId;
+    for (const stored of [withoutMat, { ...withoutMat, matId: 'moon-dust' }]) {
+      const result = parseBoardDocument('b1', stored, 0);
+      expect(result.ok && result.board.matId).toBe('plain');
+    }
+  });
+
   it.each([
     ['an empty name', { name: ' ' }],
     ['an unknown rule', { enabledRules: ['luck'] }],
     ['a piece of an unknown type', { pieces: [{ ...content.pieces[0], type: 'swamp' }] }],
     ['another schema version', { schemaVersion: 2 }],
     ['a negative seed', { seed: -1 }],
+    ['a mat id that is not a short text', { matId: 7 }],
   ])('leave out a board with %s', (_, fields) => {
     const result = parseBoardDocument('b1', { ...boardDocument(content), ...fields }, 0);
     expect(result.ok).toBe(false);

@@ -2,11 +2,13 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { canSave } from '../domain/account';
 import type { RuleId } from '../domain/fairness';
 import {
+  withDefaultMat,
   withDefaultPreset,
   withRuleSwitched,
   withRulesReset,
   type GamePreferences,
 } from '../domain/gamePreferences';
+import type { MatId } from '../domain/mats';
 import type { GameSystemPreset } from '../domain/presets';
 import { useAuth } from '../hooks/authContext';
 import { useFirebase } from '../hooks/firebaseContext';
@@ -96,6 +98,9 @@ export function GamePreferencesProvider({ children }: { children: ReactNode }) {
       error: error !== null && error.uid === savingUid ? error.message : null,
       choosePreset: (presetId: string) => {
         update(withDefaultPreset(preferences, presetId));
+      },
+      chooseMat: (matId: MatId) => {
+        update(withDefaultMat(preferences, matId));
       },
       switchRule: (preset: GameSystemPreset, rule: RuleId, enabled: boolean) => {
         update(withRuleSwitched(preferences, preset, rule, enabled));

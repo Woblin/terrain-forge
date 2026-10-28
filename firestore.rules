@@ -16,6 +16,15 @@ service cloud.firestore {
       return isOwner(uid) && request.auth.token.email_verified == true;
     }
 
+    function validId(value) {
+      return value is string && value.size() >= 1 && value.size() <= 40;
+    }
+
+    // A field that documents saved before it was added do not have.
+    function optionalId(data, key) {
+      return !(key in data) || validId(data[key]);
+    }
+
     // A side of a footprint, in inches.
     function validSide(value) {
       return value is number && value >= 0.5 && value <= 36;
@@ -81,14 +90,15 @@ service cloud.firestore {
         && request.resource.data.updatedAt == request.time;
     }
 
-    // The player's game settings: the game a new board starts on, and the balance rules they
-    // switched off for each game. Game ids are not listed here, so a new game needs no rules
-    // change; the app checks the values when it reads them.
+    // The player's game settings: the game and mat a new board starts on, and the balance rules
+    // they switched off for each game. Game and mat ids are not listed here, so a new game or mat
+    // needs no rules change; the app checks the values when it reads them. The mat is optional:
+    // settings saved before mats have none.
     match /users/{uid}/settings/preferences {
       allow read, delete: if isOwner(uid);
       allow create, update: if canSave(uid)
         && request.resource.data.keys().hasOnly(
-          ['defaultPresetId', 'rulesOff', 'schemaVersion', 'updatedAt'])
+          ['defaultPresetId', 'rulesOff', 'defaultMatId', 'schemaVersion', 'updatedAt'])
         && request.resource.data.keys().hasAll(
           ['defaultPresetId', 'rulesOff', 'schemaVersion', 'updatedAt'])
         && request.resource.data.defaultPresetId is string
@@ -96,12 +106,9 @@ service cloud.firestore {
         && request.resource.data.defaultPresetId.size() <= 40
         && request.resource.data.rulesOff is map
         && request.resource.data.rulesOff.size() <= 20
+        && optionalId(request.resource.data, 'defaultMatId')
         && request.resource.data.schemaVersion == 1
         && request.resource.data.updatedAt == request.time;
-    }
-
-    function validId(value) {
-      return value is string && value.size() >= 1 && value.size() <= 40;
     }
 
     // A board's size, in inches.
@@ -118,7 +125,8 @@ service cloud.firestore {
     function validBoard(board) {
       return board.keys().hasOnly(
           ['name', 'presetId', 'deploymentId', 'board', 'seed', 'generatorVersion', 'enabledRules',
-           'pieces', 'placements', 'edited', 'passed', 'schemaVersion', 'createdAt', 'updatedAt'])
+           'pieces', 'placements', 'edited', 'passed', 'matId', 'schemaVersion', 'createdAt',
+           'updatedAt'])
         && board.keys().hasAll(
           ['name', 'presetId', 'deploymentId', 'board', 'seed', 'generatorVersion', 'enabledRules',
            'pieces', 'placements', 'edited', 'passed', 'schemaVersion', 'createdAt', 'updatedAt'])
@@ -133,11 +141,13 @@ service cloud.firestore {
         && board.placements is list && board.placements.size() <= 100
         && board.edited is bool
         && board.passed is bool
+        && optionalId(board, 'matId')
         && board.schemaVersion == 1
         && board.updatedAt == request.time;
     }
 
-    // One document per saved board: its layout and a copy of the terrain it was made from.
+    // One document per saved board: its layout, its mat (missing on boards saved before mats) and
+    // a copy of the terrain it was made from.
     match /users/{uid}/boards/{boardId} {
       allow read, delete: if isOwner(uid);
       allow create: if canSave(uid)

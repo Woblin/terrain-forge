@@ -1,4 +1,5 @@
 import { resolveGameSetup } from '../domain/gameSetup';
+import { findMat } from '../domain/mats';
 import type { SavedBoard } from '../domain/savedBoard';
 import { BoardPicture } from './BoardPicture';
 import { BoardThumbnail } from './BoardThumbnail';
@@ -21,6 +22,7 @@ export function SavedBoardPicture({ board, className = '' }: SavedBoardPicturePr
       setup={setup}
       layout={board.layout}
       pieces={board.pieces}
+      mat={findMat(board.matId)}
       labelled={false}
       className={`shrink-0 ${className}`}
     />

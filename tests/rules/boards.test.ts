@@ -51,6 +51,7 @@ const content: SavedBoardContent = {
   ],
   edited: false,
   passed: true,
+  matId: 'grass',
 };
 
 /** The test contexts hand out the compat Firestore; the modular functions accept it. */
@@ -162,11 +163,20 @@ describe('saved board rules', () => {
     ['more than 50 pieces', { pieces: Array.from({ length: 51 }, () => content.pieces[0]) }],
     ['more than 100 placements', { placements: Array.from({ length: 101 }, () => ({})) }],
     ['an edited flag that is not true or false', { edited: 'yes' }],
+    ['an empty mat id', { matId: '' }],
+    ['a mat id over 40 characters', { matId: 'x'.repeat(41) }],
+    ['a mat id that is not text', { matId: 3 }],
     ['an extra field', { photos: [] }],
     ['another schema version', { schemaVersion: 2 }],
     ['a client clock time', { updatedAt: Timestamp.now() }],
   ])('refuse a board with %s', async (_, fields) => {
     await assertFails(setDoc(doc(asAlice(), path), newBoard(fields)));
+  });
+
+  it('accept a board saved before mats, without a mat', async () => {
+    const withoutMat: Record<string, unknown> = newBoard();
+    delete withoutMat.matId;
+    await assertSucceeds(setDoc(doc(asAlice(), path), withoutMat));
   });
 
   it('refuse a board with a missing field', async () => {

@@ -11,3 +11,8 @@ interface ImportMetaEnv {
 interface ImportMeta {
   readonly env: ImportMetaEnv;
 }
+
+declare module '*.webp' {
+  const url: string;
+  export default url;
+}

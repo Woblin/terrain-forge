@@ -1,6 +1,7 @@
 import { currentLayout, type EditorSnapshot } from './editor';
 import type { Layout } from './generator';
 import { LIBRARY_LIMITS } from './library';
+import type { MatId } from './mats';
 import type { Footprint, Placement, TerrainPiece } from './terrain';
 
 export const SAVED_BOARD_LIMITS = {
@@ -25,6 +26,8 @@ export interface SavedBoardContent {
   readonly edited: boolean;
   /** Whether every balance rule that was on passed when the board was saved. */
   readonly passed: boolean;
+  /** The ground drawn under the terrain. */
+  readonly matId: MatId;
 }
 
 /** A board in the player's account. */
@@ -40,6 +43,8 @@ export interface OpenedBoard {
   readonly name: string;
   /** The layout as it was last saved, from `layoutFingerprint`. */
   readonly fingerprint: string;
+  /** The mat as it was last saved. */
+  readonly matId: MatId;
 }
 
 /** A name for a new board, such as "Warhammer Fantasy, Long edges, 27 Oct". */
@@ -78,6 +83,7 @@ export function savedBoardContent(
   terrain: readonly TerrainPiece[],
   name: string,
   passed: boolean,
+  matId: MatId,
 ): SavedBoardContent {
   return {
     name: name.trim(),
@@ -85,6 +91,7 @@ export function savedBoardContent(
     pieces: terrain.map(terrainOnly),
     edited: snapshot.edited,
     passed,
+    matId,
   };
 }
 
@@ -107,15 +114,16 @@ export function layoutFingerprint(layout: Layout): string {
   ]);
 }
 
-/** True when the board on the page differs from the saved board it was opened from. */
+/** True when the board on the page, or its mat, differs from the saved board it was opened from. */
 export function hasUnsavedChanges(
   opened: OpenedBoard | null,
   snapshot: EditorSnapshot | null,
+  matId: MatId,
 ): boolean {
   return (
     opened !== null &&
     snapshot !== null &&
-    layoutFingerprint(currentLayout(snapshot)) !== opened.fingerprint
+    (layoutFingerprint(currentLayout(snapshot)) !== opened.fingerprint || matId !== opened.matId)
   );
 }
 

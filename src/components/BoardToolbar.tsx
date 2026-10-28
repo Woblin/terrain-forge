@@ -3,6 +3,7 @@ import {
   ChevronRightIcon,
   Columns2Icon,
   ImageIcon,
+  LandPlotIcon,
   MagnetIcon,
   Redo2Icon,
   RotateCcwIcon,
@@ -21,6 +22,7 @@ interface BoardToolbarProps {
   movePairs: boolean;
   showPhotos: boolean;
   showDistances: boolean;
+  showMat: boolean;
   /** Whether there are pieces to step through while measuring. */
   hasPieces: boolean;
   onUndo: () => void;
@@ -31,6 +33,7 @@ interface BoardToolbarProps {
   onMovePairsChange: (movePairs: boolean) => void;
   onShowPhotosChange: (show: boolean) => void;
   onShowDistancesChange: (show: boolean) => void;
+  onShowMatChange: (show: boolean) => void;
   onStep: (step: 1 | -1) => void;
 }
 
@@ -45,6 +48,7 @@ export function BoardToolbar({
   movePairs,
   showPhotos,
   showDistances,
+  showMat,
   hasPieces,
   onUndo,
   onRedo,
@@ -54,6 +58,7 @@ export function BoardToolbar({
   onMovePairsChange,
   onShowPhotosChange,
   onShowDistancesChange,
+  onShowMatChange,
   onStep,
 }: BoardToolbarProps) {
   return (
@@ -105,6 +110,14 @@ export function BoardToolbar({
         pressed={showPhotos}
         onClick={() => {
           onShowPhotosChange(!showPhotos);
+        }}
+      />
+      <IconButton
+        icon={LandPlotIcon}
+        label="Mat"
+        pressed={showMat}
+        onClick={() => {
+          onShowMatChange(!showMat);
         }}
       />
       {DIVIDER}

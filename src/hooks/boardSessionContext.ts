@@ -1,5 +1,6 @@
 import { createContext, useContext, type ActionDispatch } from 'react';
 import type { EditorAction, EditorState } from '../domain/editor';
+import type { MatId } from '../domain/mats';
 import type { OpenedBoard } from '../domain/savedBoard';
 import type { TerrainPiece } from '../domain/terrain';
 
@@ -30,6 +31,8 @@ export interface BoardViewOptions {
   readonly showHidden: boolean;
   /** Distances from each piece to the board edges, for setting the board out on the table. */
   readonly showDistances: boolean;
+  /** Off draws the plain board instead of the mat, without changing the board's mat. */
+  readonly showMat: boolean;
 }
 
 /** How a board is shown before the player changes anything. */
@@ -40,6 +43,7 @@ export const DEFAULT_VIEW_OPTIONS: BoardViewOptions = {
   showLane: null,
   showHidden: false,
   showDistances: false,
+  showMat: true,
 };
 
 /** Whether the view is as it starts, so that there is nothing to reset. */
@@ -63,6 +67,9 @@ export interface BoardSession {
   readonly setSource: (source: CollectionSource) => void;
   readonly notice: string | null;
   readonly setNotice: (notice: string | null) => void;
+  /** The ground drawn under the board's terrain, saved and shared with the board. */
+  readonly mat: MatId;
+  readonly setMat: (mat: MatId) => void;
   readonly view: BoardViewOptions;
   readonly setView: (change: Partial<BoardViewOptions>) => void;
   /** The terrain the board last saw, to notice pieces that left the library meanwhile. */

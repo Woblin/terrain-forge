@@ -32,6 +32,7 @@ const path = 'users/alice/settings/preferences';
 const preferences: GamePreferences = {
   defaultPresetId: 'one-page-rules',
   rulesOff: { 'warhammer-40k': ['clearLane'] },
+  defaultMatId: 'snow',
 };
 
 /** The test contexts hand out the compat Firestore; the modular functions accept it. */
@@ -112,11 +113,19 @@ describe('game settings rules', () => {
     ['a game id over 40 characters', { defaultPresetId: 'x'.repeat(41) }],
     ['a game id that is not text', { defaultPresetId: 3 }],
     ['rules that are not a map', { rulesOff: ['R1'] }],
+    ['an empty mat id', { defaultMatId: '' }],
+    ['a mat id that is not text', { defaultMatId: 3 }],
     ['an extra field', { unit: 'cm' }],
     ['another schema version', { schemaVersion: 2 }],
     ['a client clock time', { updatedAt: Timestamp.now() }],
   ])('refuse settings with %s', async (_, fields) => {
     await assertFails(setDoc(doc(asAlice(), path), settings(fields)));
+  });
+
+  it('accept settings saved before mats, without a mat', async () => {
+    const withoutMat: Record<string, unknown> = settings();
+    delete withoutMat.defaultMatId;
+    await assertSucceeds(setDoc(doc(asAlice(), path), withoutMat));
   });
 
   it('refuse settings with a missing field', async () => {

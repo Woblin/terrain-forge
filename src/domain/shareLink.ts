@@ -2,6 +2,7 @@ import { RULE_CODES, RULE_IDS, type RuleId } from './fairness';
 import { resolveGameSetup } from './gameSetup';
 import { GENERATOR_VERSION } from './generator';
 import { decodePieces, encodePieces } from './libraryLink';
+import { DEFAULT_MAT_ID, matIdOf, type MatId } from './mats';
 import { codeToSeed, seedToCode } from './random';
 import type { TerrainPiece } from './terrain';
 
@@ -15,6 +16,8 @@ export interface BoardLink {
   readonly pieces: readonly TerrainPiece[] | null;
   /** The balance rules that were on, or null for the game's defaults (links made before v2). */
   readonly enabledRules: readonly RuleId[] | null;
+  /** The ground under the terrain. A link without one, or with one this version does not know, is plain. */
+  readonly matId: MatId;
 }
 
 export type ParsedBoardLink =
@@ -29,6 +32,7 @@ const PARAMS = {
   version: 'v',
   pieces: 'pieces',
   rulesOff: 'off',
+  mat: 'mat',
 } as const;
 
 export function boardLinkSearch(link: BoardLink): string {
@@ -40,6 +44,9 @@ export function boardLinkSearch(link: BoardLink): string {
   ]);
   if (link.enabledRules !== null) {
     params.set(PARAMS.rulesOff, encodeRulesOff(link.enabledRules));
+  }
+  if (link.matId !== DEFAULT_MAT_ID) {
+    params.set(PARAMS.mat, link.matId);
   }
   if (link.pieces !== null) {
     params.set(PARAMS.pieces, encodePieces(link.pieces));
@@ -83,7 +90,15 @@ export function parseBoardLink(search: string): ParsedBoardLink {
   }
   return {
     kind: 'valid',
-    link: { presetId, deploymentId, seed, generatorVersion, pieces, enabledRules },
+    link: {
+      presetId,
+      deploymentId,
+      seed,
+      generatorVersion,
+      pieces,
+      enabledRules,
+      matId: matIdOf(params.get(PARAMS.mat)),
+    },
     versionMismatch: generatorVersion !== GENERATOR_VERSION,
   };
 }

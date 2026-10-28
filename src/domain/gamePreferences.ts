@@ -1,7 +1,8 @@
 import { inRuleOrder, RULE_IDS, type RuleId } from './fairness';
+import { DEFAULT_MAT_ID, type MatId } from './mats';
 import { DEFAULT_PRESET_ID, defaultPreset, findPreset, type GameSystemPreset } from './presets';
 
-/** The game a player starts on, and the balance rules they switched for each game. */
+/** The game and mat a player starts on, and the balance rules they switched for each game. */
 export interface GamePreferences {
   readonly defaultPresetId: string;
   /**
@@ -9,11 +10,14 @@ export interface GamePreferences {
    * and uses its preset's defaults.
    */
   readonly rulesOff: Readonly<Record<string, readonly RuleId[]>>;
+  /** The mat a new board starts on: the one the player picked last. */
+  readonly defaultMatId: MatId;
 }
 
 export const INITIAL_GAME_PREFERENCES: GamePreferences = {
   defaultPresetId: DEFAULT_PRESET_ID,
   rulesOff: {},
+  defaultMatId: DEFAULT_MAT_ID,
 };
 
 /** The game a new board starts on. A game that no longer exists falls back to the default. */
@@ -31,6 +35,10 @@ export function enabledRulesFor(preset: GameSystemPreset, preferences: GamePrefe
 
 export function withDefaultPreset(preferences: GamePreferences, presetId: string): GamePreferences {
   return { ...preferences, defaultPresetId: presetId };
+}
+
+export function withDefaultMat(preferences: GamePreferences, matId: MatId): GamePreferences {
+  return { ...preferences, defaultMatId: matId };
 }
 
 /** Switches one rule on or off for a game, keeping that game's other rules as they are. */

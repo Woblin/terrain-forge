@@ -5,6 +5,7 @@ import { parsePreferencesDocument, preferencesDocument } from './gamePreferences
 const preferences: GamePreferences = {
   defaultPresetId: 'one-page-rules',
   rulesOff: { 'warhammer-40k': ['clearLane'], 'warhammer-fantasy': [] },
+  defaultMatId: 'lava',
 };
 
 describe('game settings documents', () => {
@@ -15,6 +16,15 @@ describe('game settings documents', () => {
   it('ignore the timestamp', () => {
     const stored = { ...preferencesDocument(preferences), updatedAt: new Date() };
     expect(parsePreferencesDocument(stored)).toEqual(preferences);
+  });
+
+  it('read settings saved before mats, or with an unknown mat, as plain', () => {
+    const withoutMat: Record<string, unknown> = { ...preferencesDocument(preferences) };
+    delete withoutMat.defaultMatId;
+    expect(parsePreferencesDocument(withoutMat)?.defaultMatId).toBe('plain');
+    expect(parsePreferencesDocument({ ...withoutMat, defaultMatId: 'moon' })?.defaultMatId).toBe(
+      'plain',
+    );
   });
 
   it.each([

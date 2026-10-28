@@ -1,4 +1,5 @@
 import { useMemo, useState, type ReactNode } from 'react';
+import { DEFAULT_MAT_ID, type MatId } from '../domain/mats';
 import { DEFAULT_PRESET_ID } from '../domain/presets';
 import type { OpenedBoard } from '../domain/savedBoard';
 import type { TerrainPiece } from '../domain/terrain';
@@ -19,6 +20,7 @@ interface SessionState {
   readonly choice: BoardChoice;
   readonly source: CollectionSource;
   readonly notice: string | null;
+  readonly mat: MatId;
   readonly view: BoardViewOptions;
   readonly seenCollection: readonly TerrainPiece[] | null;
   readonly opened: OpenedBoard | null;
@@ -60,6 +62,10 @@ export function BoardSessionProvider({ children }: { children: ReactNode }) {
       setNotice: (notice: string | null) => {
         change({ notice });
       },
+      mat: state.mat,
+      setMat: (mat: MatId) => {
+        change({ mat });
+      },
       view: state.view,
       setView: (viewChange: Partial<BoardViewOptions>) => {
         setState((current) => ({ ...current, view: { ...current.view, ...viewChange } }));
@@ -84,6 +90,7 @@ function freshSession(owner: string): SessionState {
     choice: { presetId: DEFAULT_PRESET_ID, deploymentId: DEFAULT_DEPLOYMENT_ID },
     source: { kind: 'own' },
     notice: null,
+    mat: DEFAULT_MAT_ID,
     view: DEFAULT_VIEW_OPTIONS,
     seenCollection: null,
     opened: null,

@@ -2,15 +2,16 @@ import { describe, expect, it } from 'vitest';
 import { RULE_IDS, type RuleId } from './fairness';
 import { GENERATOR_VERSION } from './generator';
 import { SAMPLE_COLLECTION } from './sampleCollection';
-import { boardLinkSearch, parseBoardLink } from './shareLink';
+import { boardLinkSearch, parseBoardLink, type BoardLink } from './shareLink';
 
-const link = {
+const link: BoardLink = {
   presetId: 'warhammer-40k',
   deploymentId: 'long-edges',
   seed: 123456789,
   generatorVersion: GENERATOR_VERSION,
   pieces: null,
   enabledRules: null,
+  matId: 'plain',
 };
 
 describe('share links', () => {
@@ -20,6 +21,20 @@ describe('share links', () => {
       `system=warhammer-40k&deploy=long-edges&seed=021I3V9&v=${String(GENERATOR_VERSION)}`,
     );
     expect(parseBoardLink(search)).toEqual({ kind: 'valid', link, versionMismatch: false });
+  });
+
+  it('carries the mat, and leaves out the plain board', () => {
+    const onLava = { ...link, matId: 'lava' as const };
+    const search = boardLinkSearch(onLava);
+    expect(search).toContain('&mat=lava');
+    expect(parseBoardLink(search)).toEqual({ kind: 'valid', link: onLava, versionMismatch: false });
+    expect(boardLinkSearch(link)).not.toContain('mat=');
+  });
+
+  it('shows an unknown mat as the plain board instead of failing', () => {
+    expect(
+      parseBoardLink('system=warhammer-40k&deploy=long-edges&seed=1&mat=moon-dust'),
+    ).toMatchObject({ kind: 'valid', link: { matId: 'plain' } });
   });
 
   it('carries the rules that are off', () => {

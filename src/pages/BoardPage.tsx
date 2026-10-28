@@ -21,6 +21,7 @@ import { resolveGameSetup, type GameSetup } from '../domain/gameSetup';
 import { prepareCollection } from '../domain/generator';
 import { add, type Point } from '../domain/geometry';
 import { pieceById } from '../domain/layoutTerrain';
+import { findMat, type MatId } from '../domain/mats';
 import { findMirrorTwin, withTwin } from '../domain/mirror';
 import type { PlacementRules } from '../domain/placement';
 import { sameTerrain } from '../domain/libraryLink';
@@ -57,6 +58,7 @@ import { GeneratorControls } from '../components/GeneratorControls';
 import { HiddenAreaOverlay } from '../components/HiddenAreaOverlay';
 import { IconButton } from '../components/IconButton';
 import { LaneOverlay } from '../components/LaneOverlay';
+import { MatPicker } from '../components/MatPicker';
 import { MeasureStepper } from '../components/MeasureStepper';
 import { measureDetail } from '../components/measureText';
 import { PiecePalette } from '../components/PiecePalette';
@@ -156,8 +158,11 @@ export function BoardPage() {
     setView,
     opened,
     setOpened,
+    mat: matId,
+    setMat,
   } = session;
-  const { snap, movePairs, showPhotos, showHidden, showDistances } = session.view;
+  const { snap, movePairs, showPhotos, showHidden, showDistances, showMat } = session.view;
+  const shownMat = findMat(showMat ? matId : null);
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const ownCollection = library.pieces.length > 0 ? library.pieces : SAMPLE_COLLECTION;
@@ -248,7 +253,7 @@ export function BoardPage() {
     [origin, setup, collection, prepared, shownPieces],
   );
   const analysis = useBoardAnalysis(fairnessInput);
-  const unsaved = hasUnsavedChanges(opened, present);
+  const unsaved = hasUnsavedChanges(opened, present, matId);
   // The name the account has for the board, which also shows a refused rename undone.
   const shownOpened =
     opened === null
@@ -276,6 +281,11 @@ export function BoardPage() {
   function playerRules(next: BoardChoice): RuleId[] {
     const preset = findPreset(next.presetId);
     return preset === undefined ? [] : enabledRulesFor(preset, settings.preferences);
+  }
+
+  /** The mat a new board starts on: the one the player picked last. */
+  function startingMat(): MatId {
+    return settings.preferences.defaultMatId;
   }
 
   /** The game the player starts on, keeping the deployment picked before if it is that game. */
@@ -351,7 +361,13 @@ export function BoardPage() {
     setChoice({ presetId: layout.presetId, deploymentId: layout.deploymentId });
     setSource(changed === 0 ? OWN : { kind: 'saved', pieces: board.pieces });
     setNotice(changed === 0 ? null : terrainChangedNotice(changed));
-    setOpened({ id: board.id, name: board.name, fingerprint: layoutFingerprint(layout) });
+    setMat(board.matId);
+    setOpened({
+      id: board.id,
+      name: board.name,
+      fingerprint: layoutFingerprint(layout),
+      matId: board.matId,
+    });
   }
 
   /** Opens the saved board the address names, or a new board when it cannot be found. */
@@ -363,6 +379,7 @@ export function BoardPage() {
     }
     const next = startingChoice();
     setChoice(next);
+    setMat(startingMat());
     generateNew(randomSeed(), next);
     setNotice(missingBoardNotice(savedBoards));
   }
@@ -375,7 +392,7 @@ export function BoardPage() {
     // Measured now: the analysis on screen can be of the board before the last change.
     const passed =
       fairnessInput !== null && evaluateFairness(fairnessInput).failedRules.length === 0;
-    const content = savedBoardContent(present, collection, name, passed);
+    const content = savedBoardContent(present, collection, name, passed, matId);
     const result = savedBoards.save(content, asCopy ? null : (shownOpened?.id ?? null));
     if (!result.ok) {
       return result.message;
@@ -384,6 +401,7 @@ export function BoardPage() {
       id: result.id,
       name: content.name,
       fingerprint: layoutFingerprint(content.layout),
+      matId: content.matId,
     });
     return null;
   }
@@ -411,12 +429,14 @@ export function BoardPage() {
         settings.choosePreset(next.presetId);
       }
       setSource(from);
+      setMat(entry.link.kind === 'valid' ? entry.link.link.matId : startingMat());
       setNotice(linkNotice(entry.link));
       const seed = entry.link.kind === 'valid' ? entry.link.link.seed : randomSeed();
       void runGeneration(next, seed, from, entry.enabledRules ?? playerRules(next));
     } else if (editor.present === null) {
       const next = startingChoice();
       setChoice(next);
+      setMat(startingMat());
       generateNew(randomSeed(), next);
     }
   });
@@ -501,19 +521,23 @@ export function BoardPage() {
     }
     const search =
       opened === null
-        ? boardLinkSearch({ ...origin, pieces: linkPieces(source, ownCollection) })
+        ? boardLinkSearch({ ...origin, pieces: linkPieces(source, ownCollection), matId })
         : new URLSearchParams([[SAVED_PARAM, opened.id]]).toString();
     if (searchParams.toString() !== search) {
       setSearchParams(search, { replace: true });
     }
-  }, [origin, source, ownCollection, opened, searchParams, setSearchParams]);
+  }, [origin, source, ownCollection, opened, matId, searchParams, setSearchParams]);
 
   /** The share link of the board, which makes the same board again, without hand edits. */
   function shareUrl(): string {
     if (origin === undefined) {
       return window.location.href;
     }
-    const search = boardLinkSearch({ ...origin, pieces: linkPieces(source, ownCollection) });
+    const search = boardLinkSearch({
+      ...origin,
+      pieces: linkPieces(source, ownCollection),
+      matId,
+    });
     return new URL(`/board?${search}`, window.location.origin).href;
   }
 
@@ -635,6 +659,14 @@ export function BoardPage() {
           requestNew(randomSeed());
         }}
       />
+      <MatPicker
+        value={matId}
+        onChange={(next) => {
+          setMat(next);
+          settings.chooseMat(next);
+          setView({ showMat: true });
+        }}
+      />
       <SeedField
         seedCode={origin === undefined ? null : seedToCode(origin.seed)}
         edited={present?.edited ?? false}
@@ -701,6 +733,7 @@ export function BoardPage() {
   const boardDrawing = (
     <BoardView
       board={board}
+      mat={shownMat}
       frameRef={frameRef}
       upright={upright}
       size={drawnSize}
@@ -806,6 +839,7 @@ export function BoardPage() {
             movePairs={movePairs}
             showPhotos={showPhotos}
             showDistances={showDistances}
+            showMat={showMat}
             hasPieces={order.length > 0}
             onUndo={undo}
             onRedo={redo}
@@ -822,6 +856,9 @@ export function BoardPage() {
             }}
             onShowDistancesChange={(value) => {
               setView({ showDistances: value });
+            }}
+            onShowMatChange={(value) => {
+              setView({ showMat: value });
             }}
             onStep={stepThrough}
           />
@@ -997,7 +1034,11 @@ function boardEntry(
   const keptSearch =
     present === null
       ? null
-      : boardLinkSearch({ ...present.origin, pieces: linkPieces(session.source, own) });
+      : boardLinkSearch({
+          ...present.origin,
+          pieces: linkPieces(session.source, own),
+          matId: session.mat,
+        });
   if (present !== null && asked === null && (search === '' || search === keptSearch)) {
     return { kind: 'keep' };
   }

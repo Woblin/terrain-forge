@@ -45,6 +45,13 @@ export function DeploymentZones({ deployment, upright, labelled }: DeploymentZon
           <g key={player}>
             <polygon points={points} className={PLAYER_STYLES[player].zone} />
             <polygon points={points} fill={`url(#${id}-hatch-${player})`} />
+            <polygon
+              points={points}
+              className={`fill-none ${PLAYER_STYLES[player].edge}`}
+              strokeOpacity={0.7}
+              strokeWidth={1.5}
+              vectorEffect="non-scaling-stroke"
+            />
             {labelled && (
               <text
                 x={middle.x}
