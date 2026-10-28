@@ -1,5 +1,7 @@
 import { useEffect, useId, useRef, useState, type SubmitEvent } from 'react';
 import { boardNameError, SAVED_BOARD_LIMITS } from '../domain/savedBoard';
+import { BUTTON_STYLES } from './buttonStyles';
+import { FIELD_ERROR_STYLES, FIELD_STYLES, LABEL_STYLES } from './fieldStyles';
 
 interface BoardNameDialogProps {
   title: string;
@@ -51,8 +53,8 @@ export function BoardNameDialog({
         <h2 id={`${id}-title`} className="text-lg font-semibold">
           {title}
         </h2>
-        <div className="space-y-1">
-          <label htmlFor={`${id}-name`} className="text-soft block text-sm">
+        <div>
+          <label htmlFor={`${id}-name`} className={LABEL_STYLES}>
             Name
           </label>
           <input
@@ -65,26 +67,19 @@ export function BoardNameDialog({
             autoComplete="off"
             aria-invalid={error !== null}
             aria-describedby={error === null ? undefined : `${id}-error`}
-            className="border-line-strong bg-raised w-full rounded-lg border px-2 py-1.5"
+            className={FIELD_STYLES}
           />
           {error !== null && (
-            <p id={`${id}-error`} role="alert" className="text-fail text-sm">
+            <p id={`${id}-error`} role="alert" className={FIELD_ERROR_STYLES}>
               {error}
             </p>
           )}
         </div>
         <div className="flex justify-end gap-2">
-          <button
-            type="button"
-            onClick={onCancel}
-            className="border-line-strong hover:bg-hover rounded-lg border px-3 py-1.5"
-          >
+          <button type="button" onClick={onCancel} className={BUTTON_STYLES.secondary}>
             Cancel
           </button>
-          <button
-            type="submit"
-            className="bg-accent text-on-accent hover:bg-accent-hover rounded-lg px-3 py-1.5 font-semibold"
-          >
+          <button type="submit" className={BUTTON_STYLES.primary}>
             {confirmLabel}
           </button>
         </div>

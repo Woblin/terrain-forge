@@ -13,7 +13,7 @@ import {
 import { TERRAIN_TYPES, type TerrainType } from '../domain/terrain';
 import type { LengthUnit } from '../domain/units';
 import { BUTTON_STYLES } from './buttonStyles';
-import { FIELD_STYLES, LABEL_STYLES } from './fieldStyles';
+import { FIELD_ERROR_STYLES, FIELD_STYLES, LABEL_STYLES } from './fieldStyles';
 import { FootprintPreview } from './FootprintPreview';
 import { IconButton } from './IconButton';
 import { TERRAIN_STYLES } from './terrainStyles';
@@ -33,6 +33,8 @@ interface PieceFormProps {
 }
 
 const NO_ERRORS: DraftErrors = {};
+/** The fields in the order they appear, to move focus to the first one that is wrong. */
+const FIELD_ORDER: readonly DraftField[] = ['name', 'width', 'depth', 'quantity'];
 
 /** Adding or changing one piece: name, type, shape, size and how many the player owns. */
 export function PieceForm({
@@ -63,6 +65,10 @@ export function PieceForm({
       onSave(result.fields);
     } else {
       setErrors(result.errors);
+      const firstWrong = FIELD_ORDER.find((field) => result.errors[field] !== undefined);
+      if (firstWrong !== undefined) {
+        document.getElementById(`${id}-${firstWrong}`)?.focus();
+      }
     }
   }
 
@@ -78,7 +84,7 @@ export function PieceForm({
   function fieldError(field: DraftField) {
     const message = errors[field];
     return message === undefined ? null : (
-      <p id={`${id}-${field}-error`} className="text-fail mt-1 text-xs">
+      <p id={`${id}-${field}-error`} className={FIELD_ERROR_STYLES}>
         {message}
       </p>
     );
@@ -156,8 +162,8 @@ export function PieceForm({
             </div>
           </fieldset>
         </div>
-        <div className="grid grid-cols-3 gap-3">
-          <div className="space-y-1">
+        <div className="grid grid-cols-2 gap-3">
+          <div>
             <label htmlFor={`${id}-width`} className={LABEL_STYLES}>
               Width ({unitName})
             </label>
@@ -170,8 +176,9 @@ export function PieceForm({
               }}
               className={FIELD_STYLES}
             />
+            {fieldError('width')}
           </div>
-          <div className="space-y-1">
+          <div>
             <label htmlFor={`${id}-depth`} className={LABEL_STYLES}>
               Depth ({unitName})
             </label>
@@ -184,8 +191,9 @@ export function PieceForm({
               }}
               className={FIELD_STYLES}
             />
+            {fieldError('depth')}
           </div>
-          <div className="space-y-1">
+          <div>
             <label htmlFor={`${id}-quantity`} className={LABEL_STYLES}>
               How many
             </label>
@@ -198,11 +206,9 @@ export function PieceForm({
               }}
               className={FIELD_STYLES}
             />
+            {fieldError('quantity')}
           </div>
         </div>
-        {fieldError('width')}
-        {fieldError('depth')}
-        {fieldError('quantity')}
         <FootprintPreview type={draft.type} footprint={draftFootprint(draft, unit)} unit={unit} />
         <div aria-live="polite">
           {errors.library !== undefined && (

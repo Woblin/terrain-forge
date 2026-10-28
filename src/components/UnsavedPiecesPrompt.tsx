@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef } from 'react';
 import { useUnsavedPieces } from '../hooks/unsavedPiecesContext';
+import { BUTTON_STYLES } from './buttonStyles';
 
 /** Offers to add the pieces made before signing in to the player's account. */
 export function UnsavedPiecesPrompt() {
@@ -68,16 +69,11 @@ export function UnsavedPiecesPrompt() {
             type="button"
             disabled={moving}
             onClick={discard}
-            className="border-line-strong hover:bg-hover rounded-lg border px-3 py-1.5 disabled:opacity-50"
+            className={BUTTON_STYLES.secondary}
           >
             Discard
           </button>
-          <button
-            type="button"
-            disabled={moving}
-            onClick={move}
-            className="bg-accent text-on-accent hover:bg-accent-hover rounded-lg px-3 py-1.5 font-semibold disabled:opacity-50"
-          >
+          <button type="button" disabled={moving} onClick={move} className={BUTTON_STYLES.primary}>
             {moving ? 'Adding…' : 'Add to my account'}
           </button>
         </div>

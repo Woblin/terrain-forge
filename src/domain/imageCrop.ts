@@ -49,6 +49,18 @@ export function footprintRatio(footprint: Footprint): number {
   return footprint.width / footprint.depth;
 }
 
+/**
+ * The crop frame's size on screen: as large as fits the space, at most `maxSide` on its long
+ * side, with the footprint's ratio.
+ */
+export function cropFrameSize(ratio: number, space: Size, maxSide: number): Size {
+  const height = Math.max(
+    0,
+    Math.min(space.width / ratio, space.height, maxSide / Math.max(ratio, 1)),
+  );
+  return { width: height * ratio, height };
+}
+
 /** The pixel size of the saved photo for a frame ratio. */
 export function outputSize(ratio: number): Size {
   return ratio >= 1

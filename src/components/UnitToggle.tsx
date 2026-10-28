@@ -7,17 +7,24 @@ const SEGMENTS: readonly Segment<LengthUnit>[] = [
   { value: 'cm', label: 'cm', ariaLabel: 'Centimetres' },
 ];
 
+const LABELLED_SEGMENTS: readonly Segment<LengthUnit>[] = [
+  { value: 'in', label: 'Inches' },
+  { value: 'cm', label: 'Centimetres' },
+];
+
 interface UnitToggleProps {
   className?: string;
+  /** Spells out the units, where there is room, such as the account page. */
+  labelled?: boolean;
 }
 
 /** Switches every length shown in the app between inches and centimetres. */
-export function UnitToggle({ className }: UnitToggleProps) {
+export function UnitToggle({ className, labelled = false }: UnitToggleProps) {
   const { unit, setUnit } = useUnits();
   return (
     <SegmentedControl
       legend="Units"
-      segments={SEGMENTS}
+      segments={labelled ? LABELLED_SEGMENTS : SEGMENTS}
       value={unit}
       onChange={setUnit}
       className={className}

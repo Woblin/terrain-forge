@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef } from 'react';
+import { BUTTON_STYLES } from './buttonStyles';
 
 interface TerrainChoiceDialogProps {
   onBoardTerrain: () => void;
@@ -42,25 +43,13 @@ export function TerrainChoiceDialog({
           This board&apos;s terrain is not the same as your library now.
         </p>
         <div className="flex flex-col gap-2">
-          <button
-            type="button"
-            onClick={onBoardTerrain}
-            className="bg-accent text-on-accent hover:bg-accent-hover rounded-lg px-3 py-1.5 font-semibold"
-          >
+          <button type="button" onClick={onBoardTerrain} className={BUTTON_STYLES.primary}>
             This board&apos;s terrain
           </button>
-          <button
-            type="button"
-            onClick={onLibrary}
-            className="border-line-strong hover:bg-hover rounded-lg border px-3 py-1.5"
-          >
+          <button type="button" onClick={onLibrary} className={BUTTON_STYLES.secondary}>
             My library as it is now
           </button>
-          <button
-            type="button"
-            onClick={onCancel}
-            className="text-soft hover:bg-hover rounded-lg px-3 py-1.5"
-          >
+          <button type="button" onClick={onCancel} className={BUTTON_STYLES.quiet}>
             Cancel
           </button>
         </div>

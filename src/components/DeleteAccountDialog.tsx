@@ -1,5 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import type { Reauthentication } from '../services/auth';
+import { BUTTON_STYLES } from './buttonStyles';
+import { FIELD_STYLES, LABEL_STYLES } from './fieldStyles';
 
 interface DeleteAccountDialogProps {
   /** True when the player confirms with their password, false when with Google. */
@@ -57,8 +59,8 @@ export function DeleteAccountDialog({
           can&apos;t be undone.
         </p>
         {usesPassword ? (
-          <div className="space-y-1">
-            <label htmlFor={`${id}-password`} className="text-soft block text-sm">
+          <div>
+            <label htmlFor={`${id}-password`} className={LABEL_STYLES}>
               Your password, to confirm it is you
             </label>
             <input
@@ -69,7 +71,7 @@ export function DeleteAccountDialog({
               onChange={(event) => {
                 setPassword(event.target.value);
               }}
-              className="border-line-strong bg-raised w-full rounded-lg border px-2 py-1.5"
+              className={FIELD_STYLES}
             />
           </div>
         ) : (
@@ -85,14 +87,14 @@ export function DeleteAccountDialog({
             type="button"
             disabled={busy}
             onClick={onCancel}
-            className="border-line-strong hover:bg-hover rounded-lg border px-3 py-1.5 disabled:opacity-50"
+            className={BUTTON_STYLES.secondary}
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={busy || (usesPassword && password === '')}
-            className="bg-danger hover:bg-danger-hover rounded-lg px-3 py-1.5 font-semibold text-white disabled:opacity-50"
+            className={BUTTON_STYLES.danger}
           >
             {busy ? 'Deleting…' : 'Delete everything'}
           </button>

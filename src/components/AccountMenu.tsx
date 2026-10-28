@@ -2,6 +2,7 @@ import { LogOutIcon, SettingsIcon, UserRoundIcon } from 'lucide-react';
 import { useId, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router';
 import { useAuth } from '../hooks/authContext';
+import { Avatar } from './Avatar';
 import { BUTTON_STYLES } from './buttonStyles';
 import { MENU_ROW } from './menuStyles';
 import { ThemeSwitch } from './ThemeSwitch';
@@ -60,13 +61,13 @@ export function AccountMenu() {
         className={
           user === null
             ? 'text-soft hover:bg-hover hover:text-ink focus-visible:outline-accent-ink grid size-9 place-items-center rounded-lg focus-visible:outline-2'
-            : 'focus-visible:outline-accent-ink grid size-9 place-items-center rounded-full bg-linear-to-br from-sky-400 to-indigo-500 text-sm font-semibold text-white uppercase focus-visible:outline-2 focus-visible:outline-offset-2'
+            : 'focus-visible:outline-accent-ink rounded-full focus-visible:outline-2 focus-visible:outline-offset-2'
         }
       >
         {user === null ? (
           <SettingsIcon className="size-5" aria-hidden="true" />
         ) : (
-          initial(user.email)
+          <Avatar email={user.email} />
         )}
       </button>
       <div
@@ -123,9 +124,4 @@ export function AccountMenu() {
       </div>
     </>
   );
-}
-
-/** The first letter of the email, for the round account button. */
-function initial(email: string | null): string {
-  return email?.trim().charAt(0) || '?';
 }
