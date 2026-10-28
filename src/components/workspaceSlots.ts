@@ -20,6 +20,8 @@ export interface WorkspaceSlots {
   phoneButtons: ReactNode;
   /** The selected piece's tools on phones, or null while nothing is selected. */
   selectionBar: ReactNode;
+  /** Previous and Next piece on phones while measuring, or null. */
+  measureBar: ReactNode;
   /** What the phone sheet shows while it is pulled down, and the top of the sideways panel. */
   summary: ReactNode;
 }

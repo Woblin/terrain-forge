@@ -29,6 +29,7 @@ const DEFAULT_VIEW: BoardViewOptions = {
   showPhotos: true,
   showLane: true,
   showHidden: false,
+  showDistances: false,
 };
 
 /**

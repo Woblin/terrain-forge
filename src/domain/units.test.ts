@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatArea, formatLength, fromInches, toInches } from './units';
+import { formatArea, formatLength, formatTableLength, fromInches, toInches } from './units';
 
 describe('toInches', () => {
   it('keeps inches unchanged', () => {
@@ -38,5 +38,27 @@ describe('formatArea', () => {
   it('rounds to whole square inches or square centimetres', () => {
     expect(formatArea(141.6, 'in')).toBe('142 in²');
     expect(formatArea(10, 'cm')).toBe('65 cm²');
+  });
+});
+
+describe('formatTableLength', () => {
+  it('rounds inches to the nearest half', () => {
+    expect(formatTableLength(8.4, 'in')).toBe('8½″');
+    expect(formatTableLength(8.2, 'in')).toBe('8″');
+    expect(formatTableLength(8.8, 'in')).toBe('9″');
+  });
+
+  it('writes a lone half without a zero', () => {
+    expect(formatTableLength(0.4, 'in')).toBe('½″');
+    expect(formatTableLength(0.1, 'in')).toBe('0″');
+  });
+
+  it('rounds centimetres to whole ones', () => {
+    expect(formatTableLength(8.5, 'cm')).toBe('22 cm');
+  });
+
+  it('never shows a length below zero', () => {
+    expect(formatTableLength(-0.3, 'in')).toBe('0″');
+    expect(formatTableLength(-0.3, 'cm')).toBe('0 cm');
   });
 });

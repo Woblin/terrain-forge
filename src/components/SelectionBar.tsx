@@ -30,7 +30,7 @@ export function SelectionBar({
       <div className="flex items-center gap-1">
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-semibold">{name}</p>
-          <p className="text-muted truncate text-xs tabular-nums">{detail}</p>
+          <p className="text-muted text-xs tabular-nums">{detail}</p>
         </div>
         <IconButton
           icon={RotateCcwIcon}

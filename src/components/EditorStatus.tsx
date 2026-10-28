@@ -1,6 +1,6 @@
 interface EditorStatusProps {
   /** The selected piece's name and the placement rules it breaks, or null. */
-  selection: { name: string; problems: readonly string[] } | null;
+  selection: { name: string; problems: readonly string[]; detail?: string } | null;
 }
 
 /** What is selected and what is wrong with it, or how to edit when nothing is. */
@@ -15,6 +15,9 @@ export function EditorStatus({ selection }: EditorStatusProps) {
       ) : (
         <>
           <p className="text-ink">{selection.name} selected.</p>
+          {selection.detail !== undefined && (
+            <p className="text-soft tabular-nums">{selection.detail}</p>
+          )}
           {selection.problems.map((problem) => (
             <p key={problem} className="text-fail">
               ⚠ {problem}

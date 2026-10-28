@@ -27,6 +27,8 @@ export interface BoardViewOptions {
   readonly showPhotos: boolean;
   readonly showLane: boolean;
   readonly showHidden: boolean;
+  /** Distances from each piece to the board edges, for setting the board out on the table. */
+  readonly showDistances: boolean;
 }
 
 /**

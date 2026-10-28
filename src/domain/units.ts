@@ -16,6 +16,20 @@ export function formatLength(inches: number, unit: LengthUnit): string {
   return unit === 'in' ? `${value}″` : `${value} cm`;
 }
 
+/**
+ * A length to measure out on the table with a tape: to the nearest half inch, written `8½″`, or
+ * to the nearest whole centimetre.
+ */
+export function formatTableLength(inches: number, unit: LengthUnit): string {
+  if (unit === 'cm') {
+    return `${String(Math.max(0, Math.round(fromInches(inches, 'cm'))))} cm`;
+  }
+  const halves = Math.max(0, Math.round(inches * 2));
+  const whole = Math.floor(halves / 2);
+  const half = halves % 2 === 1 ? '½' : '';
+  return `${whole === 0 && half !== '' ? '' : String(whole)}${half}″`;
+}
+
 const SQUARE_CM_PER_SQUARE_INCH = CM_PER_INCH * CM_PER_INCH;
 
 /** An area for display, for example `142 in²` or `916 cm²`, rounded to a whole number. */

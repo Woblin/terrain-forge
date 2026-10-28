@@ -6,7 +6,7 @@ import type { WorkspaceSlots } from './workspaceSlots';
  * on the right, since a sheet from the bottom would leave the board no room.
  */
 export function SidewaysWorkspace(props: WorkspaceSlots) {
-  const { notice, boardAreaRef, board, phoneButtons, selectionBar, summary } = props;
+  const { notice, boardAreaRef, board, phoneButtons, selectionBar, measureBar, summary } = props;
   return (
     <main className="flex min-h-0 flex-1 gap-3 py-2 pr-[max(0.5rem,env(safe-area-inset-right))] pl-[max(0.5rem,env(safe-area-inset-left))]">
       <section aria-label="Board editor" className="relative flex min-h-0 min-w-0 flex-1 gap-2">
@@ -22,6 +22,7 @@ export function SidewaysWorkspace(props: WorkspaceSlots) {
         className="border-line bg-surface flex w-80 shrink-0 flex-col gap-3 rounded-2xl border p-3 shadow-sm min-[800px]:w-[22rem]"
       >
         {/* The selected piece's tools take the summary's place, so they never cover the board. */}
+        {measureBar}
         {selectionBar ?? summary}
         <BoardToolTabs {...props} />
       </aside>
