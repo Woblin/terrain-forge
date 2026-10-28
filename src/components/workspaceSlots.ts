@@ -16,11 +16,11 @@ export interface WorkspaceSlots {
   legend: ReactNode;
   /** The legend and editing status under the board on tablets and wider screens. */
   footer: ReactNode;
-  /** The round buttons over the board on phones. */
+  /** The round buttons over the board on phones, held upright or sideways. */
   phoneButtons: ReactNode;
   /** The selected piece's tools on phones, or null while nothing is selected. */
   selectionBar: ReactNode;
-  /** What the phone sheet shows while it is pulled down. */
+  /** What the phone sheet shows while it is pulled down, and the top of the sideways panel. */
   summary: ReactNode;
 }
 

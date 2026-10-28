@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef } from 'react';
+import { BUTTON_STYLES } from './buttonStyles';
 
 interface ConfirmDialogProps {
   title: string;
@@ -62,7 +63,7 @@ export function ConfirmDialog({
             type="button"
             disabled={busy}
             onClick={onCancel}
-            className="border-line-strong hover:bg-hover rounded-lg border px-3 py-1.5 disabled:opacity-50"
+            className={BUTTON_STYLES.secondary}
           >
             Cancel
           </button>
@@ -70,7 +71,7 @@ export function ConfirmDialog({
             type="button"
             disabled={busy}
             onClick={onConfirm}
-            className="bg-danger hover:bg-danger-hover rounded-lg px-3 py-1.5 font-semibold text-white disabled:opacity-50"
+            className={BUTTON_STYLES.danger}
           >
             {busy ? 'Working…' : confirmLabel}
           </button>

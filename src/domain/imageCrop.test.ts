@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  cropFrameSize,
   cropRegion,
   footprintRatio,
   initialCrop,
@@ -94,5 +95,30 @@ describe('crop frame', () => {
       expect(region.width / region.height).toBeCloseTo(2);
       expect(inside(region, turnedSize(photo, view.turns))).toBe(true);
     }
+  });
+});
+
+describe('the crop frame on screen', () => {
+  it('fills the space up to the largest size, keeping the ratio', () => {
+    expect(cropFrameSize(2, { width: 1000, height: 1000 }, 480)).toEqual({
+      width: 480,
+      height: 240,
+    });
+    expect(cropFrameSize(0.5, { width: 1000, height: 1000 }, 480)).toEqual({
+      width: 240,
+      height: 480,
+    });
+  });
+
+  it('shrinks to fit a narrow or short space', () => {
+    expect(cropFrameSize(2, { width: 300, height: 1000 }, 480)).toEqual({
+      width: 300,
+      height: 150,
+    });
+    expect(cropFrameSize(1, { width: 300, height: 200 }, 480)).toEqual({ width: 200, height: 200 });
+  });
+
+  it('has no size before the space is measured', () => {
+    expect(cropFrameSize(1.5, { width: 0, height: 0 }, 480)).toEqual({ width: 0, height: 0 });
   });
 });

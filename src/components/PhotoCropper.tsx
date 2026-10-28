@@ -1,8 +1,10 @@
 import { useEffect, useId, useRef, type KeyboardEvent, type PointerEvent } from 'react';
 import type { Point } from '../domain/geometry';
-import { footprintRatio, MAX_CROP_ZOOM, type CropView } from '../domain/imageCrop';
+import { cropFrameSize, footprintRatio, MAX_CROP_ZOOM, type CropView } from '../domain/imageCrop';
 import type { TerrainPiece } from '../domain/terrain';
+import { useElementSize } from '../hooks/useElementSize';
 import { usePhotoCrop } from '../hooks/usePhotoCrop';
+import { BUTTON_STYLES } from './buttonStyles';
 
 interface PhotoCropperProps {
   piece: TerrainPiece;
@@ -13,8 +15,8 @@ interface PhotoCropperProps {
   onCancel: () => void;
 }
 
-/** The longest side of the crop frame on screen, in CSS pixels. */
-const FRAME_SIZE = 320;
+/** The longest side of the crop frame on screen, in CSS pixels; it shrinks to fit a phone. */
+const FRAME_SIZE = 480;
 /** Arrow keys move the photo by this share of the frame. */
 const KEY_PAN_SHARE = 0.05;
 const KEY_ZOOM_STEP = 1.1;
@@ -32,16 +34,14 @@ export function PhotoCropper({ piece, image, saving, error, onSave, onCancel }: 
   const pointers = useRef(new Map<number, Point>());
   const titleId = useId();
   const zoomId = useId();
-  const frame =
-    ratio >= 1
-      ? { width: FRAME_SIZE, height: FRAME_SIZE / ratio }
-      : { width: FRAME_SIZE * ratio, height: FRAME_SIZE };
+  const [, frameAreaRef, frameSpace] = useElementSize<HTMLDivElement>();
+  const frame = cropFrameSize(ratio, frameSpace, FRAME_SIZE);
   const pixelRatio = typeof window === 'undefined' ? 1 : window.devicePixelRatio;
   const canvasSize = {
     width: Math.round(frame.width * pixelRatio),
     height: Math.round(frame.height * pixelRatio),
   };
-  const imagePixelsPerCssPixel = crop.region.width / frame.width;
+  const imagePixelsPerCssPixel = frame.width > 0 ? crop.region.width / frame.width : 0;
 
   useEffect(() => {
     const element = dialog.current;
@@ -53,7 +53,7 @@ export function PhotoCropper({ piece, image, saving, error, onSave, onCancel }: 
 
   const { draw } = crop;
   useEffect(() => {
-    if (canvas.current !== null) {
+    if (canvas.current !== null && canvasSize.width > 0 && canvasSize.height > 0) {
       draw(canvas.current, canvasSize);
     }
   });
@@ -133,60 +133,68 @@ export function PhotoCropper({ piece, image, saving, error, onSave, onCancel }: 
           onCancel();
         }
       }}
-      className="border-line bg-surface text-ink shadow-shade m-auto max-w-[calc(100vw-2rem)] rounded-2xl border p-0 shadow-2xl backdrop:bg-black/60 backdrop:backdrop-blur-sm"
+      className="bg-surface text-ink shadow-shade md:border-line m-0 h-dvh max-h-none w-full max-w-none p-0 pt-[env(safe-area-inset-top)] shadow-2xl backdrop:bg-black/60 backdrop:backdrop-blur-sm md:m-auto md:h-fit md:w-fit md:max-w-[calc(100vw-2rem)] md:rounded-2xl md:border md:pt-0"
     >
-      <div className="space-y-4 p-5">
-        <h2 id={titleId} className="text-lg font-semibold">
-          Photo of {piece.name}
-        </h2>
-        <p className="text-soft max-w-sm text-sm">
-          Line the photo up with the piece seen from straight above. The frame has the piece&apos;s
-          shape. Drag to move it, pinch or scroll to zoom. Arrow keys and + and − work too.
-        </p>
+      <div className="flex h-full flex-col gap-4 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] md:p-5">
+        <div className="space-y-1">
+          <h2 id={titleId} className="text-lg font-semibold">
+            Photo of {piece.name}
+          </h2>
+          <p className="text-soft text-sm md:max-w-md">
+            Line the photo up with the piece seen from straight above. The frame has the
+            piece&apos;s shape. Drag to move it, pinch or scroll to zoom. Arrow keys and + and −
+            work too.
+          </p>
+        </div>
         <div
-          tabIndex={0}
-          role="application"
-          aria-label="Photo crop frame"
-          aria-roledescription="crop frame"
-          onPointerDown={onPointerDown}
-          onPointerMove={onPointerMove}
-          onPointerUp={onPointerEnd}
-          onPointerCancel={onPointerEnd}
-          onWheel={(event) => {
-            crop.zoomTo(crop.view.zoom * Math.exp(-event.deltaY * WHEEL_ZOOM_RATE));
-          }}
-          onKeyDown={onKeyDown}
-          style={{ width: frame.width, height: frame.height }}
-          className="focus-visible:ring-accent-ink relative mx-auto cursor-move touch-none overflow-hidden rounded-lg bg-stone-950 outline-none focus-visible:ring-2"
+          ref={frameAreaRef}
+          className="flex min-h-0 flex-1 items-center justify-center md:h-[min(480px,calc(100dvh-17rem))] md:w-[480px] md:flex-none"
         >
-          <canvas
-            ref={canvas}
-            width={canvasSize.width}
-            height={canvasSize.height}
+          <div
+            tabIndex={0}
+            role="application"
+            aria-label="Photo crop frame"
+            aria-roledescription="crop frame"
+            onPointerDown={onPointerDown}
+            onPointerMove={onPointerMove}
+            onPointerUp={onPointerEnd}
+            onPointerCancel={onPointerEnd}
+            onWheel={(event) => {
+              crop.zoomTo(crop.view.zoom * Math.exp(-event.deltaY * WHEEL_ZOOM_RATE));
+            }}
+            onKeyDown={onKeyDown}
             style={{ width: frame.width, height: frame.height }}
-            className="block"
-          />
-          {piece.footprint.kind === 'ellipse' && (
-            <svg
-              viewBox={`0 0 ${String(frame.width)} ${String(frame.height)}`}
-              className="pointer-events-none absolute inset-0 h-full w-full"
-              aria-hidden="true"
-            >
-              <path
-                fillRule="evenodd"
-                className="fill-black/55"
-                d={ovalMask(frame.width, frame.height)}
-              />
-              <ellipse
-                cx={frame.width / 2}
-                cy={frame.height / 2}
-                rx={frame.width / 2}
-                ry={frame.height / 2}
-                className="fill-none stroke-white/70"
-                strokeWidth={1.5}
-              />
-            </svg>
-          )}
+            className="focus-visible:ring-accent-ink relative mx-auto cursor-move touch-none overflow-hidden rounded-lg bg-stone-950 outline-none focus-visible:ring-2"
+          >
+            <canvas
+              ref={canvas}
+              width={canvasSize.width}
+              height={canvasSize.height}
+              style={{ width: frame.width, height: frame.height }}
+              className="block"
+            />
+            {piece.footprint.kind === 'ellipse' && (
+              <svg
+                viewBox={`0 0 ${String(frame.width)} ${String(frame.height)}`}
+                className="pointer-events-none absolute inset-0 h-full w-full"
+                aria-hidden="true"
+              >
+                <path
+                  fillRule="evenodd"
+                  className="fill-black/55"
+                  d={ovalMask(frame.width, frame.height)}
+                />
+                <ellipse
+                  cx={frame.width / 2}
+                  cy={frame.height / 2}
+                  rx={frame.width / 2}
+                  ry={frame.height / 2}
+                  className="fill-none stroke-white/70"
+                  strokeWidth={1.5}
+                />
+              </svg>
+            )}
+          </div>
         </div>
         <div className="flex items-center gap-3">
           <label htmlFor={zoomId} className="text-soft text-sm">
@@ -202,27 +210,27 @@ export function PhotoCropper({ piece, image, saving, error, onSave, onCancel }: 
             onChange={(event) => {
               crop.zoomTo(Number(event.target.value));
             }}
-            className="flex-1 accent-amber-500"
+            className="accent-accent h-11 flex-1 md:h-auto"
           />
           <button
             type="button"
             onClick={crop.turn}
-            className="border-line-strong hover:bg-hover rounded-lg border px-3 py-1.5 text-sm"
+            className={`${BUTTON_STYLES.secondary} text-sm`}
           >
             Turn 90°
           </button>
         </div>
         {error !== null && (
-          <p role="alert" className="text-fail max-w-sm text-sm">
+          <p role="alert" className="text-fail text-sm md:max-w-md">
             {error}
           </p>
         )}
-        <div className="flex justify-end gap-2">
+        <div className="flex gap-2 md:justify-end">
           <button
             type="button"
             disabled={saving}
             onClick={onCancel}
-            className="border-line-strong hover:bg-hover rounded-lg border px-3 py-1.5 disabled:opacity-50"
+            className={BUTTON_STYLES.secondary}
           >
             Cancel
           </button>
@@ -232,7 +240,7 @@ export function PhotoCropper({ piece, image, saving, error, onSave, onCancel }: 
             onClick={() => {
               onSave(crop.view);
             }}
-            className="bg-accent text-on-accent hover:bg-accent-hover rounded-lg px-3 py-1.5 font-semibold disabled:opacity-50"
+            className={`${BUTTON_STYLES.primary} flex-1 md:flex-none`}
           >
             {saving ? 'Saving…' : 'Use photo'}
           </button>
