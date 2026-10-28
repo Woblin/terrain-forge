@@ -49,7 +49,8 @@ export function PieceCard({
   onRemovePhoto,
 }: PieceCardProps) {
   const { width, depth } = piece.footprint;
-  const hasPhoto = photoUrl !== undefined;
+  // A photo that is still loading, or could not be loaded, can still be replaced or removed.
+  const hasPhoto = piece.image !== null;
   const recrop = hasPhoto && needsRecrop(piece);
   const style = TERRAIN_STYLES[piece.type];
   const photoAction = !hasPhoto ? 'Add photo' : recrop ? 'Re-crop photo' : 'Replace photo';
