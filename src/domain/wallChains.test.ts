@@ -9,6 +9,8 @@ import {
   drawTurn,
   isChainable,
   MAX_CHAIN_LENGTH,
+  MIN_CHAIN_LENGTH,
+  splitWalls,
   wallChain,
 } from './wallChains';
 
@@ -31,21 +33,45 @@ describe('isChainable', () => {
 });
 
 describe('chainLengths', () => {
-  it('uses every wall, in chains of 1 to 3, with a mix of lengths', () => {
+  it('uses every wall but a lone one, in chains of 2 or 3, with a mix of lengths', () => {
     const random = createRandom(3);
     const seen = new Set<number>();
     for (let count = 0; count <= 12; count++) {
       for (let i = 0; i < 20; i++) {
         const lengths = chainLengths(count, random);
-        expect(lengths.reduce((sum, length) => sum + length, 0)).toBe(count);
+        expect(lengths.reduce((sum, length) => sum + length, 0)).toBe(count === 1 ? 0 : count);
         lengths.forEach((length) => {
-          expect(length).toBeGreaterThanOrEqual(1);
+          expect(length).toBeGreaterThanOrEqual(MIN_CHAIN_LENGTH);
           expect(length).toBeLessThanOrEqual(MAX_CHAIN_LENGTH);
           seen.add(length);
         });
       }
     }
-    expect([...seen].sort()).toEqual([1, 2, 3]);
+    expect([...seen].sort()).toEqual([2, 3]);
+  });
+});
+
+describe('splitWalls', () => {
+  it('builds every wall into chains when it can, leaving one out only when it must', () => {
+    const random = createRandom(4);
+    const used = (count: number): number => {
+      const { perSide, centre } = splitWalls(count, random);
+      expect(perSide === 0 || perSide >= MIN_CHAIN_LENGTH).toBe(true);
+      expect([0, 2, 3]).toContain(centre);
+      return 2 * perSide + centre;
+    };
+    expect([0, 1, 2, 3, 4, 5, 6, 7, 8].map(used)).toEqual([0, 0, 2, 3, 4, 4, 6, 7, 8]);
+  });
+
+  it('puts six walls either in two chains of 3, or in three chains of 2 with one in the centre', () => {
+    const random = createRandom(5);
+    const splits = new Set(Array.from({ length: 40 }, () => JSON.stringify(splitWalls(6, random))));
+    expect(splits).toEqual(
+      new Set([
+        JSON.stringify({ perSide: 3, centre: 0 }),
+        JSON.stringify({ perSide: 2, centre: 2 }),
+      ]),
+    );
   });
 });
 

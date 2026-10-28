@@ -1,10 +1,17 @@
 import { attach, canAccompany, drawAttachment } from './features';
-import { centreGroup, soloGroup, type PieceGroup } from './pieceGroup';
+import { centreGroup, groupBounds, soloGroup, type PieceGroup } from './pieceGroup';
 import { pairPieces, unitArea, type PiecePairing, type PlacementUnit } from './placement';
 import { pick, shuffle, type RandomSource } from './random';
 import type { SpacingRules } from './spacing';
 import type { TerrainPiece, TerrainType } from './terrain';
-import { chainLengths, drawChainTurns, isChainable, wallChain } from './wallChains';
+import {
+  chainLengths,
+  drawChainTurns,
+  isChainable,
+  MIN_CHAIN_LENGTH,
+  splitWalls,
+  wallChain,
+} from './wallChains';
 
 /** Chance that a piece that could stand next to an anchor joins one. */
 const JOIN_CHANCE = 0.8;
@@ -13,8 +20,9 @@ const ATTACH_ATTEMPTS = 8;
 
 /**
  * Turns the pieces, in the order given, into what the generator places: matching pairs, wall
- * chains and features made of an anchor with a companion or two. Largest units come first, since
- * they are the hardest to fit once the board fills up.
+ * chains and features made of an anchor with a companion or two. A wall that would have to stand
+ * alone is left out. Units that claim the most room come first, since they are the hardest to fit
+ * once the board fills up.
  */
 export function buildUnits(
   pieces: readonly TerrainPiece[],
@@ -23,17 +31,18 @@ export function buildUnits(
 ): PlacementUnit[] {
   const lone = pairPieces(pieces.filter((piece) => !isChainable(piece))).map(pairingUnit);
   const chains = wallUnits(pieces.filter(isChainable), random);
-  return largestFirst(withFeatures(largestFirst([...lone, ...chains]), spacing, random));
+  return roomiestFirst(withFeatures(largestFirst([...lone, ...chains]), spacing, random), spacing);
 }
 
 /**
  * Puts first the units that make up the target area, taking each kind of terrain in turn so that
  * every kind gets onto the board, then the rest in case some find no spot. Each part comes
- * largest first.
+ * roomiest first.
  */
 export function orderForTarget(
   units: readonly PlacementUnit[],
   target: number,
+  spacing: SpacingRules,
   random: RandomSource,
 ): PlacementUnit[] {
   const queues = [...unitsByKind(shuffle(random, units)).values()];
@@ -49,7 +58,7 @@ export function orderForTarget(
     }
   }
   const rest = units.filter((unit) => !chosen.has(unit));
-  return [...largestFirst([...chosen]), ...largestFirst(rest)];
+  return [...roomiestFirst([...chosen], spacing), ...roomiestFirst(rest, spacing)];
 }
 
 /** Units by the kind of their main piece, in the order the kinds first appear. */
@@ -68,6 +77,24 @@ function largestFirst(units: readonly PlacementUnit[]): PlacementUnit[] {
   return [...units].sort((a, b) => unitArea(b) - unitArea(a));
 }
 
+function roomiestFirst(units: readonly PlacementUnit[], spacing: SpacingRules): PlacementUnit[] {
+  return [...units].sort((a, b) => claimedRoom(b, spacing) - claimedRoom(a, spacing));
+}
+
+/**
+ * The room a unit's largest group keeps to itself: its outline box with half the gap all round.
+ * Both twins of a pair need that room, so the largest group sets how hard the unit is to fit. A
+ * long wall chain claims far more room than its small area suggests.
+ */
+export function claimedRoom(unit: PlacementUnit, spacing: SpacingRules): number {
+  return Math.max(...unit.groups.map((group) => groupRoom(group, spacing)));
+}
+
+function groupRoom(group: PieceGroup, spacing: SpacingRules): number {
+  const { minX, minY, maxX, maxY } = groupBounds(group);
+  return (maxX - minX + spacing.minGap) * (maxY - minY + spacing.minGap);
+}
+
 function pairingUnit(pairing: PiecePairing): PlacementUnit {
   return pairing.kind === 'pair'
     ? { groups: [soloGroup(pairing.pieces[0]), soloGroup(pairing.pieces[1])], parts: [] }
@@ -75,8 +102,8 @@ function pairingUnit(pairing: PiecePairing): PlacementUnit {
 }
 
 /**
- * Walls of each kind split evenly between the two sides into chains of 1 to 3, each chain with a
- * mirrored twin. With an odd number, the last wall stands alone near the centre line.
+ * Walls of each kind in chains of 2 or 3: chains on both sides, each with a mirrored twin, and
+ * sometimes one chain on the centre line. A wall never stands alone.
  */
 function wallUnits(walls: readonly TerrainPiece[], random: RandomSource): PlacementUnit[] {
   const byKind = new Map<string, TerrainPiece[]>();
@@ -87,22 +114,34 @@ function wallUnits(walls: readonly TerrainPiece[], random: RandomSource): Placem
     if (wall === undefined) {
       return [];
     }
-    const count = rest.length + 1;
-    const paired = chainLengths(Math.floor(count / 2), random).map((length) =>
+    const { perSide, centre } = splitWalls(rest.length + 1, random);
+    const paired = chainLengths(perSide, random).map((length) =>
       chainUnit(wall, drawChainTurns(length, random), true),
     );
-    return count % 2 === 1 ? [...paired, chainUnit(wall, [], false)] : paired;
+    return centre === 0
+      ? paired
+      : [...paired, chainUnit(wall, drawChainTurns(centre, random), false)];
   });
 }
 
-/** A chain and, when it finds no spot, the two shorter chains it breaks into. */
+/**
+ * A chain and what to try when it finds no spot: the same chain one wall shorter, and for the
+ * shortest pair of chains, one of them on the centre line.
+ */
 function chainUnit(wall: TerrainPiece, turns: readonly number[], paired: boolean): PlacementUnit {
   const chain = wallChain(wall, turns);
-  const parts =
-    turns.length === 0
-      ? []
-      : [chainUnit(wall, turns.slice(0, -1), paired), chainUnit(wall, [], paired)];
-  return { groups: paired ? [chain, chain] : [chain], parts };
+  return { groups: paired ? [chain, chain] : [chain], parts: chainParts(wall, turns, paired) };
+}
+
+function chainParts(
+  wall: TerrainPiece,
+  turns: readonly number[],
+  paired: boolean,
+): PlacementUnit[] {
+  if (turns.length + 1 > MIN_CHAIN_LENGTH) {
+    return [chainUnit(wall, turns.slice(0, -1), paired)];
+  }
+  return paired ? [chainUnit(wall, turns, false)] : [];
 }
 
 /** A unit while features are built: its groups with the anchor still unturned at the origin. */

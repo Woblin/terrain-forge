@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { boardPolygon, longEdgeDeployment, standardDeployments } from './board';
+import { longEdgeDeployment, standardDeployments, type DeploymentMap } from './board';
 import { isPassable, regimentClearance } from './clearance';
-import { containsPolygon, polygonDistance } from './geometry';
+import { polygonDistance } from './geometry';
 import { RULE_IDS } from './fairness';
 import { GENERATOR_VERSION, generateLayout, type GenerationRequest } from './generator';
 import { boardViolations, placePiece } from './placement';
 import { findPreset, PRESETS, type GameSystemPreset } from './presets';
 import { ROBIN_COLLECTION } from './robinCollection';
-import { placeFootprint, type TerrainPiece } from './terrain';
+import { placeFootprint, type Placement, type TerrainPiece } from './terrain';
 
 const SLOW_TEST_TIMEOUT = 60_000;
 
@@ -121,35 +121,37 @@ describe('generateLayout invariants', () => {
         deploymentId: deployment.id,
         generatorVersion: GENERATOR_VERSION,
       });
-      expectLegalPlacements(result.layout.placements, warhammer40k);
+      expectLegalPlacements(result.layout.placements, warhammer40k, deployment);
     },
     SLOW_TEST_TIMEOUT,
   );
 });
 
+/** Each piece at most as often as owned, and nothing the board editor would warn about. */
 function expectLegalPlacements(
-  placements: readonly { pieceId: string; position: { x: number; y: number }; rotation: number }[],
+  placements: readonly Placement[],
   rules: GameSystemPreset,
+  deployment: DeploymentMap,
 ): void {
   const used = new Map<string, number>();
-  const polygons = placements.map((placement) => {
+  const placed = placements.map((placement) => {
     const piece = collection.find((p) => p.id === placement.pieceId);
     if (piece === undefined) {
       throw new Error(`Unknown piece ${placement.pieceId}`);
     }
     used.set(piece.id, (used.get(piece.id) ?? 0) + 1);
-    return placeFootprint(piece.footprint, placement);
+    return placePiece(piece, placement);
   });
   for (const piece of collection) {
     expect(used.get(piece.id) ?? 0).toBeLessThanOrEqual(piece.quantity);
   }
-  polygons.forEach((polygon, i) => {
-    expect(containsPolygon(boardPolygon(board), polygon)).toBe(true);
-    polygons.slice(i + 1).forEach((other) => {
-      const gap = polygonDistance(polygon, other);
-      expect(gap <= rules.spacing.joinGap + 1e-9 || gap >= rules.spacing.minGap - 1e-9).toBe(true);
-    });
-  });
+  const placementRules = {
+    board,
+    deployment,
+    edgeMargin: rules.edgeMargin,
+    spacing: rules.spacing,
+  };
+  expect(boardViolations(placed, placementRules).flat()).toEqual([]);
 }
 
 describe('generateLayout presets', () => {
@@ -331,7 +333,7 @@ describe("generateLayout on the product owner's Warhammer Fantasy terrain", () =
   );
 
   it.each(cases)(
-    'leaves room for regiments on $deployment.id, seed $seed',
+    'leaves room for regiments and no wall alone on $deployment.id, seed $seed',
     ({ deployment, seed }) => {
       const result = generateLayout({
         board: fantasyBoard,
@@ -352,7 +354,8 @@ describe("generateLayout on the product owner's Warhammer Fantasy terrain", () =
         }
         return placePiece(piece, placement);
       });
-      expect(placed.length).toBeGreaterThanOrEqual(11);
+      // Most boards place 13 to 15 of the 15 pieces; a crowded one can leave out a pair and a chain.
+      expect(placed.length).toBeGreaterThanOrEqual(9);
       const rules = { board: fantasyBoard, deployment, edgeMargin: 1, spacing: fantasy.spacing };
       expect(boardViolations(placed, rules).flat()).toEqual([]);
       const clearance = fantasy.clearance;
@@ -367,6 +370,13 @@ describe("generateLayout on the product owner's Warhammer Fantasy terrain", () =
         rules: clearance,
       });
       expect(isPassable(marched, clearance)).toBe(true);
+      const walls = placed.filter((piece) => piece.piece.id === 'stone-wall');
+      for (const wall of walls) {
+        const joined = walls.some(
+          (other) => other !== wall && polygonDistance(wall.polygon, other.polygon) < 0.05,
+        );
+        expect(joined).toBe(true);
+      }
     },
     SLOW_TEST_TIMEOUT,
   );
@@ -415,20 +425,20 @@ describe('generateLayout regression', () => {
       expect({ version: GENERATOR_VERSION, summary }).toMatchInlineSnapshot(`
         {
           "summary": [
-            "building 20.33,24.11 15",
-            "building 39.67,19.89 195",
-            "ruin-large 51.13,32.36 0",
-            "barricade 41.79,30.21 0",
-            "crater 47.42,38.28 90",
-            "ruin-large 8.87,11.64 180",
-            "barricade 18.21,13.79 180",
-            "crater 12.58,5.72 270",
-            "ruin-large 54.03,12.99 90",
-            "ruin-large 5.97,31.01 270",
-            "ruin-large 27.39,9.62 60",
-            "ruin-large 32.61,34.38 240",
-            "barricade 51.97,23.43 180",
-            "barricade 8.03,20.57 0",
+            "building 43.37,25.07 210",
+            "building 16.63,18.93 30",
+            "ruin-large 38.91,6.85 180",
+            "ruin-large 21.09,37.15 0",
+            "forest 7.58,9.12 165",
+            "forest 52.42,34.88 345",
+            "ruin-small 51.84,14.49 15",
+            "barricade 50.94,17.57 15",
+            "ruin-small 8.16,29.51 195",
+            "barricade 9.06,26.43 195",
+            "ruin-small 23.06,7.74 285",
+            "ruin-small 36.94,36.26 105",
+            "ruin-small 31.00,17.70 195",
+            "ruin-small 29.00,26.30 15",
           ],
           "version": 3,
         }

@@ -178,7 +178,7 @@ function buildCandidate(
   const area = boardArea(board);
   const target = randomBetween(random, balance.coverage.min, balance.coverage.max) * area;
   const built = buildUnits(shuffle(random, pieces), preset.spacing, random);
-  const units = orderForTarget(built, target, random);
+  const units = orderForTarget(built, target, preset.spacing, random);
   const rules: PlacementRules = {
     board,
     deployment,
