@@ -1,13 +1,12 @@
-import { useState } from 'react';
 import type { BoardAnalysis } from '../domain/boardAnalysis';
-import { RULE_IDS, type FairnessReport, type RuleId } from '../domain/fairness';
+import { RULE_IDS, type RuleId } from '../domain/fairness';
 import type { BalanceRules } from '../domain/presets';
 import type { LengthUnit } from '../domain/units';
 import { ClosestBoardNote } from './ClosestBoardNote';
 import { FairnessRuleRow } from './FairnessRuleRow';
 import { FairnessVerdict } from './FairnessVerdict';
 import { Switch } from './Switch';
-import { RULE_NAMES, ruleRows } from './fairnessRows';
+import { ruleRows } from './fairnessRows';
 
 interface FairnessPanelProps {
   analysis: BoardAnalysis | null;
@@ -45,12 +44,6 @@ export function FairnessPanel({
   onShowHiddenChange,
 }: FairnessPanelProps) {
   const report = analysis?.report ?? null;
-  const [shownReport, setShownReport] = useState(report);
-  const [announcement, setAnnouncement] = useState('');
-  if (report !== shownReport) {
-    setShownReport(report);
-    setAnnouncement(describeChange(shownReport, report));
-  }
 
   return (
     <section aria-label="Fairness" className="space-y-3">
@@ -131,23 +124,6 @@ export function FairnessPanel({
           Show hidden deployment areas
         </Switch>
       </fieldset>
-      <p aria-live="polite" className="sr-only">
-        {announcement}
-      </p>
     </section>
   );
-}
-
-/** What a screen reader hears when rules start or stop failing. */
-function describeChange(before: FairnessReport | null, after: FairnessReport | null): string {
-  if (before === null || after === null) {
-    return '';
-  }
-  const label = (rule: RuleId) => `${RULE_NAMES[rule].code} ${RULE_NAMES[rule].name}`;
-  const nowFailing = after.failedRules.filter((rule) => !before.failedRules.includes(rule));
-  const nowPassing = before.failedRules.filter((rule) => !after.failedRules.includes(rule));
-  return [
-    ...nowFailing.map((rule) => `${label(rule)} now fails.`),
-    ...nowPassing.map((rule) => `${label(rule)} passes again.`),
-  ].join(' ');
 }

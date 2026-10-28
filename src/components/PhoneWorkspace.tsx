@@ -11,6 +11,7 @@ export function PhoneWorkspace({
   setup,
   fairness,
   pieces,
+  legend,
   boardAreaRef,
   board,
   phoneButtons,
@@ -22,7 +23,22 @@ export function PhoneWorkspace({
   const tabs: Tab<SheetTab>[] = [
     { id: 'setup', label: SETUP_TITLE, content: setup },
     { id: 'fairness', label: 'Fairness', content: fairness },
-    { id: 'pieces', label: 'Pieces', content: pieces },
+    {
+      id: 'pieces',
+      label: 'Pieces',
+      content: (
+        <div className="space-y-4">
+          {pieces}
+          <div className="border-line text-muted space-y-3 border-t pt-3 text-sm">
+            <p>
+              Tap a piece to select it. Drag to move it, drag the yellow handle to turn it, or drop
+              it off the board to remove it.
+            </p>
+            {legend}
+          </div>
+        </div>
+      ),
+    },
   ];
   return (
     <main className="relative flex min-h-0 flex-1 flex-col overflow-hidden">

@@ -48,7 +48,7 @@ export function IconButton({
 
 function tone(pressed: boolean, danger: boolean): string {
   if (pressed) {
-    return 'bg-amber-400/15 text-accent-ink';
+    return 'bg-accent-soft text-accent-ink';
   }
   return danger
     ? 'text-fail enabled:hover:bg-fail-soft'

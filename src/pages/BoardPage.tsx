@@ -46,6 +46,7 @@ import { BoardWorkspace } from '../components/BoardWorkspace';
 import { BUTTON_STYLES } from '../components/buttonStyles';
 import { DeploymentZones } from '../components/DeploymentZones';
 import { EditorStatus } from '../components/EditorStatus';
+import { FairnessAnnouncer } from '../components/FairnessAnnouncer';
 import { FairnessPanel } from '../components/FairnessPanel';
 import { FairnessVerdict } from '../components/FairnessVerdict';
 import { GeneratorControls } from '../components/GeneratorControls';
@@ -571,6 +572,9 @@ export function BoardPage() {
       : { name: selectedPiece.name, problems: problems.get(shownSelected.key) ?? NO_WARNINGS };
   const report = analysis.analysis?.report ?? null;
 
+  const legend =
+    setup === undefined ? null : <TerrainLegend effects={setup.preset.terrainEffects} />;
+
   const setupPanel = (
     <div className="space-y-6">
       <GeneratorControls
@@ -769,11 +773,12 @@ export function BoardPage() {
         }
         boardAreaRef={boardAreaRef}
         board={boardDrawing}
+        legend={legend}
         footer={
           <div className="space-y-2">
             <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-2">
               <EditorStatus selection={selection} />
-              {setup !== undefined && <TerrainLegend effects={setup.preset.terrainEffects} />}
+              {legend}
             </div>
             <details className="text-soft text-sm pointer-coarse:hidden">
               <summary className="text-muted cursor-pointer">Keyboard shortcuts</summary>
@@ -845,6 +850,7 @@ export function BoardPage() {
           </div>
         }
       />
+      <FairnessAnnouncer report={report} />
       {pendingBoard !== null && (
         <TerrainChoiceDialog
           onBoardTerrain={() => {

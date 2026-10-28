@@ -25,7 +25,7 @@ export function SelectionBar({
     <div
       role="toolbar"
       aria-label={`${name} selected`}
-      className={`bg-surface/95 shadow-shade rounded-2xl border p-1.5 pl-3 shadow-2xl backdrop-blur ${problems.length > 0 ? 'border-fail-line' : 'border-amber-400/40'}`}
+      className={`bg-surface/95 shadow-shade rounded-2xl border p-1.5 pl-3 shadow-2xl backdrop-blur ${problems.length > 0 ? 'border-fail-line' : 'border-accent-line'}`}
     >
       <div className="flex items-center gap-1">
         <div className="min-w-0 flex-1">

@@ -76,6 +76,8 @@
   /* The accent fill is the same amber in both themes, always with dark text on it. */
   --color-accent: var(--color-amber-400);
   --color-accent-hover: var(--color-amber-300);
+  --color-accent-soft: rgb(251 191 36 / 0.15);
+  --color-accent-line: rgb(251 191 36 / 0.4);
   --color-on-accent: var(--color-zinc-950);
   --color-accent-ink: var(--accent-ink);
   --color-accent-ink-hover: var(--accent-ink-hover);

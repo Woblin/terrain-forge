@@ -12,6 +12,8 @@ export interface WorkspaceSlots {
   /** The space the board is drawn in; the page measures it to fit the board. */
   boardAreaRef: (element: HTMLDivElement | null) => void;
   board: ReactNode;
+  /** What each kind of terrain does, or null before there is a board. */
+  legend: ReactNode;
   /** The legend and editing status under the board on tablets and wider screens. */
   footer: ReactNode;
   /** The round buttons over the board on phones. */
