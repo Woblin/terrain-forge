@@ -5,6 +5,7 @@ import { EmailForm } from '../components/EmailForm';
 import { ExampleBoardArt } from '../components/ExampleBoardArt';
 import { GoogleButton } from '../components/GoogleButton';
 import { useAuth } from '../hooks/authContext';
+import { useMediaQuery } from '../hooks/useMediaQuery';
 
 const RESET_SENT =
   'If there is an account for that email, a reset link is on its way. Check your inbox.';
@@ -17,6 +18,8 @@ export function SignInPage() {
   const [busy, setBusy] = useState<'google' | 'email' | null>(null);
   const [error, setError] = useState<{ from: 'google' | 'email'; message: string } | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  // The artwork only shows on wide screens, so phones skip generating its board.
+  const wide = useMediaQuery('(min-width: 1024px)');
 
   if (auth.user !== null) {
     return <Navigate to={returnPath(location.state)} replace />;
@@ -49,7 +52,7 @@ export function SignInPage() {
 
   return (
     <main className="grid flex-1 lg:grid-cols-[minmax(0,1fr)_minmax(28rem,36rem)] xl:grid-cols-2">
-      <ExampleBoardArt />
+      {wide && <ExampleBoardArt />}
       <div className="flex justify-center px-4 py-8 md:items-center md:px-8 md:py-12">
         <div className="md:border-line md:bg-surface md:shadow-shade w-full max-w-md space-y-6 md:rounded-3xl md:border md:p-8 md:shadow-xl">
           <div className="space-y-2">

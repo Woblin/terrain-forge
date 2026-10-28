@@ -3,6 +3,9 @@
 /* The `dark` class on <html> switches every colour token below to its dark value. */
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* Wide and tall enough for a dialog to float over the page; smaller screens get it full screen. */
+@custom-variant roomy (@media (min-width: 768px) and (min-height: 600px));
+
 /*
  * Colour tokens, light theme. Components use the token names (bg-surface, text-muted, ...)
  * and never raw palette colours, so each theme is defined once, here.

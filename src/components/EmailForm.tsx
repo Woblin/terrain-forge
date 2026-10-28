@@ -99,7 +99,7 @@ export function EmailForm({ mode, busy, error, notice, onModeChange, onSubmit }:
         {setup.name === 'password' && (
           <button
             type="button"
-            aria-label={showPassword ? 'Hide password' : 'Show password'}
+            aria-label="Show password"
             aria-pressed={showPassword}
             title={showPassword ? 'Hide password' : 'Show password'}
             onClick={() => {

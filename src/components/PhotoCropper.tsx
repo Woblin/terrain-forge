@@ -133,14 +133,14 @@ export function PhotoCropper({ piece, image, saving, error, onSave, onCancel }: 
           onCancel();
         }
       }}
-      className="bg-surface text-ink shadow-shade md:border-line m-0 h-dvh max-h-none w-full max-w-none p-0 pt-[env(safe-area-inset-top)] shadow-2xl backdrop:bg-black/60 backdrop:backdrop-blur-sm md:m-auto md:h-fit md:w-fit md:max-w-[calc(100vw-2rem)] md:rounded-2xl md:border md:pt-0"
+      className="bg-surface text-ink shadow-shade roomy:border-line roomy:m-auto roomy:h-fit roomy:w-fit roomy:max-w-[calc(100vw-2rem)] roomy:rounded-2xl roomy:border roomy:pt-0 m-0 h-dvh max-h-none w-full max-w-none p-0 pt-[env(safe-area-inset-top)] shadow-2xl backdrop:bg-black/60 backdrop:backdrop-blur-sm"
     >
-      <div className="flex h-full flex-col gap-4 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] md:p-5">
+      <div className="roomy:p-5 flex h-full flex-col gap-4 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
         <div className="space-y-1">
           <h2 id={titleId} className="text-lg font-semibold">
             Photo of {piece.name}
           </h2>
-          <p className="text-soft text-sm md:max-w-md">
+          <p className="text-soft roomy:max-w-md text-sm [@media(max-height:500px)]:hidden">
             Line the photo up with the piece seen from straight above. The frame has the
             piece&apos;s shape. Drag to move it, pinch or scroll to zoom. Arrow keys and + and −
             work too.
@@ -148,7 +148,7 @@ export function PhotoCropper({ piece, image, saving, error, onSave, onCancel }: 
         </div>
         <div
           ref={frameAreaRef}
-          className="flex min-h-0 flex-1 items-center justify-center md:h-[min(480px,calc(100dvh-17rem))] md:w-[480px] md:flex-none"
+          className="roomy:h-[min(480px,calc(100dvh-17rem))] roomy:w-[480px] roomy:flex-none flex min-h-0 flex-1 items-center justify-center"
         >
           <div
             tabIndex={0}
@@ -210,7 +210,7 @@ export function PhotoCropper({ piece, image, saving, error, onSave, onCancel }: 
             onChange={(event) => {
               crop.zoomTo(Number(event.target.value));
             }}
-            className="accent-accent h-11 flex-1 md:h-auto"
+            className="accent-accent roomy:h-auto h-11 flex-1"
           />
           <button
             type="button"
@@ -221,11 +221,11 @@ export function PhotoCropper({ piece, image, saving, error, onSave, onCancel }: 
           </button>
         </div>
         {error !== null && (
-          <p role="alert" className="text-fail text-sm md:max-w-md">
+          <p role="alert" className="text-fail roomy:max-w-md text-sm">
             {error}
           </p>
         )}
-        <div className="flex gap-2 md:justify-end">
+        <div className="roomy:justify-end flex gap-2">
           <button
             type="button"
             disabled={saving}
@@ -240,7 +240,7 @@ export function PhotoCropper({ piece, image, saving, error, onSave, onCancel }: 
             onClick={() => {
               onSave(crop.view);
             }}
-            className={`${BUTTON_STYLES.primary} flex-1 md:flex-none`}
+            className={`${BUTTON_STYLES.primary} roomy:flex-none flex-1`}
           >
             {saving ? 'Saving…' : 'Use photo'}
           </button>

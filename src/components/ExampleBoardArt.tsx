@@ -8,7 +8,7 @@ export function ExampleBoardArt() {
   return (
     <div
       aria-hidden="true"
-      className="bg-mat relative hidden flex-col justify-center gap-8 overflow-hidden p-12 lg:flex xl:p-16"
+      className="bg-mat relative flex flex-col justify-center gap-8 overflow-hidden p-12 xl:p-16"
     >
       {example.setup !== undefined && (
         <div className="shadow-shade -rotate-2 overflow-hidden rounded-3xl shadow-2xl ring-1 ring-white/10">
