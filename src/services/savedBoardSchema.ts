@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { RULE_IDS } from '../domain/fairness';
+import { matIdOf } from '../domain/mats';
 import { SAVED_BOARD_LIMITS, type SavedBoard, type SavedBoardContent } from '../domain/savedBoard';
 import { pieceFieldsSchema } from './terrainLibrarySchema';
 
@@ -38,6 +39,8 @@ const boardDocumentSchema = z.object({
   placements: z.array(placementSchema).max(SAVED_BOARD_LIMITS.maxPlacements),
   edited: z.boolean(),
   passed: z.boolean(),
+  /** Missing on boards saved before mats; a mat this version does not know shows as plain. */
+  matId: id.optional(),
   schemaVersion: z.literal(BOARD_SCHEMA_VERSION),
 });
 
@@ -88,6 +91,7 @@ function contentOf(stored: BoardDocument): SavedBoardContent {
     pieces: stored.pieces,
     edited: stored.edited,
     passed: stored.passed,
+    matId: matIdOf(stored.matId),
   };
 }
 
@@ -117,6 +121,7 @@ export function boardDocument(content: SavedBoardContent): BoardDocument {
     })),
     edited: content.edited,
     passed: content.passed,
+    matId: content.matId,
     schemaVersion: BOARD_SCHEMA_VERSION,
   };
 }

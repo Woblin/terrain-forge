@@ -28,7 +28,7 @@ export function useBoardOpener(): BoardOpener {
   const [pending, setPending] = useState<SavedBoard | null>(null);
   const { opened } = session;
   const { present } = session.editor;
-  const unsaved = hasUnsavedChanges(opened, present);
+  const unsaved = hasUnsavedChanges(opened, present, session.mat);
   const atRisk = unsaved || (opened === null && present?.edited === true);
 
   function open(board: SavedBoard): void {

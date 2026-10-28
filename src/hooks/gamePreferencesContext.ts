@@ -1,9 +1,10 @@
 import { createContext, useContext } from 'react';
 import type { RuleId } from '../domain/fairness';
 import type { GamePreferences } from '../domain/gamePreferences';
+import type { MatId } from '../domain/mats';
 import type { GameSystemPreset } from '../domain/presets';
 
-/** The game a new board starts on, the balance rules switched for each game, and the changes. */
+/** The game and mat a new board starts on, the balance rules switched for each game, and the changes. */
 export interface GamePreferencesSetting {
   /** False while a signed-in player's settings are still loading. */
   readonly ready: boolean;
@@ -12,6 +13,8 @@ export interface GamePreferencesSetting {
   readonly error: string | null;
   /** Remembers the game the player picked, so the next board starts on it. */
   readonly choosePreset: (presetId: string) => void;
+  /** Remembers the mat the player picked, so the next board starts on it. */
+  readonly chooseMat: (matId: MatId) => void;
   readonly switchRule: (preset: GameSystemPreset, rule: RuleId, enabled: boolean) => void;
   /** Puts a game's balance rules back to its defaults. */
   readonly resetRules: (preset: GameSystemPreset) => void;

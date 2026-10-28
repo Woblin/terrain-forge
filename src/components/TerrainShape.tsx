@@ -2,7 +2,7 @@ import type { FocusEvent, PointerEvent } from 'react';
 import type { Placement, TerrainPiece } from '../domain/terrain';
 import { FootprintShape } from './FootprintShape';
 import { PiecePhoto } from './PiecePhoto';
-import { TERRAIN_STYLES } from './terrainStyles';
+import { PIECE_HALO, TERRAIN_STYLES } from './terrainStyles';
 
 interface TerrainShapeProps {
   piece: TerrainPiece;
@@ -46,6 +46,12 @@ export function TerrainShape({
         footprint={piece.footprint}
         className="fill-transparent stroke-transparent"
         strokeWidth={hitWidth}
+      />
+      <FootprintShape
+        footprint={piece.footprint}
+        className={`fill-none ${PIECE_HALO}`}
+        strokeWidth={5}
+        vectorEffect="non-scaling-stroke"
       />
       <FootprintShape footprint={piece.footprint} className={style.fill} />
       {photoUrl !== undefined && <PiecePhoto footprint={piece.footprint} url={photoUrl} />}

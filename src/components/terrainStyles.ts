@@ -55,16 +55,21 @@ export const TERRAIN_STYLES: Readonly<Record<TerrainType, TerrainStyle>> = {
   },
 };
 
+/** A dark ring around every piece, so that pieces stand out from a mat of the same colour. */
+export const PIECE_HALO = 'stroke-black/55';
+
 /** The two players' colours, for zones and overlays. */
 export const PLAYER_STYLES = {
   A: {
     zone: 'fill-red-500/15',
+    edge: 'stroke-red-400',
     hatch: 'stroke-red-400/40',
     text: 'fill-red-200',
     hidden: 'fill-red-300/35',
   },
   B: {
     zone: 'fill-sky-500/15',
+    edge: 'stroke-sky-400',
     hatch: 'stroke-sky-400/40',
     text: 'fill-sky-200',
     hidden: 'fill-sky-300/35',

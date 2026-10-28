@@ -7,6 +7,7 @@ export interface LayerSettings {
   readonly showLane: boolean;
   readonly showHidden: boolean;
   readonly showDistances: boolean;
+  readonly showMat: boolean;
 }
 
 interface LayersMenuProps {
@@ -50,6 +51,14 @@ export function LayersMenu({ settings, onChange }: LayersMenuProps) {
         }}
       >
         Photos
+      </Switch>
+      <Switch
+        checked={settings.showMat}
+        onChange={(showMat) => {
+          onChange({ showMat });
+        }}
+      >
+        Mat
       </Switch>
       <Switch
         checked={settings.showLane}

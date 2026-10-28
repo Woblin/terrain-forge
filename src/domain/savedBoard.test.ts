@@ -89,13 +89,20 @@ describe('the saved board limit', () => {
 describe('savedBoardContent', () => {
   it('keeps the layout with its hand edits and a copy of the terrain', () => {
     const photographed: LibraryPiece = { ...ruin, image: { version: 2, ratio: 1.5 } };
-    const content = savedBoardContent(snapshotOf(true), [photographed, forest], ' Night ', false);
+    const content = savedBoardContent(
+      snapshotOf(true),
+      [photographed, forest],
+      ' Night ',
+      false,
+      'lava',
+    );
     expect(content).toEqual({
       name: 'Night',
       layout,
       pieces: [ruin, forest],
       edited: true,
       passed: false,
+      matId: 'lava',
     });
     expect(content.pieces[0]).not.toHaveProperty('image');
   });
@@ -104,17 +111,32 @@ describe('savedBoardContent', () => {
 describe('unsaved changes', () => {
   it('are found by comparing the layout with the saved one', () => {
     const snapshot = snapshotOf(false);
-    const opened = { id: 'b1', name: 'Night', fingerprint: layoutFingerprint(layout) };
-    expect(hasUnsavedChanges(opened, snapshot)).toBe(false);
+    const opened = {
+      id: 'b1',
+      name: 'Night',
+      fingerprint: layoutFingerprint(layout),
+      matId: 'grass' as const,
+    };
+    expect(hasUnsavedChanges(opened, snapshot, 'grass')).toBe(false);
     const moved = editorReducer(
       { ...INITIAL_EDITOR_STATE, present: snapshot },
       { type: 'placed', updates: [{ key: 'piece-0', position: { x: 11, y: 20 }, rotation: 0 }] },
     );
-    expect(hasUnsavedChanges(opened, moved.present)).toBe(true);
+    expect(hasUnsavedChanges(opened, moved.present, 'grass')).toBe(true);
+  });
+
+  it('include another mat', () => {
+    const opened = {
+      id: 'b1',
+      name: 'Night',
+      fingerprint: layoutFingerprint(layout),
+      matId: 'grass' as const,
+    };
+    expect(hasUnsavedChanges(opened, snapshotOf(false), 'snow')).toBe(true);
   });
 
   it('never apply to a board that is not saved', () => {
-    expect(hasUnsavedChanges(null, snapshotOf(true))).toBe(false);
+    expect(hasUnsavedChanges(null, snapshotOf(true), 'plain')).toBe(false);
   });
 
   it('include switched rules and another seed', () => {
@@ -155,7 +177,11 @@ describe('saved terrain and the library', () => {
 
 describe('ordering saved boards', () => {
   function saved(id: string, name: string, savedAt: number): SavedBoard {
-    return { ...savedBoardContent(snapshotOf(false), [ruin, forest], name, true), id, savedAt };
+    return {
+      ...savedBoardContent(snapshotOf(false), [ruin, forest], name, true, 'plain'),
+      id,
+      savedAt,
+    };
   }
   const boards = [saved('b', 'beach', 200), saved('a', 'Alpha', 100), saved('c', 'Beach', 300)];
 
