@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { withoutPhoto, withPhoto, type LibraryPiece } from '../domain/library';
-import type { EncodedPhoto } from '../domain/imageCrop';
+import type { CroppedPhoto, EncodedPhoto } from '../domain/imageCrop';
 import type { LibrarySnapshot, LibraryStore } from '../services/libraryStore';
 import type { TerrainLibrary } from './libraryContext';
 import { useLibraryPhotos } from './useLibraryPhotos';
@@ -101,8 +101,8 @@ export function useLibraryStore(store: LibraryStore, owner: string): TerrainLibr
     [store, attempt],
   );
   const setPhoto = useCallback(
-    (piece: LibraryPiece, photo: EncodedPhoto) => {
-      const changed = withPhoto(piece);
+    (piece: LibraryPiece, { photo, ratio }: CroppedPhoto) => {
+      const changed = withPhoto(piece, ratio);
       const version = changed.image?.version ?? 0;
       return attempt(async () => {
         remember(piece.id, version, photo);

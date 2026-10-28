@@ -177,6 +177,7 @@ describe('photos', () => {
     expect(once.image).toEqual({ version: 1, ratio: 2 });
     expect(withPhoto(once).image).toEqual({ version: 2, ratio: 2 });
     expect(withoutPhoto(once).image).toBeNull();
+    expect(withPhoto(once, 1.5).image).toEqual({ version: 2, ratio: 1.5 });
   });
 
   it('asks for a new crop only when the footprint shape changed', () => {

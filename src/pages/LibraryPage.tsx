@@ -32,7 +32,7 @@ import { PieceGrid } from '../components/PieceGrid';
 import { SaveStatus } from '../components/SaveStatus';
 import { SideSheet } from '../components/SideSheet';
 import { useAuth } from '../hooks/authContext';
-import type { DraftPhoto } from '../hooks/useDraftPhoto';
+import type { DraftPhoto, PhotoChange } from '../hooks/useDraftPhoto';
 import { useGamePreferences } from '../hooks/gamePreferencesContext';
 import { useTerrainLibrary } from '../hooks/libraryContext';
 import { usePhotoEditor } from '../hooks/usePhotoEditor';
@@ -59,7 +59,7 @@ export function LibraryPage() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<LibraryPiece | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
-  const photoEditor = usePhotoEditor((cropped, { photo }) => {
+  const photoEditor = usePhotoEditor((cropped, photo) => {
     const piece = library.pieces.find((candidate) => candidate.id === cropped.id);
     if (piece !== undefined) {
       void run(() => library.setPhoto(piece, photo));
@@ -90,21 +90,22 @@ export function LibraryPage() {
     setForm({ title, initial, editing, key: (form?.key ?? 0) + 1 });
   }
 
-  async function savePiece(fields: PieceFields, photo: DraftPhoto | null): Promise<void> {
+  async function savePiece(fields: PieceFields, photo: PhotoChange): Promise<void> {
     if (form === null) {
       return;
     }
     const { editing } = form;
     setBusy(true);
     setFormError(null);
+    const newPhoto = photo.changed ? photo.photo : null;
     const saved: LibraryPiece =
       editing === null
-        ? newLibraryPiece(fields, library.newId(), photo?.ratio ?? null)
+        ? newLibraryPiece(fields, library.newId(), newPhoto?.ratio ?? null)
         : { ...latestVersion(pieces, editing), ...fields };
     const failure =
       editing === null
-        ? await library.addPieces([saved], photosFor(saved, photo))
-        : await library.updatePiece(saved);
+        ? await library.addPieces([saved], photosFor(saved, newPhoto))
+        : await saveChanges(saved, photo);
     setBusy(false);
     if (failure === null) {
       setForm(null);
@@ -112,6 +113,14 @@ export function LibraryPage() {
     } else {
       setFormError(failure);
     }
+  }
+
+  /** Saves an edited piece in one write, with its new photo or without its old one if those changed. */
+  function saveChanges(piece: LibraryPiece, photo: PhotoChange): Promise<string | null> {
+    if (!photo.changed) {
+      return library.updatePiece(piece);
+    }
+    return photo.photo === null ? library.removePhoto(piece) : library.setPhoto(piece, photo.photo);
   }
 
   async function confirmDelete(): Promise<void> {
@@ -278,6 +287,9 @@ export function LibraryPage() {
             unit={unit}
             library={pieces}
             editing={form.editing}
+            savedPhotoUrl={
+              form.editing === null ? undefined : library.photos.get(form.editing.id)?.url
+            }
             saving={busy}
             error={formError}
             onSave={(fields, photo) => {

@@ -181,12 +181,12 @@ export function newLibraryPiece(
   return { ...fields, id, image: photoRatio === null ? null : { version: 1, ratio: photoRatio } };
 }
 
-/** The piece with a newly cropped photo for its current footprint. */
-export function withPhoto(piece: LibraryPiece): LibraryPiece {
-  return {
-    ...piece,
-    image: { version: (piece.image?.version ?? 0) + 1, ratio: footprintRatio(piece.footprint) },
-  };
+/** The piece with a newly cropped photo, cropped to `ratio` (its current footprint's by default). */
+export function withPhoto(
+  piece: LibraryPiece,
+  ratio: number = footprintRatio(piece.footprint),
+): LibraryPiece {
+  return { ...piece, image: { version: (piece.image?.version ?? 0) + 1, ratio } };
 }
 
 export function withoutPhoto(piece: LibraryPiece): LibraryPiece {

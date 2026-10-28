@@ -3,7 +3,6 @@ import { useId } from 'react';
 import type { CroppedPhoto } from '../domain/imageCrop';
 import { photoFits } from '../domain/library';
 import type { TerrainPiece } from '../domain/terrain';
-import type { DraftPhoto } from '../hooks/useDraftPhoto';
 import { usePhotoEditor } from '../hooks/usePhotoEditor';
 import { BUTTON_STYLES } from './buttonStyles';
 import { LABEL_STYLES } from './fieldStyles';
@@ -12,12 +11,13 @@ import { PhotoCropper } from './PhotoCropper';
 interface PiecePhotoFieldProps {
   /** The piece as the form describes it, or null while its sizes are not valid yet. */
   piece: TerrainPiece | null;
-  photo: DraftPhoto | null;
+  /** The photo the piece has in the form, or null when it has none. */
+  photo: { readonly ratio: number } | null;
   disabled: boolean;
   onChange: (photo: CroppedPhoto | null) => void;
 }
 
-/** Picking and cropping a photo for a piece that is not saved yet. */
+/** Picking, cropping and removing a piece's photo in the piece form, saved with the piece. */
 export function PiecePhotoField({ piece, photo, disabled, onChange }: PiecePhotoFieldProps) {
   const hintId = useId();
   const editor = usePhotoEditor((_piece, cropped) => {
