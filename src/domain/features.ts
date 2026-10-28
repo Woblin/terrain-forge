@@ -14,13 +14,14 @@ import { isJoined, type SpacingRules } from './spacing';
 import type { TerrainType } from './terrain';
 
 /**
- * Which smaller pieces like to stand right next to each kind of anchor. Starting values, to tune
- * after playing on generated boards.
+ * Which smaller pieces like to stand right next to each kind of anchor. Walls stand apart from
+ * buildings and ruins, since a wall hugging a building looks wrong. Starting values, to tune after
+ * playing on generated boards.
  */
 export const COMPANION_TYPES: Readonly<Record<TerrainType, readonly TerrainType[]>> = {
-  building: ['wall', 'obstacle', 'crater'],
+  building: ['obstacle', 'crater'],
   hill: ['wall', 'forest'],
-  ruin: ['crater', 'obstacle', 'wall'],
+  ruin: ['crater', 'obstacle'],
   forest: ['hill'],
   obstacle: [],
   wall: [],

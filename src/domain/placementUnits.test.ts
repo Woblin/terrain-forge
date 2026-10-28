@@ -78,17 +78,26 @@ describe('buildUnits', () => {
     expect(wallsUsed(oneWall)).toBe(0);
   });
 
-  it('builds features of an anchor with walls beside it', () => {
+  it('builds features of an anchor with a smaller piece beside it', () => {
     const featured = Array.from({ length: 20 }, (_, i) =>
-      buildUnits(expandCollection(ROBIN_COLLECTION), spacing, createRandom(i + 1)),
+      buildUnits(expandCollection(SAMPLE_COLLECTION), spacing, createRandom(i + 1)),
     )
       .flat()
-      .filter((unit) => unit.groups[0].some((member) => member.piece.type !== 'wall'))
-      .filter((unit) => unit.groups[0].length > 1);
+      .filter((unit) => new Set(unit.groups[0].map((member) => member.piece.id)).size > 1);
     expect(featured.length).toBeGreaterThan(0);
     for (const unit of featured) {
       expect(unit.groups[0][0]?.piece.type).toMatch(/building|ruin/);
       expect(unit.parts.length).toBe(2);
+    }
+  });
+
+  it('keeps walls apart from buildings and ruins', () => {
+    for (let seed = 1; seed <= 20; seed++) {
+      const units = buildUnits(expandCollection(ROBIN_COLLECTION), spacing, createRandom(seed));
+      for (const group of units.flatMap((unit) => unit.groups)) {
+        const types = new Set(group.map((member) => member.piece.type));
+        expect(types.has('wall') && types.size > 1).toBe(false);
+      }
     }
   });
 
