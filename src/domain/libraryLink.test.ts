@@ -44,6 +44,20 @@ const library: TerrainPiece[] = [
 ];
 
 describe('piece links', () => {
+  it('writes walls with their own code and reads them back as walls', () => {
+    const walls: TerrainPiece[] = [
+      {
+        id: 'w1',
+        name: 'Stone wall',
+        type: 'wall',
+        footprint: { kind: 'rect', width: 5.12, depth: 0.59 },
+        quantity: 6,
+      },
+    ];
+    expect(encodePieces(walls)).toBe('wr5.12x0.59x6');
+    expect(decodePieces('wr5.12x0.59x6')?.[0]?.type).toBe('wall');
+  });
+
   it('writes pieces in the order the generator takes them, without names', () => {
     expect(encodePieces(library)).toBe('fe9x7.5x2_or6x1x4_br10x8x2_rr8x5x6_rr11.81x6x4');
     expect(encodePieces(library)).not.toContain('Gothic');

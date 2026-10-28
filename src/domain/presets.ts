@@ -63,6 +63,7 @@ const DEFAULT_TERRAIN_EFFECTS: TerrainEffects = {
   building: { los: 'blocks', cover: 'heavy' },
   forest: { los: 'obscures', cover: 'light' },
   obstacle: { los: 'none', cover: 'light' },
+  wall: { los: 'none', cover: 'light' },
   hill: { los: 'none', cover: 'none' },
   crater: { los: 'none', cover: 'light' },
 };

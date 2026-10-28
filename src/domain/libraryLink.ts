@@ -13,6 +13,7 @@ const TYPE_CODES: Readonly<Record<TerrainType, string>> = {
   building: 'b',
   forest: 'f',
   obstacle: 'o',
+  wall: 'w',
   hill: 'h',
   crater: 'c',
 };
