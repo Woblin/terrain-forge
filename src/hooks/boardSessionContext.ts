@@ -32,6 +32,23 @@ export interface BoardViewOptions {
   readonly showDistances: boolean;
 }
 
+/** How a board is shown before the player changes anything. */
+export const DEFAULT_VIEW_OPTIONS: BoardViewOptions = {
+  snap: true,
+  movePairs: true,
+  showPhotos: true,
+  showLane: null,
+  showHidden: false,
+  showDistances: false,
+};
+
+/** Whether the view is as it starts, so that there is nothing to reset. */
+export function isDefaultView(view: BoardViewOptions): boolean {
+  return (Object.keys(DEFAULT_VIEW_OPTIONS) as (keyof BoardViewOptions)[]).every(
+    (option) => view[option] === DEFAULT_VIEW_OPTIONS[option],
+  );
+}
+
 /**
  * The board being worked on, kept above the pages so that it is still there after a visit to
  * another page. It lasts until the page reloads, or until another player's library takes over;

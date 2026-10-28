@@ -5,6 +5,7 @@ import type { TerrainPiece } from '../domain/terrain';
 import {
   BoardSessionContext,
   DEFAULT_DEPLOYMENT_ID,
+  DEFAULT_VIEW_OPTIONS,
   type BoardChoice,
   type BoardViewOptions,
   type CollectionSource,
@@ -22,15 +23,6 @@ interface SessionState {
   readonly seenCollection: readonly TerrainPiece[] | null;
   readonly opened: OpenedBoard | null;
 }
-
-const DEFAULT_VIEW: BoardViewOptions = {
-  snap: true,
-  movePairs: true,
-  showPhotos: true,
-  showLane: null,
-  showHidden: false,
-  showDistances: false,
-};
 
 /**
  * Keeps the board while the player visits other pages. Signing out or switching accounts starts
@@ -92,7 +84,7 @@ function freshSession(owner: string): SessionState {
     choice: { presetId: DEFAULT_PRESET_ID, deploymentId: DEFAULT_DEPLOYMENT_ID },
     source: { kind: 'own' },
     notice: null,
-    view: DEFAULT_VIEW,
+    view: DEFAULT_VIEW_OPTIONS,
     seenCollection: null,
     opened: null,
   };

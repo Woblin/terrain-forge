@@ -20,6 +20,9 @@ interface GeneratorControlsProps {
   onPresetChange: (presetId: string) => void;
   onDeploymentChange: (deploymentId: string) => void;
   onRuleChange: (rule: RuleId, enabled: boolean) => void;
+  /** False when the rules and board options are already as they start. */
+  canReset: boolean;
+  onReset: () => void;
   onGenerate: () => void;
 }
 
@@ -34,6 +37,8 @@ export function GeneratorControls({
   onPresetChange,
   onDeploymentChange,
   onRuleChange,
+  canReset,
+  onReset,
   onGenerate,
 }: GeneratorControlsProps) {
   const presetId = useId();
@@ -85,7 +90,12 @@ export function GeneratorControls({
           ))}
         </select>
       </div>
-      <RuleSwitches enabledRules={enabledRules} onRuleChange={onRuleChange} />
+      <RuleSwitches
+        enabledRules={enabledRules}
+        onRuleChange={onRuleChange}
+        canReset={canReset}
+        onReset={onReset}
+      />
       {settingsError !== null && <p className="text-warn-ink text-sm">{settingsError}</p>}
       <button type="button" onClick={onGenerate} className={`w-full ${BUTTON_STYLES.primary} h-11`}>
         <SparklesIcon className="size-[18px]" aria-hidden="true" />

@@ -4,6 +4,7 @@ import type { RuleId } from '../domain/fairness';
 import {
   withDefaultPreset,
   withRuleSwitched,
+  withRulesReset,
   type GamePreferences,
 } from '../domain/gamePreferences';
 import type { GameSystemPreset } from '../domain/presets';
@@ -98,6 +99,9 @@ export function GamePreferencesProvider({ children }: { children: ReactNode }) {
       },
       switchRule: (preset: GameSystemPreset, rule: RuleId, enabled: boolean) => {
         update(withRuleSwitched(preferences, preset, rule, enabled));
+      },
+      resetRules: (preset: GameSystemPreset) => {
+        update(withRulesReset(preferences, preset));
       },
     };
   }, [db, savingUid, ready, preferences, error]);

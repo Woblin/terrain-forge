@@ -16,7 +16,7 @@ import {
   type PieceUpdate,
 } from '../domain/editor';
 import { evaluateFairness, RULE_IDS, type RuleId } from '../domain/fairness';
-import { enabledRulesFor, startingPreset } from '../domain/gamePreferences';
+import { enabledRulesFor, startingPreset, usesDefaultRules } from '../domain/gamePreferences';
 import { resolveGameSetup, type GameSetup } from '../domain/gameSetup';
 import { prepareCollection } from '../domain/generator';
 import { add, type Point } from '../domain/geometry';
@@ -80,6 +80,8 @@ import { randomSeed, useGenerator } from '../hooks/useGenerator';
 import { useLeaveWarning } from '../hooks/useLeaveWarning';
 import {
   DEFAULT_DEPLOYMENT_ID,
+  DEFAULT_VIEW_OPTIONS,
+  isDefaultView,
   useBoardSession,
   type BoardChoice,
   type BoardSession,
@@ -618,6 +620,13 @@ export function BoardPage() {
         }}
         onRuleChange={(rule, enabled) => {
           settings.switchRule(chosenPreset, rule, enabled);
+        }}
+        canReset={
+          !usesDefaultRules(chosenPreset, settings.preferences) || !isDefaultView(session.view)
+        }
+        onReset={() => {
+          settings.resetRules(chosenPreset);
+          setView(DEFAULT_VIEW_OPTIONS);
         }}
         onDeploymentChange={(deploymentId) => {
           setChoice({ ...choice, deploymentId });
