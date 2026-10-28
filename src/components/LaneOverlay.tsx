@@ -5,10 +5,12 @@ interface LaneOverlayProps {
   lane: Lane;
   limit: number;
   unit: LengthUnit;
+  /** The board is drawn turned a quarter turn, so the label turns back to stay readable. */
+  upright: boolean;
 }
 
 /** The longest clear firing lane (R5) as a line with its length. */
-export function LaneOverlay({ lane, limit, unit }: LaneOverlayProps) {
+export function LaneOverlay({ lane, limit, unit, upright }: LaneOverlayProps) {
   const tooLong = lane.length > limit;
   const colour = tooLong ? 'stroke-rose-400 fill-rose-400' : 'stroke-sky-300 fill-sky-300';
   const middle = { x: (lane.from.x + lane.to.x) / 2, y: (lane.from.y + lane.to.y) / 2 };
@@ -28,6 +30,7 @@ export function LaneOverlay({ lane, limit, unit }: LaneOverlayProps) {
       <text
         x={middle.x}
         y={middle.y - 0.8}
+        transform={upright ? `rotate(90 ${String(middle.x)} ${String(middle.y)})` : undefined}
         textAnchor="middle"
         fontSize={1.4}
         strokeWidth={0.4}

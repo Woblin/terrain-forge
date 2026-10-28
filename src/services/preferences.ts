@@ -71,3 +71,47 @@ export function saveThemeChoice(choice: ThemeChoice): void {
     console.warn('Could not save the theme; it resets on the next visit.', error);
   }
 }
+
+const PANELS_KEY = 'terrain-forge.board-panels';
+
+/** Which side panels are open next to the board on a wide screen. */
+export interface OpenPanels {
+  readonly setup: boolean;
+  readonly details: boolean;
+}
+
+const ALL_PANELS_OPEN: OpenPanels = { setup: true, details: true };
+
+/** The side panels as the player left them on this device; both open when unknown. */
+export function loadOpenPanels(): OpenPanels {
+  try {
+    const stored = localStorage.getItem(PANELS_KEY);
+    return stored === null ? ALL_PANELS_OPEN : parseOpenPanels(JSON.parse(stored));
+  } catch (error) {
+    console.warn('Could not read which board panels were open; opening both.', error);
+    return ALL_PANELS_OPEN;
+  }
+}
+
+export function saveOpenPanels(panels: OpenPanels): void {
+  try {
+    localStorage.setItem(PANELS_KEY, JSON.stringify(panels));
+  } catch (error) {
+    console.warn(
+      'Could not save which board panels are open; they reset on the next visit.',
+      error,
+    );
+  }
+}
+
+function parseOpenPanels(value: unknown): OpenPanels {
+  if (typeof value !== 'object' || value === null) {
+    return ALL_PANELS_OPEN;
+  }
+  const setup = 'setup' in value ? value.setup : undefined;
+  const details = 'details' in value ? value.details : undefined;
+  return {
+    setup: typeof setup === 'boolean' ? setup : true,
+    details: typeof details === 'boolean' ? details : true,
+  };
+}

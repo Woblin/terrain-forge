@@ -1,8 +1,10 @@
+import { SaveIcon } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router';
 import { copyName, type OpenedBoard } from '../domain/savedBoard';
 import type { SavedBoardsAccess } from '../hooks/savedBoardsContext';
 import { BoardNameDialog } from './BoardNameDialog';
+import { BUTTON_STYLES } from './buttonStyles';
 
 interface SaveBoardControlsProps {
   access: SavedBoardsAccess;
@@ -41,16 +43,13 @@ export function SaveBoardControls({
 
   if (access !== 'account') {
     return (
-      <section
-        aria-label="Save board"
-        className="border-line bg-surface space-y-2 rounded-2xl border p-4 text-sm shadow-sm"
-      >
+      <section aria-label="Save board" className="space-y-2 text-sm">
         {access === 'signedOut' ? (
           <>
             <Link
               to="/sign-in"
               state={{ from: location.pathname }}
-              className="border-line-strong hover:bg-hover block w-full rounded-lg border px-3 py-1.5 text-center"
+              className={`w-full ${BUTTON_STYLES.secondary} h-10 pointer-coarse:h-11`}
             >
               Sign in to save
             </Link>
@@ -70,10 +69,7 @@ export function SaveBoardControls({
   }
 
   return (
-    <section
-      aria-label="Save board"
-      className="border-line bg-surface space-y-2 rounded-2xl border p-4 text-sm shadow-sm"
-    >
+    <section aria-label="Save board" className="space-y-2 text-sm">
       {opened !== null && (
         <div className="flex items-baseline justify-between gap-2">
           <h2 className="min-w-0 font-semibold break-words">{opened.name}</h2>
@@ -99,8 +95,9 @@ export function SaveBoardControls({
               saveOver();
             }
           }}
-          className="bg-accent text-on-accent hover:bg-accent-hover flex-1 rounded-lg px-3 py-1.5 font-semibold disabled:opacity-50"
+          className={`flex-1 ${BUTTON_STYLES.primary} h-10 pointer-coarse:h-11`}
         >
+          <SaveIcon className="size-4" aria-hidden="true" />
           {opened === null ? 'Save board' : 'Save'}
           {unsaved && <span aria-hidden="true"> •</span>}
         </button>
@@ -111,7 +108,7 @@ export function SaveBoardControls({
             onClick={() => {
               setAsking('copy');
             }}
-            className="border-line-strong hover:bg-hover flex-1 rounded-lg border px-3 py-1.5 disabled:opacity-50"
+            className={`flex-1 ${BUTTON_STYLES.secondary} h-10 pointer-coarse:h-11`}
           >
             Save as copy
           </button>

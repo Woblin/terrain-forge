@@ -1,4 +1,4 @@
-import { useEffect, useRef, type RefObject } from 'react';
+import { useEffect, useRef } from 'react';
 import type { Point } from '../domain/geometry';
 
 export interface EditorKeyActions {
@@ -24,7 +24,7 @@ const TURN_STEP = 15;
  * act on the selected piece only work while a piece is selected and the board or nothing else has
  * focus.
  */
-export function useEditorKeys(board: RefObject<Element | null>, actions: EditorKeyActions): void {
+export function useEditorKeys(board: Element | null, actions: EditorKeyActions): void {
   const latest = useRef(actions);
   useEffect(() => {
     latest.current = actions;
@@ -37,7 +37,7 @@ export function useEditorKeys(board: RefObject<Element | null>, actions: EditorK
       }
       const handled =
         historyKey(event, latest.current) ||
-        (onBoardOrPage(event.target, board.current) && pieceKey(event, latest.current));
+        (onBoardOrPage(event.target, board) && pieceKey(event, latest.current));
       if (handled) {
         event.preventDefault();
       }

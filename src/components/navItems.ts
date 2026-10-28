@@ -47,3 +47,8 @@ export function pageTitle(pathname: string): string {
   }
   return 'Terrain Forge';
 }
+
+/** Pages laid out to fill the window exactly, scrolling inside their own panels. */
+export function fillsWindow(pathname: string): boolean {
+  return pathname === '/board';
+}
