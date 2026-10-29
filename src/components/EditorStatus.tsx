@@ -3,10 +3,13 @@ interface EditorStatusProps {
   selection: { name: string; problems: readonly string[]; detail?: string } | null;
 }
 
-/** What is selected and what is wrong with it, or how to edit when nothing is. */
+/**
+ * What is selected and what is wrong with it, or how to edit when nothing is. It keeps the same
+ * size whatever it says, so that the board above it never moves when a piece is picked up.
+ */
 export function EditorStatus({ selection }: EditorStatusProps) {
   return (
-    <div role="status" className="min-h-10 text-sm">
+    <div role="status" className="h-15 w-full overflow-y-auto text-sm">
       {selection === null ? (
         <p className="text-muted">
           Select a piece to edit it. Drag to move, drag the yellow handle to turn, or drop it off

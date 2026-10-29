@@ -46,6 +46,34 @@ export const MATS: readonly Mat[] = [
   { id: 'snow', name: 'Snow', tileWidth: 24, aspect: PICTURE_ASPECT, tone: 0.6 },
 ];
 
+/**
+ * How dark the player wants the mats, from 0 (each picture as it is) through 50 (each mat's own
+ * tone, as the app draws it by default) to 100 (darkest). A setting of this device only.
+ */
+export const MAT_DARKNESS_RANGE = { min: 0, max: 100, step: 10, standard: 50 } as const;
+
+/** The most a mat is darkened at the far end of the range, so the picture never turns black. */
+const DARKEST_TONE = 0.85;
+
+/** The mat's tone at this darkness: none at 0, its own tone at the standard, the darkest at 100. */
+export function matToneAt(mat: Mat, darkness: number): number {
+  const { min, max, standard } = MAT_DARKNESS_RANGE;
+  const level = Math.min(Math.max(darkness, min), max);
+  if (level <= standard) {
+    return (mat.tone * (level - min)) / (standard - min);
+  }
+  const darkest = Math.max(DARKEST_TONE, mat.tone);
+  return mat.tone + ((darkest - mat.tone) * (level - standard)) / (max - standard);
+}
+
+/** The darkness to use for a stored value: a number in the range, or the standard. */
+export function matDarknessOf(value: unknown): number {
+  const { min, max, standard } = MAT_DARKNESS_RANGE;
+  return typeof value === 'number' && Number.isFinite(value) && value >= min && value <= max
+    ? value
+    : standard;
+}
+
 export function isMatId(value: unknown): value is MatId {
   return MAT_IDS.some((id) => id === value);
 }

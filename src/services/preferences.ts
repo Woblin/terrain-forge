@@ -1,3 +1,4 @@
+import { matDarknessOf, MAT_DARKNESS_RANGE } from '../domain/mats';
 import { INITIAL_GAME_PREFERENCES, type GamePreferences } from '../domain/gamePreferences';
 import { parseThemeChoice, type ThemeChoice } from '../domain/theme';
 import type { LengthUnit } from '../domain/units';
@@ -69,6 +70,27 @@ export function saveThemeChoice(choice: ThemeChoice): void {
     localStorage.setItem(THEME_KEY, choice);
   } catch (error) {
     console.warn('Could not save the theme; it resets on the next visit.', error);
+  }
+}
+
+const MAT_DARKNESS_KEY = 'terrain-forge.mat-darkness';
+
+/** How dark the player wants the mats on this device. Like the unit, a failure uses the default. */
+export function loadMatDarkness(): number {
+  try {
+    const stored = localStorage.getItem(MAT_DARKNESS_KEY);
+    return stored === null ? MAT_DARKNESS_RANGE.standard : matDarknessOf(Number(stored));
+  } catch (error) {
+    console.warn('Could not read the saved mat darkness; using the standard.', error);
+    return MAT_DARKNESS_RANGE.standard;
+  }
+}
+
+export function saveMatDarkness(darkness: number): void {
+  try {
+    localStorage.setItem(MAT_DARKNESS_KEY, String(darkness));
+  } catch (error) {
+    console.warn('Could not save the mat darkness; it resets on the next visit.', error);
   }
 }
 
