@@ -354,8 +354,9 @@ describe("generateLayout on the product owner's Warhammer Fantasy terrain", () =
         }
         return placePiece(piece, placement);
       });
-      // Most boards place 13 to 15 of the 15 pieces; a crowded one can leave out a pair and a chain.
-      expect(placed.length).toBeGreaterThanOrEqual(9);
+      // Fantasy tables stay open for wheeling and flanking.
+      expect(result.report.coverage).toBeGreaterThanOrEqual(0.05);
+      expect(result.report.coverage).toBeLessThanOrEqual(0.1);
       const rules = { board: fantasyBoard, deployment, edgeMargin: 1, spacing: fantasy.spacing };
       expect(boardViolations(placed, rules).flat()).toEqual([]);
       const clearance = fantasy.clearance;

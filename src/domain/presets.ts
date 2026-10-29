@@ -154,7 +154,8 @@ export const PRESETS: readonly GameSystemPreset[] = [
     spacing: REGIMENT_SPACING,
     clearance: { width: REGIMENT_WIDTH, minReach: 0.9 },
     reach: 8,
-    balance: { ...SHARED_BALANCE, maxClearLane: 58, coverage: { min: 0.15, max: 0.25 } },
+    // Regiments need open ground to wheel and flank, so Fantasy tables carry little terrain.
+    balance: { ...SHARED_BALANCE, maxClearLane: 58, coverage: { min: 0.05, max: 0.1 } },
     defaultRules: RANK_AND_FILE_RULES,
     ...SHARED_SETTINGS,
   },
