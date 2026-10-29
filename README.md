@@ -94,13 +94,17 @@ Terrain Forge is a web app that generates a battlefield layout for tabletop warg
 | `yarn validate` | Typecheck, lint, format check and tests (what CI runs) |
 
 ### Deploy
-Deploys are done manually by the maintainer:
-```bash
-yarn build
-firebase login
-firebase use <your-project-id>
-firebase deploy
-```
+Deploys are done manually by the maintainer, from a machine with the Firebase CLI and a `.env.local` that holds the real Firebase values (`yarn build` bakes them into `dist/`):
+
+1. Check that `.env.local` does **not** set `VITE_USE_EMULATORS=true`, or the live site will try to reach emulators on `localhost`.
+2. Build and deploy:
+   ```bash
+   yarn build
+   firebase login
+   firebase deploy
+   ```
+   `.firebaserc` already points at the `terrain-forge` project, so `firebase use` is not needed. `firebase deploy` publishes Hosting, `firestore.rules` and `firestore.indexes.json` together. Use `firebase deploy --only hosting` to update just the site.
+3. The app is live at `https://terrain-forge.web.app` (and `https://terrain-forge.firebaseapp.com`). Both domains are on the Firebase Auth authorized domains list by default; a custom domain has to be added there before sign-in works on it.
 
 ## Roadmap
 - [x] Battlefield generation algorithm with balance rules
