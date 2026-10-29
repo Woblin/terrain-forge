@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
 import type { CroppedPhoto } from '../domain/imageCrop';
+import { shownPhotoBlob } from '../services/photoMasking';
 
 /** A photo cropped in the piece form and not saved yet, with a URL to show it. */
 export interface DraftPhoto extends CroppedPhoto {
+  /** The photo as shown, with any hidden parts see-through. */
   readonly url: string;
 }
 
@@ -12,7 +14,8 @@ export type PhotoChange =
 
 export interface DraftPhotoState {
   readonly change: PhotoChange;
-  readonly set: (photo: CroppedPhoto | null) => void;
+  /** Takes the new photo, or none. Rejects with a message when the photo cannot be shown. */
+  readonly set: (photo: CroppedPhoto | null) => Promise<void>;
 }
 
 const UNCHANGED: PhotoChange = { changed: false };
@@ -30,11 +33,13 @@ export function useDraftPhoto(): DraftPhotoState {
     [change],
   );
 
-  function set(next: CroppedPhoto | null): void {
-    setChange({
-      changed: true,
-      photo: next === null ? null : { ...next, url: URL.createObjectURL(next.photo.blob) },
-    });
+  async function set(next: CroppedPhoto | null): Promise<void> {
+    if (next === null) {
+      setChange({ changed: true, photo: null });
+      return;
+    }
+    const url = URL.createObjectURL(await shownPhotoBlob(next.photo));
+    setChange({ changed: true, photo: { ...next, url } });
   }
 
   return { change, set };

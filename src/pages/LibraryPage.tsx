@@ -287,9 +287,7 @@ export function LibraryPage() {
             unit={unit}
             library={pieces}
             editing={form.editing}
-            savedPhotoUrl={
-              form.editing === null ? undefined : library.photos.get(form.editing.id)?.url
-            }
+            savedPhoto={form.editing === null ? undefined : library.photos.get(form.editing.id)}
             saving={busy}
             error={formError}
             onSave={(fields, photo) => {

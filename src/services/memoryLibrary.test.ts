@@ -18,6 +18,7 @@ const photo: EncodedPhoto = {
   width: 384,
   height: 256,
   mimeType: 'image/webp',
+  mask: null,
 };
 
 function listen() {

@@ -172,7 +172,14 @@ describe('terrain images', () => {
     await assertSucceeds(getDoc(doc(asAlice(), path)));
   });
 
+  it('let the owner save a photo with a small mask of hidden parts', async () => {
+    const mask = Bytes.fromUint8Array(new Uint8Array(32 * 1024));
+    await assertSucceeds(setDoc(doc(asAlice(), path), image({ mask })));
+  });
+
   it.each([
+    ['with a mask over 32 KB', { mask: Bytes.fromUint8Array(new Uint8Array(32 * 1024 + 1)) }],
+    ['with a mask as text', { mask: 'aGVsbG8=' }],
     ['over 150 KB', { data: Bytes.fromUint8Array(new Uint8Array(150 * 1024 + 1)) }],
     ['as text instead of bytes', { data: 'aGVsbG8=' }],
     ['as a PNG', { mimeType: 'image/png' }],
@@ -219,6 +226,7 @@ describe('the Firestore library service', () => {
     width: 384,
     height: 192,
     mimeType: 'image/webp',
+    mask: null,
   };
 
   it('adds, updates and deletes pieces within the rules, and reads them back', async () => {
@@ -254,7 +262,16 @@ describe('the Firestore library service', () => {
         new Uint8Array([1, 2, 3, 4]),
       );
 
-      await library.setPhoto({ ...withImage, image: { version: 2, ratio: 2 } }, photo);
+      const mask = new Blob([new Uint8Array([5, 6, 7])], { type: 'image/png' });
+      await library.setPhoto({ ...withImage, image: { version: 2, ratio: 2 } }, { ...photo, mask });
+      await waitUntil(() => seen.at(-1)?.saving === false);
+      const masked = await library.readPhoto(id);
+      expect(new Uint8Array(await (masked?.mask?.arrayBuffer() ?? new ArrayBuffer(0)))).toEqual(
+        new Uint8Array([5, 6, 7]),
+      );
+      expect(masked?.mask?.type).toBe('image/png');
+      expect(read?.mask).toBeNull();
+
       await library.setPhoto({ ...withImage, image: null }, null);
       await waitUntil(
         () => seen.at(-1)?.saving === false && seen.at(-1)?.pieces[0]?.image === null,

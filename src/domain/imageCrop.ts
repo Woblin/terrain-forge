@@ -26,13 +26,17 @@ export interface CropView {
   readonly turns: QuarterTurns;
 }
 
-/** Saved photos are this many pixels on their long side. */
 /** A cropped, resized and encoded photo, ready to show or to save. */
 export interface EncodedPhoto {
   readonly blob: Blob;
   readonly width: number;
   readonly height: number;
   readonly mimeType: 'image/webp' | 'image/jpeg';
+  /**
+   * The parts of the photo the player hid, as a PNG of the photo's size that is opaque where the
+   * photo is hidden, or null when nothing is hidden.
+   */
+  readonly mask: Blob | null;
 }
 
 /** An encoded photo and the footprint ratio it was cropped to. */
@@ -41,9 +45,12 @@ export interface CroppedPhoto {
   readonly ratio: number;
 }
 
+/** Saved photos are this many pixels on their long side. */
 export const PHOTO_LONG_SIDE = 384;
 /** A saved photo may be at most this many bytes. */
 export const PHOTO_MAX_BYTES = 150 * 1024;
+/** A saved mask may be at most this many bytes. */
+export const PHOTO_MASK_MAX_BYTES = 32 * 1024;
 /** Encoding qualities tried in order until the photo fits in `PHOTO_MAX_BYTES`. */
 export const PHOTO_QUALITIES: readonly number[] = [0.8, 0.7, 0.6, 0.5];
 /** Photos are scaled down to this long side before cropping, to keep canvases small. */
