@@ -39,8 +39,12 @@ export function FootprintPreview({ type, footprint, unit, photoUrl }: FootprintP
         aria-label={`${style.name}, ${formatLength(footprint.width, unit)} by ${formatLength(footprint.depth, unit)}, drawn to scale`}
       >
         <g transform={`translate(${String(width / 2)} ${String(MARGIN + footprint.depth / 2)})`}>
-          <FootprintShape footprint={footprint} className={style.fill} />
-          {photoUrl !== undefined && <PiecePhoto footprint={footprint} url={photoUrl} />}
+          {/* A photo covers the shape; parts the player hid let the mat show through. */}
+          {photoUrl === undefined ? (
+            <FootprintShape footprint={footprint} className={style.fill} />
+          ) : (
+            <PiecePhoto footprint={footprint} url={photoUrl} />
+          )}
           <FootprintShape
             footprint={footprint}
             className={`fill-none ${style.stroke}`}

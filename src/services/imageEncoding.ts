@@ -107,7 +107,12 @@ export async function encodeCrop(
   for (const quality of PHOTO_QUALITIES) {
     const blob = await encodeSmallest(canvas, quality);
     if (blob.size <= PHOTO_MAX_BYTES) {
-      return { blob, ...size, mimeType: blob.type === 'image/webp' ? 'image/webp' : 'image/jpeg' };
+      return {
+        blob,
+        ...size,
+        mimeType: blob.type === 'image/webp' ? 'image/webp' : 'image/jpeg',
+        mask: null,
+      };
     }
   }
   throw new Error(

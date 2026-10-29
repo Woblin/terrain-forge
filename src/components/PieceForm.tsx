@@ -16,8 +16,10 @@ import {
   type TerrainPiece,
   type TerrainType,
 } from '../domain/terrain';
+import type { EncodedPhoto } from '../domain/imageCrop';
 import type { LengthUnit } from '../domain/units';
 import { useDraftPhoto, type PhotoChange } from '../hooks/useDraftPhoto';
+import type { StoredPhoto } from '../hooks/useLibraryPhotos';
 import { BUTTON_STYLES } from './buttonStyles';
 import { FIELD_ERROR_STYLES, FIELD_STYLES, LABEL_STYLES } from './fieldStyles';
 import { FootprintPreview } from './FootprintPreview';
@@ -35,8 +37,8 @@ interface PieceFormProps {
   saving: boolean;
   /** Why the last save failed. */
   error: string | null;
-  /** The URL of the edited piece's saved photo, once it has loaded. */
-  savedPhotoUrl: string | undefined;
+  /** The edited piece's saved photo, once it has loaded. */
+  savedPhoto: StoredPhoto | undefined;
   onSave: (fields: PieceFields, photo: PhotoChange) => void;
   onCancel: () => void;
 }
@@ -52,7 +54,7 @@ export function PieceForm({
   unit,
   library,
   editing,
-  savedPhotoUrl,
+  savedPhoto,
   saving,
   error,
   onSave,
@@ -63,7 +65,7 @@ export function PieceForm({
   const [errors, setErrors] = useState<DraftErrors>(NO_ERRORS);
   const draftPhoto = useDraftPhoto();
   const footprint = draftFootprint(draft, unit);
-  const photo = shownPhoto(draftPhoto.change, editing, savedPhotoUrl);
+  const photo = shownPhoto(draftPhoto.change, editing, savedPhoto);
   const unitName = unit === 'in' ? 'inches' : 'cm';
 
   function change(next: Partial<PieceDraft>): void {
@@ -268,13 +270,19 @@ export function PieceForm({
 function shownPhoto(
   change: PhotoChange,
   editing: LibraryPiece | null,
-  savedPhotoUrl: string | undefined,
-): { readonly ratio: number; readonly url: string | undefined } | null {
+  savedPhoto: StoredPhoto | undefined,
+): {
+  readonly ratio: number;
+  readonly url: string | undefined;
+  readonly source: EncodedPhoto | undefined;
+} | null {
   if (change.changed) {
-    return change.photo;
+    return change.photo === null ? null : { ...change.photo, source: change.photo.photo };
   }
   const image = editing?.image ?? null;
-  return image === null ? null : { ratio: image.ratio, url: savedPhotoUrl };
+  return image === null
+    ? null
+    : { ratio: image.ratio, url: savedPhoto?.url, source: savedPhoto?.source };
 }
 
 /** The piece the form describes so far, for cropping its photo to the right shape. */

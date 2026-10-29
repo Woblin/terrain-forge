@@ -53,8 +53,12 @@ export function TerrainShape({
         strokeWidth={5}
         vectorEffect="non-scaling-stroke"
       />
-      <FootprintShape footprint={piece.footprint} className={style.fill} />
-      {photoUrl !== undefined && <PiecePhoto footprint={piece.footprint} url={photoUrl} />}
+      {/* A photo covers the shape; parts the player hid let the mat show through. */}
+      {photoUrl === undefined ? (
+        <FootprintShape footprint={piece.footprint} className={style.fill} />
+      ) : (
+        <PiecePhoto footprint={piece.footprint} url={photoUrl} />
+      )}
       <FootprintShape
         footprint={piece.footprint}
         className={`fill-none ${style.stroke}`}

@@ -2,10 +2,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { LibraryPiece } from '../domain/library';
 import type { EncodedPhoto } from '../domain/imageCrop';
 import type { LibraryStore } from '../services/libraryStore';
+import { shownPhotoBlob } from '../services/photoMasking';
 
 /** A photo shown for every copy of a terrain piece. */
 export interface StoredPhoto {
+  /** The photo as shown, with any hidden parts see-through. */
   readonly url: string;
+  /** The photo and mask as saved, to edit them. */
+  readonly source: EncodedPhoto;
   readonly width: number;
   readonly height: number;
   readonly mimeType: EncodedPhoto['mimeType'];
@@ -46,8 +50,8 @@ export function useLibraryPhotos(
   const entries = cache.store === store ? cache.entries : EMPTY;
 
   const keep = useCallback(
-    (from: LibraryStore, pieceId: string, version: number, photo: EncodedPhoto) => {
-      const url = URL.createObjectURL(photo.blob);
+    async (from: LibraryStore, pieceId: string, version: number, photo: EncodedPhoto) => {
+      const url = URL.createObjectURL(await shownPhotoBlob(photo));
       urls.current.add(url);
       setCache((current) => {
         const known = current.store === from ? current.entries : EMPTY;
@@ -86,24 +90,22 @@ export function useLibraryPhotos(
         continue;
       }
       loading.current.add(key);
-      store.readPhoto(piece.id).then(
-        (photo) => {
-          if (photo !== null) {
-            keep(store, piece.id, version, photo);
-          }
-        },
-        (failure: unknown) => {
+      store
+        .readPhoto(piece.id)
+        .then((photo) => (photo === null ? undefined : keep(store, piece.id, version, photo)))
+        .catch((failure: unknown) => {
           loading.current.delete(key);
           setError(failure instanceof Error ? failure.message : 'Could not load a photo.');
-        },
-      );
+        });
     }
   }, [store, pieces, entries, keep]);
 
   const photos = useMemo(() => currentPhotos(pieces, entries), [pieces, entries]);
   const remember = useCallback(
     (pieceId: string, version: number, photo: EncodedPhoto) => {
-      keep(store, pieceId, version, photo);
+      keep(store, pieceId, version, photo).catch((failure: unknown) => {
+        setError(failure instanceof Error ? failure.message : 'Could not show a photo.');
+      });
     },
     [store, keep],
   );
@@ -130,6 +132,7 @@ function currentPhotos(
 function storedPhoto(url: string, photo: EncodedPhoto): StoredPhoto {
   return {
     url,
+    source: photo,
     width: photo.width,
     height: photo.height,
     mimeType: photo.mimeType,

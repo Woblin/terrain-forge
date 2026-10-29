@@ -71,12 +71,13 @@ service cloud.firestore {
         && request.resource.data.createdAt == resource.data.createdAt;
     }
 
-    // One low-resolution photo per terrain piece, at most 150 KB.
+    // One low-resolution photo per terrain piece, at most 150 KB. The optional mask is a PNG of
+    // the parts of the photo the player hid, at most 32 KB.
     match /users/{uid}/terrainImages/{pieceId} {
       allow read, delete: if isOwner(uid);
       allow create, update: if canSave(uid)
         && request.resource.data.keys().hasOnly(
-          ['data', 'mimeType', 'width', 'height', 'ratio', 'updatedAt'])
+          ['data', 'mimeType', 'width', 'height', 'ratio', 'mask', 'updatedAt'])
         && request.resource.data.keys().hasAll(
           ['data', 'mimeType', 'width', 'height', 'ratio', 'updatedAt'])
         && request.resource.data.data is bytes
@@ -87,6 +88,9 @@ service cloud.firestore {
         && request.resource.data.height is int
         && request.resource.data.height >= 1 && request.resource.data.height <= 384
         && request.resource.data.ratio is number && request.resource.data.ratio > 0
+        && (!('mask' in request.resource.data)
+          || (request.resource.data.mask is bytes
+            && request.resource.data.mask.size() <= 32 * 1024))
         && request.resource.data.updatedAt == request.time;
     }
 
