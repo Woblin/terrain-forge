@@ -94,7 +94,20 @@ Terrain Forge is a web app that generates a battlefield layout for tabletop warg
 | `yarn validate` | Typecheck, lint, format check and tests (what CI runs) |
 
 ### Deploy
-Deploys are done manually by the maintainer, from a machine with the Firebase CLI and a `.env.local` that holds the real Firebase values (`yarn build` bakes them into `dist/`):
+Every merge into `main` deploys automatically. The `deploy` job in `.github/workflows/ci.yml` runs after the checks pass, builds with the Firebase values stored as GitHub secrets, and runs `firebase deploy --only hosting,firestore`. That publishes the site, `firestore.rules` and `firestore.indexes.json` together, so a rules change goes live when its PR is merged.
+
+The app is live at `https://terrain-forge.web.app` (and `https://terrain-forge.firebaseapp.com`). Both domains are on the Firebase Auth authorized domains list by default; a custom domain has to be added there before sign-in works on it.
+
+#### One-time setup
+The deploy job needs these repository secrets (GitHub, Settings, Secrets and variables, Actions):
+
+| Secret | Value |
+| --- | --- |
+| `VITE_FIREBASE_API_KEY`, `VITE_FIREBASE_AUTH_DOMAIN`, `VITE_FIREBASE_PROJECT_ID`, `VITE_FIREBASE_STORAGE_BUCKET`, `VITE_FIREBASE_MESSAGING_SENDER_ID`, `VITE_FIREBASE_APP_ID` | The same values as in `.env.local` (Firebase console, Project settings, Your apps) |
+| `FIREBASE_SERVICE_ACCOUNT` | The full JSON key of a Google Cloud service account with the **Firebase Admin** and **Service Usage Consumer** roles on the `terrain-forge` project |
+
+#### Manual deploy
+To deploy by hand instead, from a machine with the Firebase CLI and a `.env.local` that holds the real Firebase values (`yarn build` bakes them into `dist/`):
 
 1. Check that `.env.local` does **not** set `VITE_USE_EMULATORS=true`, or the live site will try to reach emulators on `localhost`.
 2. Build and deploy:
@@ -103,8 +116,7 @@ Deploys are done manually by the maintainer, from a machine with the Firebase CL
    firebase login
    firebase deploy
    ```
-   `.firebaserc` already points at the `terrain-forge` project, so `firebase use` is not needed. `firebase deploy` publishes Hosting, `firestore.rules` and `firestore.indexes.json` together. Use `firebase deploy --only hosting` to update just the site.
-3. The app is live at `https://terrain-forge.web.app` (and `https://terrain-forge.firebaseapp.com`). Both domains are on the Firebase Auth authorized domains list by default; a custom domain has to be added there before sign-in works on it.
+   `.firebaserc` already points at the `terrain-forge` project, so `firebase use` is not needed. Use `firebase deploy --only hosting` to update just the site.
 
 ## Roadmap
 - [x] Battlefield generation algorithm with balance rules
