@@ -1,10 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { boardPolygon, longEdgeDeployment, standardDeployments } from './board';
-import { containsPolygon, polygonDistance } from './geometry';
+import { longEdgeDeployment, standardDeployments, type DeploymentMap } from './board';
+import { isPassable, regimentClearance } from './clearance';
+import { polygonDistance } from './geometry';
 import { RULE_IDS } from './fairness';
 import { GENERATOR_VERSION, generateLayout, type GenerationRequest } from './generator';
+import { boardViolations, placePiece } from './placement';
 import { findPreset, PRESETS, type GameSystemPreset } from './presets';
-import { placeFootprint, type TerrainPiece } from './terrain';
+import { ROBIN_COLLECTION } from './robinCollection';
+import { placeFootprint, type Placement, type TerrainPiece } from './terrain';
 
 const SLOW_TEST_TIMEOUT = 60_000;
 
@@ -118,34 +121,37 @@ describe('generateLayout invariants', () => {
         deploymentId: deployment.id,
         generatorVersion: GENERATOR_VERSION,
       });
-      expectLegalPlacements(result.layout.placements, warhammer40k);
+      expectLegalPlacements(result.layout.placements, warhammer40k, deployment);
     },
     SLOW_TEST_TIMEOUT,
   );
 });
 
+/** Each piece at most as often as owned, and nothing the board editor would warn about. */
 function expectLegalPlacements(
-  placements: readonly { pieceId: string; position: { x: number; y: number }; rotation: number }[],
+  placements: readonly Placement[],
   rules: GameSystemPreset,
+  deployment: DeploymentMap,
 ): void {
   const used = new Map<string, number>();
-  const polygons = placements.map((placement) => {
+  const placed = placements.map((placement) => {
     const piece = collection.find((p) => p.id === placement.pieceId);
     if (piece === undefined) {
       throw new Error(`Unknown piece ${placement.pieceId}`);
     }
     used.set(piece.id, (used.get(piece.id) ?? 0) + 1);
-    return placeFootprint(piece.footprint, placement);
+    return placePiece(piece, placement);
   });
   for (const piece of collection) {
     expect(used.get(piece.id) ?? 0).toBeLessThanOrEqual(piece.quantity);
   }
-  polygons.forEach((polygon, i) => {
-    expect(containsPolygon(boardPolygon(board), polygon)).toBe(true);
-    polygons.slice(i + 1).forEach((other) => {
-      expect(polygonDistance(polygon, other)).toBeGreaterThanOrEqual(rules.minGap - 1e-9);
-    });
-  });
+  const placementRules = {
+    board,
+    deployment,
+    edgeMargin: rules.edgeMargin,
+    spacing: rules.spacing,
+  };
+  expect(boardViolations(placed, placementRules).flat()).toEqual([]);
 }
 
 describe('generateLayout presets', () => {
@@ -319,6 +325,92 @@ describe('generateLayout with too little terrain', () => {
   );
 });
 
+describe("generateLayout on the product owner's Warhammer Fantasy terrain", () => {
+  const fantasy = preset('warhammer-fantasy');
+  const fantasyBoard = fantasy.defaultBoard;
+  const cases = standardDeployments(fantasyBoard, fantasy.zoneDepth).flatMap((deployment) =>
+    [1, 2, 3, 4, 5].map((seed) => ({ deployment, seed })),
+  );
+
+  it.each(cases)(
+    'leaves room for regiments and no wall alone on $deployment.id, seed $seed',
+    ({ deployment, seed }) => {
+      const result = generateLayout({
+        board: fantasyBoard,
+        pieces: ROBIN_COLLECTION,
+        preset: fantasy,
+        deployment,
+        seed,
+        enabledRules: fantasy.defaultRules,
+      });
+      if (!result.ok) {
+        throw new Error(result.reason);
+      }
+      expect(result.report.failedRules).toEqual([]);
+      const placed = result.layout.placements.map((placement) => {
+        const piece = ROBIN_COLLECTION.find((entry) => entry.id === placement.pieceId);
+        if (piece === undefined) {
+          throw new Error(`Unknown piece ${placement.pieceId}`);
+        }
+        return placePiece(piece, placement);
+      });
+      // Fantasy tables stay open for wheeling and flanking.
+      expect(result.report.coverage).toBeGreaterThanOrEqual(0.05);
+      expect(result.report.coverage).toBeLessThanOrEqual(0.1);
+      const rules = { board: fantasyBoard, deployment, edgeMargin: 1, spacing: fantasy.spacing };
+      expect(boardViolations(placed, rules).flat()).toEqual([]);
+      const clearance = fantasy.clearance;
+      if (clearance === null) {
+        throw new Error('Warhammer Fantasy should check clearance');
+      }
+      const marched = regimentClearance({
+        board: fantasyBoard,
+        deployment,
+        pieces: placed,
+        spacing: fantasy.spacing,
+        rules: clearance,
+      });
+      expect(isPassable(marched, clearance)).toBe(true);
+      const walls = placed.filter((piece) => piece.piece.id === 'stone-wall');
+      for (const wall of walls) {
+        const joined = walls.some(
+          (other) => other !== wall && polygonDistance(wall.polygon, other.polygon) < 0.05,
+        );
+        expect(joined).toBe(true);
+      }
+    },
+    SLOW_TEST_TIMEOUT,
+  );
+
+  it(
+    'joins Stone Walls end to end on some boards',
+    () => {
+      const joined = [1, 2, 3, 4, 5, 6].some((seed) => {
+        const result = generateLayout({
+          board: fantasyBoard,
+          pieces: ROBIN_COLLECTION,
+          preset: fantasy,
+          deployment: longEdgeDeployment(fantasyBoard, fantasy.zoneDepth),
+          seed,
+          enabledRules: fantasy.defaultRules,
+        });
+        const walls = result.ok
+          ? result.layout.placements
+              .filter((placement) => placement.pieceId === 'stone-wall')
+              .map((placement) =>
+                placeFootprint({ kind: 'rect', width: 5.12, depth: 0.59 }, placement),
+              )
+          : [];
+        return walls.some((wall, i) =>
+          walls.slice(i + 1).some((other) => polygonDistance(wall, other) < 0.05),
+        );
+      });
+      expect(joined).toBe(true);
+    },
+    SLOW_TEST_TIMEOUT,
+  );
+});
+
 describe('generateLayout regression', () => {
   it(
     'keeps seed 2024 stable; bump GENERATOR_VERSION if this changes on purpose',
@@ -334,20 +426,22 @@ describe('generateLayout regression', () => {
       expect({ version: GENERATOR_VERSION, summary }).toMatchInlineSnapshot(`
         {
           "summary": [
-            "building 41.39,16.50 165",
-            "building 18.61,27.50 345",
-            "ruin-large 47.91,28.96 315",
-            "ruin-large 12.09,15.04 135",
-            "ruin-large 28.76,13.41 75",
-            "ruin-large 31.24,30.59 255",
-            "forest 6.04,34.51 285",
-            "forest 53.96,9.49 105",
-            "ruin-small 54.47,38.72 15",
-            "ruin-small 5.53,5.28 195",
-            "barricade 1.65,19.21 90",
-            "barricade 58.35,24.79 270",
+            "building 43.37,25.07 210",
+            "building 16.63,18.93 30",
+            "ruin-large 38.91,6.85 180",
+            "ruin-large 21.09,37.15 0",
+            "forest 7.58,9.12 165",
+            "forest 52.42,34.88 345",
+            "ruin-small 51.84,14.49 15",
+            "barricade 50.94,17.57 15",
+            "ruin-small 8.16,29.51 195",
+            "barricade 9.06,26.43 195",
+            "ruin-small 23.06,7.74 285",
+            "ruin-small 36.94,36.26 105",
+            "ruin-small 31.00,17.70 195",
+            "ruin-small 29.00,26.30 15",
           ],
-          "version": 2,
+          "version": 3,
         }
       `);
     },

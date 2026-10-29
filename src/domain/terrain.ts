@@ -1,6 +1,14 @@
 import { placePolygon, rectangle, type Point, type Polygon } from './geometry';
 
-export const TERRAIN_TYPES = ['ruin', 'building', 'forest', 'obstacle', 'hill', 'crater'] as const;
+export const TERRAIN_TYPES = [
+  'ruin',
+  'building',
+  'forest',
+  'obstacle',
+  'wall',
+  'hill',
+  'crater',
+] as const;
 
 export type TerrainType = (typeof TERRAIN_TYPES)[number];
 
@@ -9,6 +17,7 @@ export const TERRAIN_TYPE_NAMES: Readonly<Record<TerrainType, string>> = {
   building: 'Building',
   forest: 'Forest',
   obstacle: 'Obstacle',
+  wall: 'Wall',
   hill: 'Hill',
   crater: 'Crater',
 };

@@ -6,8 +6,9 @@ import {
   oppositeCornersDeployment,
   shortEdgeDeployment,
   standardDeployments,
+  zoneBacks,
 } from './board';
-import { containsPoint, polygonArea, polygonBounds, signedArea } from './geometry';
+import { containsPoint, polygonArea, polygonBounds, signedArea, type Polygon } from './geometry';
 
 const board = { width: 60, depth: 44 };
 
@@ -49,5 +50,35 @@ describe('deployments', () => {
       expect(signedArea(deployment.zones.B)).toBeGreaterThan(0);
       expect(polygonArea(deployment.zones.A)).toBe(polygonArea(deployment.zones.B));
     }
+  });
+});
+
+describe('zoneBacks', () => {
+  function expectBounds(polygon: Polygon, minX: number, minY: number, maxX: number, maxY: number) {
+    const bounds = polygonBounds(polygon);
+    expect(bounds.minX).toBeCloseTo(minX);
+    expect(bounds.minY).toBeCloseTo(minY);
+    expect(bounds.maxX).toBeCloseTo(maxX);
+    expect(bounds.maxY).toBeCloseTo(maxY);
+  }
+
+  it('keeps the half of each long-edge zone along the table edge', () => {
+    const backs = zoneBacks(longEdgeDeployment(board, 12), board, 0.5);
+    expectBounds(backs.A, 0, 0, 60, 6);
+    expectBounds(backs.B, 0, 38, 60, 44);
+  });
+
+  it('keeps the half of each short-edge zone along the table edge', () => {
+    const backs = zoneBacks(shortEdgeDeployment(board, 12), board, 0.5);
+    expectBounds(backs.A, 0, 0, 6, 44);
+    expectBounds(backs.B, 54, 0, 60, 44);
+  });
+
+  it('keeps the corner of a corner zone, measured from its long side', () => {
+    const deployment = oppositeCornersDeployment(board);
+    const backs = zoneBacks(deployment, board, 0.5);
+    expectBounds(backs.A, 0, 0, 15, 11);
+    expectBounds(backs.B, 45, 33, 60, 44);
+    expect(polygonArea(backs.A)).toBeCloseTo(polygonArea(deployment.zones.A) / 4);
   });
 });

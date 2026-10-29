@@ -1,5 +1,7 @@
 import type { Board } from './board';
+import type { ClearanceRules } from './clearance';
 import { RULE_IDS, type RuleId } from './fairness';
+import type { SpacingRules } from './spacing';
 import type { TerrainEffects } from './terrain';
 
 export interface Range {
@@ -36,8 +38,10 @@ export interface GameSystemPreset {
   readonly zoneDepth: number;
   /** Smallest distance between a piece and the board edge. */
   readonly edgeMargin: number;
-  /** Smallest distance between two pieces, so models can move between them. */
-  readonly minGap: number;
+  /** How far apart terrain stands, so models can move between pieces. */
+  readonly spacing: SpacingRules;
+  /** When set, every board must leave room for the widest ranked unit to march across. */
+  readonly clearance: ClearanceRules | null;
   /** How far from its zone a player can reach cover in the first turn (R2). */
   readonly reach: number;
   readonly terrainEffects: TerrainEffects;
@@ -63,6 +67,7 @@ const DEFAULT_TERRAIN_EFFECTS: TerrainEffects = {
   building: { los: 'blocks', cover: 'heavy' },
   forest: { los: 'obscures', cover: 'light' },
   obstacle: { los: 'none', cover: 'light' },
+  wall: { los: 'none', cover: 'light' },
   hill: { los: 'none', cover: 'none' },
   crater: { los: 'none', cover: 'light' },
 };
@@ -74,6 +79,35 @@ const SHARED_BALANCE = {
   nearestCoverMaxDifference: 2,
   halfBoardMaxDifference: 0.15,
 } as const;
+
+/**
+ * Single models on round bases of 25 to 40 mm need about 1.6", so 3" also lets 50 to 60 mm
+ * monster and vehicle bases through.
+ */
+const SKIRMISH_SPACING: SpacingRules = {
+  minGap: 3,
+  joinGap: 1,
+  openTypes: ['hill'],
+  openGap: 3,
+  edge: null,
+  clearZoneBack: null,
+};
+
+/**
+ * The widest Warhammer Fantasy regiment is 6 infantry on 25 mm bases, or 6 cavalry on 25 x 50 mm
+ * bases: 150 mm, or 5.9", across. Hills are open ground a regiment marches over.
+ */
+const REGIMENT_WIDTH = 5.9;
+
+const REGIMENT_SPACING: SpacingRules = {
+  minGap: 6,
+  joinGap: 1,
+  openTypes: ['hill'],
+  openGap: 4,
+  edge: { hug: 2, open: 6 },
+  // All but the front quarter of each zone stays clear, so regiments can deploy in battle lines.
+  clearZoneBack: 0.75,
+};
 
 const SHARED_SETTINGS = {
   zoneDepth: 12,
@@ -87,7 +121,8 @@ export const PRESETS: readonly GameSystemPreset[] = [
     id: 'warhammer-40k',
     name: 'Warhammer 40,000',
     defaultBoard: { width: 60, depth: 44 },
-    minGap: 3,
+    spacing: SKIRMISH_SPACING,
+    clearance: null,
     reach: 6,
     balance: { ...SHARED_BALANCE, maxClearLane: 48, coverage: { min: 0.25, max: 0.35 } },
     defaultRules: RULE_IDS,
@@ -97,7 +132,8 @@ export const PRESETS: readonly GameSystemPreset[] = [
     id: 'age-of-sigmar',
     name: 'Age of Sigmar',
     defaultBoard: { width: 60, depth: 44 },
-    minGap: 3,
+    spacing: SKIRMISH_SPACING,
+    clearance: null,
     reach: 5,
     balance: { ...SHARED_BALANCE, maxClearLane: 48, coverage: { min: 0.2, max: 0.3 } },
     defaultRules: RULE_IDS,
@@ -107,7 +143,8 @@ export const PRESETS: readonly GameSystemPreset[] = [
     id: 'one-page-rules',
     name: 'One Page Rules',
     defaultBoard: { width: 72, depth: 48 },
-    minGap: 3,
+    spacing: SKIRMISH_SPACING,
+    clearance: null,
     reach: 6,
     balance: { ...SHARED_BALANCE, maxClearLane: 58, coverage: { min: 0.25, max: 0.35 } },
     defaultRules: RANK_AND_FILE_RULES,
@@ -117,9 +154,11 @@ export const PRESETS: readonly GameSystemPreset[] = [
     id: 'warhammer-fantasy',
     name: 'Warhammer Fantasy / The Old World',
     defaultBoard: { width: 72, depth: 48 },
-    minGap: 4,
+    spacing: REGIMENT_SPACING,
+    clearance: { width: REGIMENT_WIDTH, minReach: 0.9 },
     reach: 8,
-    balance: { ...SHARED_BALANCE, maxClearLane: 58, coverage: { min: 0.15, max: 0.25 } },
+    // Regiments need open ground to wheel and flank, so Fantasy tables carry little terrain.
+    balance: { ...SHARED_BALANCE, maxClearLane: 58, coverage: { min: 0.05, max: 0.1 } },
     defaultRules: RANK_AND_FILE_RULES,
     ...SHARED_SETTINGS,
   },

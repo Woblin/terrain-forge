@@ -20,6 +20,7 @@ import {
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import type { EncodedPhoto } from '../../src/domain/imageCrop';
 import type { LibraryPiece } from '../../src/domain/library';
+import { TERRAIN_TYPES } from '../../src/domain/terrain';
 import { createFirestoreLibrary, deleteLibrary } from '../../src/services/terrainLibrary';
 import type { LibrarySnapshot } from '../../src/services/libraryStore';
 import { pieceDocument } from '../../src/services/terrainLibrarySchema';
@@ -94,6 +95,15 @@ describe('terrain pieces', () => {
     await assertSucceeds(getDoc(doc(db, path)));
     await assertSucceeds(updateDoc(doc(db, path), { quantity: 6, updatedAt: serverTimestamp() }));
     await assertSucceeds(deleteDoc(doc(db, path)));
+  });
+
+  it('accept every terrain type the app knows, walls included', async () => {
+    const db = asAlice();
+    for (const type of TERRAIN_TYPES) {
+      await assertSucceeds(
+        setDoc(doc(db, `users/alice/terrainPieces/${type}`), newPiece({ type })),
+      );
+    }
   });
 
   it('keep other players and signed-out visitors out', async () => {

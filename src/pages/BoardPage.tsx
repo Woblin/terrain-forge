@@ -1152,7 +1152,7 @@ function placementRules(setup: GameSetup): PlacementRules {
     board: setup.board,
     deployment: setup.deployment,
     edgeMargin: setup.preset.edgeMargin,
-    minGap: setup.preset.minGap,
+    spacing: setup.preset.spacing,
   };
 }
 

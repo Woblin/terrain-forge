@@ -52,7 +52,7 @@ service cloud.firestore {
         && piece.keys().hasAll(
           ['name', 'type', 'footprint', 'quantity', 'image', 'schemaVersion', 'createdAt', 'updatedAt'])
         && piece.name is string && piece.name.size() >= 1 && piece.name.size() <= 40
-        && piece.type in ['ruin', 'building', 'forest', 'obstacle', 'hill', 'crater']
+        && piece.type in ['ruin', 'building', 'forest', 'obstacle', 'wall', 'hill', 'crater']
         && validFootprint(piece.footprint)
         && piece.quantity is int && piece.quantity >= 1 && piece.quantity <= 20
         && validImageRef(piece.image)

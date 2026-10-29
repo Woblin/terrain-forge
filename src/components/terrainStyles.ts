@@ -39,6 +39,13 @@ export const TERRAIN_STYLES: Readonly<Record<TerrainType, TerrainStyle>> = {
     stroke: 'stroke-amber-200',
     dash: undefined,
   },
+  wall: {
+    name: TERRAIN_TYPE_NAMES.wall,
+    fill: 'fill-neutral-400',
+    swatch: 'bg-neutral-400',
+    stroke: 'stroke-neutral-100',
+    dash: '4 1',
+  },
   hill: {
     name: TERRAIN_TYPE_NAMES.hill,
     fill: 'fill-lime-800',
