@@ -105,8 +105,8 @@ const REGIMENT_SPACING: SpacingRules = {
   openTypes: ['hill'],
   openGap: 4,
   edge: { hug: 2, open: 6 },
-  // The back half of each zone stays clear, so regiments can deploy in their battle lines.
-  clearZoneBack: 0.5,
+  // All but the front quarter of each zone stays clear, so regiments can deploy in battle lines.
+  clearZoneBack: 0.75,
 };
 
 const SHARED_SETTINGS = {

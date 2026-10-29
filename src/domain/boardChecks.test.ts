@@ -69,7 +69,7 @@ describe('checkBoard', () => {
     expect(checkBoard(hugging, SAMPLE_COLLECTION, regiments, 'in').size).toBe(0);
   });
 
-  it('asks Warhammer Fantasy players to keep the back half of each zone clear', () => {
+  it('asks Warhammer Fantasy players to keep the back of each zone clear', () => {
     const fantasy = findPreset('warhammer-fantasy');
     if (fantasy === undefined) {
       throw new Error('Missing Warhammer Fantasy');
@@ -81,7 +81,7 @@ describe('checkBoard', () => {
       regiments,
       'in',
     );
-    expect(checks.get('a')).toEqual(["Keep the back half of Player A's zone clear for deploying"]);
+    expect(checks.get('a')).toEqual(["Keep the back 75% of Player A's zone clear for deploying"]);
   });
 
   it('flags pieces off the board or inside the edge margin', () => {
