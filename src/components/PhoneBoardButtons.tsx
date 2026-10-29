@@ -10,6 +10,9 @@ interface PhoneBoardButtonsProps {
   onUndo: () => void;
   onRedo: () => void;
   onLayersChange: (change: Partial<LayerSettings>) => void;
+  matDarkness: number;
+  hasMatPicture: boolean;
+  onMatDarknessChange: (darkness: number) => void;
 }
 
 /** Undo, redo and the board options as round buttons over the corner of the board. */
@@ -20,6 +23,9 @@ export function PhoneBoardButtons({
   onUndo,
   onRedo,
   onLayersChange,
+  matDarkness,
+  hasMatPicture,
+  onMatDarknessChange,
 }: PhoneBoardButtonsProps) {
   const menuId = useId();
   return (
@@ -40,7 +46,13 @@ export function PhoneBoardButtons({
         popover="auto"
         className="border-line bg-surface text-ink shadow-shade top-auto right-3 bottom-24 left-3 m-0 rounded-2xl border p-4 shadow-2xl"
       >
-        <LayersMenu settings={layers} onChange={onLayersChange} />
+        <LayersMenu
+          settings={layers}
+          onChange={onLayersChange}
+          matDarkness={matDarkness}
+          hasMatPicture={hasMatPicture}
+          onMatDarknessChange={onMatDarknessChange}
+        />
       </div>
     </div>
   );

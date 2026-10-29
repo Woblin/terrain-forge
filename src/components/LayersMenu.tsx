@@ -1,3 +1,4 @@
+import { MatDarknessSlider } from './MatDarknessSlider';
 import { Switch } from './Switch';
 
 export interface LayerSettings {
@@ -13,10 +14,20 @@ export interface LayerSettings {
 interface LayersMenuProps {
   settings: LayerSettings;
   onChange: (change: Partial<LayerSettings>) => void;
+  matDarkness: number;
+  /** Whether the board has a mat picture to darken, rather than the plain board. */
+  hasMatPicture: boolean;
+  onMatDarknessChange: (darkness: number) => void;
 }
 
 /** What the board shows and how pieces move, for screens without room for a toolbar. */
-export function LayersMenu({ settings, onChange }: LayersMenuProps) {
+export function LayersMenu({
+  settings,
+  onChange,
+  matDarkness,
+  hasMatPicture,
+  onMatDarknessChange,
+}: LayersMenuProps) {
   return (
     <fieldset>
       <legend className="sr-only">Board options</legend>
@@ -60,6 +71,11 @@ export function LayersMenu({ settings, onChange }: LayersMenuProps) {
       >
         Mat
       </Switch>
+      <MatDarknessSlider
+        value={matDarkness}
+        disabled={!settings.showMat || !hasMatPicture}
+        onChange={onMatDarknessChange}
+      />
       <Switch
         checked={settings.showLane}
         onChange={(showLane) => {

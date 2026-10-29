@@ -80,6 +80,7 @@ import { useEditorKeys } from '../hooks/useEditorKeys';
 import { useElementSize } from '../hooks/useElementSize';
 import { randomSeed, useGenerator } from '../hooks/useGenerator';
 import { useLeaveWarning } from '../hooks/useLeaveWarning';
+import { useMatDarkness } from '../hooks/useMatDarkness';
 import {
   DEFAULT_DEPLOYMENT_ID,
   DEFAULT_VIEW_OPTIONS,
@@ -163,6 +164,7 @@ export function BoardPage() {
   } = session;
   const { snap, movePairs, showPhotos, showHidden, showDistances, showMat } = session.view;
   const shownMat = findMat(showMat ? matId : null);
+  const [matDarkness, setMatDarkness] = useMatDarkness();
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const ownCollection = library.pieces.length > 0 ? library.pieces : SAMPLE_COLLECTION;
@@ -666,6 +668,8 @@ export function BoardPage() {
           settings.chooseMat(next);
           setView({ showMat: true });
         }}
+        darkness={matDarkness}
+        onDarknessChange={setMatDarkness}
       />
       <SeedField
         seedCode={origin === undefined ? null : seedToCode(origin.seed)}
@@ -734,6 +738,7 @@ export function BoardPage() {
     <BoardView
       board={board}
       mat={shownMat}
+      matDarkness={matDarkness}
       frameRef={frameRef}
       upright={upright}
       size={drawnSize}
@@ -896,6 +901,9 @@ export function BoardPage() {
             onUndo={undo}
             onRedo={redo}
             onLayersChange={setView}
+            matDarkness={matDarkness}
+            hasMatPicture={findMat(matId).tileWidth !== null}
+            onMatDarknessChange={setMatDarkness}
           />
         }
         selectionBar={

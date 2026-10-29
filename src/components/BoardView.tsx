@@ -9,6 +9,8 @@ interface BoardViewProps {
   board: Board;
   /** The ground drawn under everything else. */
   mat: Mat;
+  /** How dark the player wants the mat. */
+  matDarkness: number;
   /** The group that holds the board drawing; its screen transform maps pointer positions to inches. */
   frameRef: RefObject<SVGGElement | null>;
   /** Draws the board turned a quarter turn, with Player A on the left, for tall screens. */
@@ -35,6 +37,7 @@ const GRID_SPACING = 6;
 export function BoardView({
   board,
   mat,
+  matDarkness,
   frameRef,
   upright,
   size,
@@ -77,7 +80,7 @@ export function BoardView({
       <title id={titleId}>Battlefield</title>
       <desc id={descriptionId}>{description}</desc>
       <g ref={frameRef} transform={upright ? uprightTransform(board) : undefined}>
-        <MatTone mat={mat} board={board} />
+        <MatTone mat={mat} board={board} darkness={matDarkness} />
         <g
           aria-hidden="true"
           className={mat.tileWidth === null ? 'stroke-stone-700' : 'stroke-white/15'}

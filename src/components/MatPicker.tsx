@@ -1,14 +1,17 @@
 import { useId } from 'react';
 import { MATS, type MatId } from '../domain/mats';
+import { MatDarknessSlider } from './MatDarknessSlider';
 import { matPicture } from './matPictures';
 
 interface MatPickerProps {
   value: MatId;
   onChange: (mat: MatId) => void;
+  darkness: number;
+  onDarknessChange: (darkness: number) => void;
 }
 
 /** A swatch for each mat, to pick the ground under the board's terrain. */
-export function MatPicker({ value, onChange }: MatPickerProps) {
+export function MatPicker({ value, onChange, darkness, onDarknessChange }: MatPickerProps) {
   const name = useId();
   return (
     <fieldset className="space-y-2">
@@ -47,6 +50,11 @@ export function MatPicker({ value, onChange }: MatPickerProps) {
           );
         })}
       </div>
+      <MatDarknessSlider
+        value={darkness}
+        disabled={value === 'plain'}
+        onChange={onDarknessChange}
+      />
     </fieldset>
   );
 }
