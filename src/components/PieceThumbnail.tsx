@@ -26,8 +26,12 @@ export function PieceThumbnail({
       className={`bg-mat shrink-0 ${className}`}
       aria-hidden="true"
     >
-      <FootprintShape footprint={piece.footprint} className={style.fill} />
-      {photoUrl !== undefined && <PiecePhoto footprint={piece.footprint} url={photoUrl} />}
+      {/* A photo covers the shape; parts the player hid let the mat show through. */}
+      {photoUrl === undefined ? (
+        <FootprintShape footprint={piece.footprint} className={style.fill} />
+      ) : (
+        <PiecePhoto footprint={piece.footprint} url={photoUrl} />
+      )}
       <FootprintShape
         footprint={piece.footprint}
         className={`fill-none ${style.stroke}`}

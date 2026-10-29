@@ -201,8 +201,8 @@ export function PhotoMaskPainter({
             Hide parts of {pieceName}
           </h2>
           <p className="text-soft roomy:max-w-md text-sm [@media(max-height:500px)]:hidden">
-            Paint over what isn&apos;t the piece, such as the table around it. Hidden parts show the
-            plain piece colour on the board. Use Show to bring parts back.
+            Paint over what isn&apos;t the piece, such as the table around it. Hidden parts are
+            see-through, so the board shows under them. Use Show to bring parts back.
           </p>
         </div>
         <div
