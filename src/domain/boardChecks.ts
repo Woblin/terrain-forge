@@ -81,5 +81,12 @@ export function describeViolation(
       return `${formatLength(violation.distance, unit)} from ${nameOf(violation.other)}, needs ${formatLength(violation.needed, unit)} (or ${formatLength(rules.spacing.joinGap, unit)} or less to join them)`;
     case 'zoneCrowded':
       return `More than one piece stands fully inside Player ${violation.player}'s zone`;
+    case 'zoneBack':
+      return `Keep the back ${backShare(rules)} of Player ${violation.player}'s zone clear for deploying`;
   }
+}
+
+function backShare(rules: PlacementRules): string {
+  const share = rules.spacing.clearZoneBack ?? 0;
+  return share === 0.5 ? 'half' : `${String(Math.round(share * 100))}%`;
 }

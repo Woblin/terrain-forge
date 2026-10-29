@@ -13,6 +13,7 @@ const spacing: SpacingRules = {
   openTypes: ['hill'],
   openGap: 4,
   edge: null,
+  clearZoneBack: null,
 };
 
 function piece(id: string, type: TerrainType, footprint: Footprint): TerrainPiece {

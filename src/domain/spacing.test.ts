@@ -8,6 +8,7 @@ const regiments: SpacingRules = {
   openTypes: ['hill'],
   openGap: 4,
   edge: { hug: 2, open: 6 },
+  clearZoneBack: null,
 };
 
 function piece(type: TerrainType): TerrainPiece {

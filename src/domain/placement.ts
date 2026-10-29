@@ -3,6 +3,7 @@ import {
   boardPolygon,
   mirrorPoint,
   PLAYERS,
+  zoneBacks,
   type Board,
   type DeploymentMap,
   type PlayerId,
@@ -314,8 +315,9 @@ export function playableArea(board: Board, edgeMargin: number): Polygon {
 }
 
 /**
- * Hard rules for new groups: on the board, clear of or hugging the table edge, apart from every
- * other group, and not crowding a zone. Pieces inside one group are already spaced by the group.
+ * Hard rules for new groups: on the board, clear of or hugging the table edge, out of the clear
+ * back of each zone, apart from every other group, and not crowding a zone. Pieces inside one group
+ * are already spaced by the group.
  */
 export function isLegal(
   candidate: readonly PlacedGroup[],
@@ -324,10 +326,12 @@ export function isLegal(
 ): boolean {
   const { board, edgeMargin, spacing } = rules;
   const playable = playableArea(board, edgeMargin);
+  const backs = clearBacks(rules);
   const pieces = candidate.flat();
   return (
     pieces.every(({ polygon }) => containsPolygon(playable, polygon)) &&
     pieces.every((piece) => respectsEdge(piece, board, spacing)) &&
+    pieces.every((piece) => clearBacksEntered(piece, backs).length === 0) &&
     candidate.every((group, i) =>
       keepsApart(group, [...placed, ...candidate.slice(i + 1).flat()], spacing),
     ) &&
@@ -374,6 +378,26 @@ function leavesZonesOpen(pieces: readonly PlacedPiece[], deployment: DeploymentM
   );
 }
 
+/** The back of each zone that stays clear of terrain, or none when the game has no such rule. */
+function clearBacks(rules: PlacementRules): { player: PlayerId; back: Polygon }[] {
+  const share = rules.spacing.clearZoneBack;
+  if (share === null) {
+    return [];
+  }
+  const backs = zoneBacks(rules.deployment, rules.board, share);
+  return PLAYERS.map((player) => ({ player, back: backs[player] }));
+}
+
+/** The players whose clear zone back the piece stands in. */
+function clearBacksEntered(
+  piece: PlacedPiece,
+  backs: readonly { player: PlayerId; back: Polygon }[],
+): PlayerId[] {
+  return backs
+    .filter(({ back }) => polygonsOverlap(piece.polygon, back))
+    .map(({ player }) => player);
+}
+
 /** A hard placement rule that a piece on the board breaks. */
 export type PlacementViolation =
   | { readonly kind: 'offBoard' }
@@ -385,7 +409,8 @@ export type PlacementViolation =
       readonly distance: number;
       readonly needed: number;
     }
-  | { readonly kind: 'zoneCrowded'; readonly player: PlayerId };
+  | { readonly kind: 'zoneCrowded'; readonly player: PlayerId }
+  | { readonly kind: 'zoneBack'; readonly player: PlayerId };
 
 /**
  * The hard rules from `isLegal` checked on a finished board: for each piece, in the same order,
@@ -400,6 +425,7 @@ export function boardViolations(
   const playable = playableArea(rules.board, rules.edgeMargin);
   const crowded = crowdedZones(pieces, rules.deployment);
   const feature = featureNumbers(pieces, rules.spacing);
+  const backs = clearBacks(rules);
   return pieces.map((piece, i) => {
     const onBoard = containsPolygon(playable, piece.polygon);
     const others = pieces.flatMap((other, j) =>
@@ -411,6 +437,7 @@ export function boardViolations(
       ...crowded
         .filter(({ inside }) => inside.has(i))
         .map(({ player }) => ({ kind: 'zoneCrowded' as const, player })),
+      ...clearBacksEntered(piece, backs).map((player) => ({ kind: 'zoneBack' as const, player })),
     ];
   });
 }

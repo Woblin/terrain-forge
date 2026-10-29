@@ -11,7 +11,14 @@ const rules: PlacementRules = {
   board,
   deployment: longEdgeDeployment(board, 12),
   edgeMargin: 1,
-  spacing: { minGap: 3, joinGap: 1, openTypes: ['hill'], openGap: 3, edge: null },
+  spacing: {
+    minGap: 3,
+    joinGap: 1,
+    openTypes: ['hill'],
+    openGap: 3,
+    edge: null,
+    clearZoneBack: null,
+  },
 };
 
 function piece(key: string, pieceId: string, x: number, y: number): BoardPiece {
@@ -60,6 +67,21 @@ describe('checkBoard', () => {
     expect(checks.get('a')).toEqual(['4″ from the table edge: keep 2″ or less, or 6″ or more']);
     const hugging = [piece('a', 'building', 6.5, 22)];
     expect(checkBoard(hugging, SAMPLE_COLLECTION, regiments, 'in').size).toBe(0);
+  });
+
+  it('asks Warhammer Fantasy players to keep the back half of each zone clear', () => {
+    const fantasy = findPreset('warhammer-fantasy');
+    if (fantasy === undefined) {
+      throw new Error('Missing Warhammer Fantasy');
+    }
+    const regiments = { ...rules, spacing: fantasy.spacing };
+    const checks = checkBoard(
+      [piece('a', 'barricade', 30, 2.5)],
+      SAMPLE_COLLECTION,
+      regiments,
+      'in',
+    );
+    expect(checks.get('a')).toEqual(["Keep the back half of Player A's zone clear for deploying"]);
   });
 
   it('flags pieces off the board or inside the edge margin', () => {

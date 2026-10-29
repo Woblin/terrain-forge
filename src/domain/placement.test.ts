@@ -22,7 +22,14 @@ const rules: PlacementRules = {
   board,
   deployment: longEdgeDeployment(board, 12),
   edgeMargin: 1,
-  spacing: { minGap: 3, joinGap: 1, openTypes: ['hill'], openGap: 3, edge: null },
+  spacing: {
+    minGap: 3,
+    joinGap: 1,
+    openTypes: ['hill'],
+    openGap: 3,
+    edge: null,
+    clearZoneBack: null,
+  },
 };
 
 /** Units of lone pieces, as before chains and features. */
@@ -111,6 +118,14 @@ describe('isLegal', () => {
     expect(isLegal([[at(4.5, 22)]], [], edged)).toBe(true);
     expect(isLegal([[at(7, 22)]], [], edged)).toBe(false);
     expect(isLegal([[at(9, 22)]], [], edged)).toBe(true);
+  });
+
+  it('keeps the back of each zone clear, when the game asks for that', () => {
+    const clear = { ...rules, spacing: { ...rules.spacing, clearZoneBack: 0.5 } };
+    expect(isLegal([[at(30, 4)]], [], clear)).toBe(false);
+    expect(isLegal([[at(30, 40)]], [], clear)).toBe(false);
+    expect(isLegal([[at(30, 8.5)]], [], clear)).toBe(true);
+    expect(isLegal([[at(30, 4)]], [], rules)).toBe(true);
   });
 
   it('allows only one piece fully inside a deployment zone', () => {
@@ -207,6 +222,14 @@ describe('boardViolations', () => {
 
   it('flags pieces outside the playable area', () => {
     expect(boardViolations([at(2, 22)], rules)).toEqual([[{ kind: 'offBoard' }]]);
+  });
+
+  it('flags a piece in the clear back of a zone', () => {
+    const clear = { ...rules, spacing: { ...rules.spacing, clearZoneBack: 0.5 } };
+    expect(boardViolations([at(30, 4), at(30, 22)], clear)).toEqual([
+      [{ kind: 'zoneBack', player: 'A' }],
+      [],
+    ]);
   });
 
   it('flags every piece in a zone holding too many', () => {

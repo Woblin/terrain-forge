@@ -22,6 +22,11 @@ export interface SpacingRules {
   readonly openGap: number;
   /** Null when pieces may stand anywhere outside the edge margin. */
   readonly edge: EdgeSpacing | null;
+  /**
+   * Share of each deployment zone's depth, along the player's own table edge, that stays free of
+   * terrain so armies have room to deploy. Null when terrain may stand anywhere in a zone.
+   */
+  readonly clearZoneBack: number | null;
 }
 
 /** Room for rounding, so a gap measured at exactly the limit counts as meeting it. */

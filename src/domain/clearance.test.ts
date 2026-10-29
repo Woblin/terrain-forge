@@ -13,6 +13,7 @@ const spacing: SpacingRules = {
   openTypes: ['hill'],
   openGap: 4,
   edge: { hug: 2, open: 6 },
+  clearZoneBack: null,
 };
 const regiment: ClearanceRules = { width: 5.9, minReach: 0.9 };
 
