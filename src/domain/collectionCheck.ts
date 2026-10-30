@@ -1,9 +1,10 @@
 import { boardArea, type Board } from './board';
 import type { RuleId } from './fairness';
-import { prepareCollection } from './generator';
+import { prepareCollection, tooLargeWarnings } from './generator';
 import { pairPieces } from './placement';
 import { PRESETS, type GameSystemPreset, type Range } from './presets';
-import { footprintArea, type TerrainPiece } from './terrain';
+import { footprintArea, TERRAIN_TYPE_NAMES, type TerrainPiece } from './terrain';
+import { formatLength, formatRoughArea, type LengthUnit } from './units';
 
 export type CheckLevel = 'ok' | 'warning' | 'problem';
 
@@ -23,36 +24,84 @@ export interface PresetCheck {
   readonly findings: readonly CollectionFinding[];
 }
 
-/** `rulesFor` gives the balance rules that are on for each game. */
+/**
+ * `rulesFor` gives the balance rules that are on for each game; `unit` is how the findings
+ * write sizes.
+ */
 export function checkCollection(
   pieces: readonly TerrainPiece[],
   rulesFor: (preset: GameSystemPreset) => readonly RuleId[] = (preset) => preset.defaultRules,
+  unit: LengthUnit = 'in',
   presets: readonly GameSystemPreset[] = PRESETS,
 ): PresetCheck[] {
-  return presets.map((preset) => checkCollectionFor(pieces, preset, rulesFor(preset)));
+  return presets.map((preset) => checkCollectionFor(pieces, preset, rulesFor(preset), unit));
 }
 
 export function checkCollectionFor(
   pieces: readonly TerrainPiece[],
   preset: GameSystemPreset,
   enabledRules: readonly RuleId[] = preset.defaultRules,
+  unit: LengthUnit = 'in',
 ): PresetCheck {
   const board = preset.defaultBoard;
-  const { usable, warnings } = prepareCollection(pieces, board, preset);
+  const { usable } = prepareCollection(pieces, board, preset);
+  const coverage = coverageOf(usable, board);
   const findings = [
     ...emptyFindings(pieces, usable),
-    ...warnings.map((message) => ({ level: 'warning' as const, message })),
+    ...tooLargeWarnings(pieces, board, preset.edgeMargin).map((message) => ({
+      level: 'warning' as const,
+      message,
+    })),
+    ...coverageFindings(usable, coverage, preset.balance.coverage, board, unit),
     ...sightFindings(usable, preset, enabledRules),
-    ...unpairedFindings(usable),
+    ...unpairedFindings(usable, unit),
   ];
   return {
     preset,
     board,
-    coverage: coverageOf(usable, board),
+    coverage,
     coverageTarget: preset.balance.coverage,
     level: worstLevel(findings),
     findings,
   };
+}
+
+/** The piece of middling size, to say how much terrain is missing in pieces the player knows. */
+export function typicalPiece(pieces: readonly TerrainPiece[]): TerrainPiece | undefined {
+  const kinds = pieces.filter(
+    (piece, i) => pieces.findIndex((other) => other.id === piece.id) === i,
+  );
+  const bySize = kinds.sort((a, b) => footprintArea(a.footprint) - footprintArea(b.footprint));
+  return bySize[Math.floor((bySize.length - 1) / 2)];
+}
+
+/** Below the preset's coverage, the generator has to settle for sparser boards. */
+function coverageFindings(
+  usable: readonly TerrainPiece[],
+  coverage: number,
+  target: Range,
+  board: Board,
+  unit: LengthUnit,
+): CollectionFinding[] {
+  if (coverage >= target.min) {
+    return [];
+  }
+  const missing = (target.min - coverage) * boardArea(board);
+  return [{ level: 'warning', message: coverageMessage(missing, typicalPiece(usable), unit) }];
+}
+
+function coverageMessage(
+  missing: number,
+  reference: TerrainPiece | undefined,
+  unit: LengthUnit,
+): string {
+  const amount = `Add about ${formatRoughArea(missing, unit)} of terrain`;
+  if (reference === undefined) {
+    return `${amount}. Boards will feel open until then.`;
+  }
+  const count = Math.max(1, Math.round(missing / footprintArea(reference.footprint)));
+  const pieces = count === 1 ? 'piece' : 'pieces';
+  return `${amount} (roughly ${String(count)} ${pieces} the size of ${reference.name}). Boards will feel open until then.`;
 }
 
 function emptyFindings(
@@ -95,18 +144,21 @@ function sightNeeds(enabledRules: readonly RuleId[]): string[] {
 }
 
 /** The generator mirrors matching pairs through the centre, so pairs make fair boards easier. */
-function unpairedFindings(usable: readonly TerrainPiece[]): CollectionFinding[] {
-  const names = new Set(
-    pairPieces(usable).flatMap((unit) => (unit.kind === 'single' ? [unit.piece.name] : [])),
+function unpairedFindings(usable: readonly TerrainPiece[], unit: LengthUnit): CollectionFinding[] {
+  const singles = pairPieces(usable).flatMap((pairing) =>
+    pairing.kind === 'single' ? [pairing.piece] : [],
   );
-  return names.size === 0
-    ? []
-    : [
-        {
-          level: 'warning',
-          message: `No matching partner for: ${[...names].join(', ')}. Pieces in matching pairs make fair boards easier.`,
-        },
-      ];
+  const kinds = singles.filter(
+    (piece, i) => singles.findIndex((other) => other.name === piece.name) === i,
+  );
+  return kinds.map((piece) => ({ level: 'warning', message: partnerMessage(piece, unit) }));
+}
+
+function partnerMessage(piece: TerrainPiece, unit: LengthUnit): string {
+  const type = TERRAIN_TYPE_NAMES[piece.type].toLowerCase();
+  const { width, depth } = piece.footprint;
+  const size = `${formatLength(width, unit)} × ${formatLength(depth, unit)}`;
+  return `Add a second ${type} about ${size} to pair with ${piece.name}, so both sides can get one.`;
 }
 
 function coverageOf(usable: readonly TerrainPiece[], board: Board): number {

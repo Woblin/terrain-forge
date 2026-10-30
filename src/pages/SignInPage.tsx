@@ -4,6 +4,7 @@ import type { AccountDraft, AccountFormMode } from '../domain/account';
 import { EmailForm } from '../components/EmailForm';
 import { ExampleBoardArt } from '../components/ExampleBoardArt';
 import { GoogleButton } from '../components/GoogleButton';
+import { HERO_LAYOUT } from '../components/heroLayout';
 import { useAuth } from '../hooks/authContext';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 
@@ -51,18 +52,22 @@ export function SignInPage() {
   }
 
   return (
-    <main className="grid flex-1 lg:grid-cols-[minmax(0,1fr)_minmax(28rem,36rem)] xl:grid-cols-2">
-      {wide && <ExampleBoardArt />}
-      <div className="flex justify-center px-4 py-8 md:items-center md:px-8 md:py-12">
-        <div className="parchment frame w-full max-w-md space-y-6 rounded-sm p-6 md:p-8">
-          <div className="space-y-2">
-            <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">Sign in</h1>
-            <p className="text-muted">
+    <main className={`${HERO_LAYOUT.page} pb-24 md:pb-12`}>
+      <div className={HERO_LAYOUT.hero}>
+        <section
+          aria-labelledby="sign-in-heading"
+          className="parchment frame flex max-w-[520px] flex-[1_1_420px] flex-col gap-5 rounded-sm px-5 pt-7 pb-6 md:px-[34px] md:pt-8 md:pb-7"
+        >
+          <div className="flex flex-col gap-1.5">
+            <h1 id="sign-in-heading" className="font-display text-[34px] leading-[1.05]">
+              Sign in
+            </h1>
+            <p className="text-muted text-pretty">
               Signing in saves your terrain library, photos and boards, so they are there on every
               device.
             </p>
           </div>
-          <div className="space-y-2">
+          <div className="flex flex-col gap-2">
             <GoogleButton
               label="Continue with Google"
               busy={busy === 'google'}
@@ -76,10 +81,10 @@ export function SignInPage() {
               </p>
             )}
           </div>
-          <div className="text-faint flex items-center gap-3 text-sm" aria-hidden="true">
-            <span className="bg-line h-px flex-1" />
+          <div className="text-faint flex items-center gap-3 italic" aria-hidden="true">
+            <span className="bg-brass/60 h-px flex-1" />
             or
-            <span className="bg-line h-px flex-1" />
+            <span className="bg-brass/60 h-px flex-1" />
           </div>
           <EmailForm
             mode={mode}
@@ -96,19 +101,27 @@ export function SignInPage() {
             }}
           />
           {mode === 'createAccount' && (
-            <p className="text-muted text-sm">
+            <p className="text-muted -mt-1.5 text-xs">
               We send you an email to check the address. Your terrain is saved once you click the
               link in it.
             </p>
           )}
-          <p className="border-line text-muted border-t pt-4 text-sm">
+          <p className="border-brass/50 text-muted border-t pt-3.5 text-sm">
             You can also{' '}
             <Link to="/board" className="text-accent-ink hover:text-accent-ink-hover underline">
               use Terrain Forge without an account
             </Link>
             ; your terrain then lasts until you reload the page.
           </p>
-        </div>
+        </section>
+        {wide && (
+          <div className={`${HERO_LAYOUT.art} flex-col items-center gap-[18px]`}>
+            <ExampleBoardArt />
+            <p aria-hidden="true" className="font-display text-soft pl-2 text-[22px]">
+              Your terrain, your boards, on every device.
+            </p>
+          </div>
+        )}
       </div>
     </main>
   );

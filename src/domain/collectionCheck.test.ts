@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { checkCollection, checkCollectionFor } from './collectionCheck';
+import { checkCollection, checkCollectionFor, typicalPiece } from './collectionCheck';
 import { RULE_IDS } from './fairness';
 import { findPreset, PRESETS, type GameSystemPreset } from './presets';
 import { SAMPLE_COLLECTION } from './sampleCollection';
@@ -36,13 +36,27 @@ describe('checkCollection', () => {
     expect(check.coverageTarget).toEqual({ min: 0.25, max: 0.35 });
   });
 
-  it('warns, in the generator words, when the terrain covers too little of the board', () => {
+  it('says how much terrain to add when it covers too little of the board', () => {
+    // Two 9 x 7 ovals cover about 99 of the 72 x 48 board's 3456 sq in; 25% is 864.
     const check = checkCollectionFor([{ ...forest, type: 'ruin' }], preset('one-page-rules'));
     expect(check.level).toBe('warning');
     expect(check.findings).toContainEqual({
       level: 'warning',
-      message: 'Your terrain covers 3% of this board; 25% or more plays better.',
+      message:
+        'Add about 770 sq in of terrain (roughly 15 pieces the size of Forest). Boards will feel open until then.',
     });
+  });
+
+  it('writes the missing area in the unit the player uses', () => {
+    const check = checkCollectionFor(
+      [{ ...forest, type: 'ruin' }],
+      preset('one-page-rules'),
+      undefined,
+      'cm',
+    );
+    expect(check.findings.map((finding) => finding.message).join(' ')).toContain(
+      'Add about 4,940 sq cm of terrain',
+    );
   });
 
   it('calls a collection with nothing that blocks line of sight a problem', () => {
@@ -72,15 +86,15 @@ describe('checkCollection', () => {
     );
   });
 
-  it('names pieces that have no matching partner', () => {
+  it('suggests a partner for pieces that have none', () => {
     const odd = SAMPLE_COLLECTION.map((piece) =>
       piece.id === 'building' ? { ...piece, quantity: 3 } : piece,
     );
+    const building = SAMPLE_COLLECTION.find((piece) => piece.id === 'building');
     const check = checkCollectionFor(odd, preset('warhammer-40k'));
     expect(check.findings).toContainEqual({
       level: 'warning',
-      message:
-        'No matching partner for: Building. Pieces in matching pairs make fair boards easier.',
+      message: `Add a second building about ${String(building?.footprint.width)}″ × ${String(building?.footprint.depth)}″ to pair with Building, so both sides can get one.`,
     });
   });
 
@@ -92,11 +106,35 @@ describe('checkCollection', () => {
     expect(tooBig.findings.map((finding) => finding.message)).toEqual([
       'None of your pieces fit on this board.',
       '"Huge hill" is too large for this board and was left out.',
-      'Your terrain covers 0% of this board; 20% or more plays better.',
+      'Add about 20 sq in of terrain. Boards will feel open until then.',
     ]);
     expect(checkCollectionFor([], preset('age-of-sigmar')).findings[0]).toEqual({
       level: 'problem',
       message: 'Add some terrain to generate boards.',
     });
+  });
+});
+
+describe('typicalPiece', () => {
+  const sized = (id: string, width: number): TerrainPiece => ({
+    ...forest,
+    id,
+    name: id,
+    footprint: { kind: 'rect', width, depth: 2 },
+  });
+
+  it('picks the piece of middling size, counting each kind once', () => {
+    const pieces = [sized('large', 12), sized('small', 2), sized('middle', 6), sized('small', 2)];
+    expect(typicalPiece(pieces)?.name).toBe('middle');
+  });
+
+  it('picks the smaller of the two middle pieces when the count is even', () => {
+    expect(typicalPiece([sized('a', 4), sized('b', 8), sized('c', 2), sized('d', 10)])?.name).toBe(
+      'a',
+    );
+  });
+
+  it('has nothing to pick from an empty collection', () => {
+    expect(typicalPiece([])).toBeUndefined();
   });
 });

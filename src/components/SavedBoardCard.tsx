@@ -1,16 +1,12 @@
-import {
-  CheckIcon,
-  CopyIcon,
-  FolderOpenIcon,
-  PencilIcon,
-  Trash2Icon,
-  TriangleAlertIcon,
-} from 'lucide-react';
-import { resolveGameSetup } from '../domain/gameSetup';
+import { CopyIcon, FolderOpenIcon, PencilIcon, Trash2Icon } from 'lucide-react';
 import type { SavedBoard } from '../domain/savedBoard';
 import { ActionsMenu } from './ActionsMenu';
 import { DANGER_MENU_ROW, MENU_ROW } from './menuStyles';
+import { SavedBoardBadge } from './SavedBoardBadge';
 import { SavedBoardPicture } from './SavedBoardPicture';
+import { savedDate, setupText } from './savedBoardText';
+import { UnsavedChangesNote } from './UnsavedChangesNote';
+import { SMALL_WAR_TABLE } from './warTableStyles';
 
 interface SavedBoardCardProps {
   board: SavedBoard;
@@ -32,9 +28,8 @@ interface BoardManagement {
 const MENU_ICON = 'text-muted size-4';
 
 /**
- * One saved board: its picture, what it is, and whether it passed the balance rules. The whole
- * card opens the board; the ⋯ menu, if any, holds the rest. A row on phones, a card on wider
- * screens.
+ * One saved board: its picture on a small war table, what it is, and whether it passed the
+ * balance rules. The whole card opens the board; the ⋯ menu, if any, holds the rest.
  */
 export function SavedBoardCard({
   board,
@@ -43,7 +38,6 @@ export function SavedBoardCard({
   heading: Heading,
   manage,
 }: SavedBoardCardProps) {
-  const setup = resolveGameSetup(board.layout.presetId, board.layout.deploymentId);
   const actions =
     manage === undefined
       ? []
@@ -54,14 +48,19 @@ export function SavedBoardCard({
           { label: 'Delete', icon: Trash2Icon, run: manage.onDelete, danger: true },
         ];
   return (
-    <li className="parchment frame has-[[data-open]:focus-visible]:outline-accent-ink relative flex gap-3 rounded-sm p-4 transition-colors has-[[data-open]:focus-visible]:outline-2 md:flex-col md:gap-0 md:overflow-hidden md:p-0">
-      <SavedBoardPicture
-        board={board}
-        className="w-28 self-start rounded-lg md:w-full md:rounded-none"
-      />
-      <div className="min-w-0 flex-1 space-y-1 md:p-4">
-        <div className="flex items-start gap-1">
-          <Heading className="min-w-0 flex-1 font-semibold break-words">
+    <li className="parchment card-frame has-[[data-open]:focus-visible]:outline-accent-ink relative flex flex-col overflow-hidden rounded-sm has-[[data-open]:focus-visible]:outline-2">
+      <div className={`mx-2 mt-2 ${SMALL_WAR_TABLE}`}>
+        <div className="relative">
+          <SavedBoardPicture board={board} className="w-full" />
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 shadow-[inset_0_0_22px_rgb(0_0_0/0.45)]"
+          />
+        </div>
+      </div>
+      <div className="flex flex-1 flex-col gap-1.5 px-3.5 pt-3 pb-3.5">
+        <div className="flex items-start gap-1.5">
+          <Heading className="font-display min-w-0 flex-1 text-xl leading-tight break-words">
             <button
               type="button"
               data-open
@@ -72,7 +71,7 @@ export function SavedBoardCard({
             </button>
           </Heading>
           {actions.length > 0 && (
-            <div className="relative z-10 -mt-1 -mr-1">
+            <div className="relative z-10 -mt-1 -mr-1.5">
               <ActionsMenu label={`More for ${board.name}`}>
                 {(close) =>
                   actions.map(({ label, icon: Icon, run, danger }) => (
@@ -94,36 +93,14 @@ export function SavedBoardCard({
             </div>
           )}
         </div>
-        <p className="text-soft text-sm">
-          {setup === undefined
-            ? 'A game Terrain Forge no longer knows'
-            : `${setup.preset.name}, ${setup.deployment.name}`}
-        </p>
-        <p className="text-muted flex flex-wrap items-center gap-x-3 gap-y-1 pt-1 text-xs">
-          {board.passed ? (
-            <span className="bg-pass-soft text-pass inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-medium">
-              <CheckIcon className="size-3.5" aria-hidden="true" />
-              Passed
-            </span>
-          ) : (
-            <span className="bg-warn-soft text-warn-ink inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-medium">
-              <TriangleAlertIcon className="size-3.5" aria-hidden="true" />
-              Some rules failed
-            </span>
-          )}
+        <p className="text-soft">{setupText(board)}</p>
+        <p className="text-muted mt-1 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs">
+          <SavedBoardBadge passed={board.passed} />
           {board.edited && <span>Edited by hand</span>}
           <span>{savedDate(board.savedAt)}</span>
-          {unsaved && <span className="text-accent-ink">Open with unsaved changes</span>}
         </p>
+        {unsaved && <UnsavedChangesNote />}
       </div>
     </li>
   );
-}
-
-function savedDate(savedAt: number): string {
-  return new Date(savedAt).toLocaleDateString('en-GB', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  });
 }

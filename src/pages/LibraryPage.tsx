@@ -26,6 +26,7 @@ import { EmptyLibrary } from '../components/EmptyLibrary';
 import { LibraryFilterBar } from '../components/LibraryFilterBar';
 import { LibraryMessages } from '../components/LibraryMessages';
 import { NotSavedNote } from '../components/NotSavedNote';
+import { PageHeader } from '../components/PageHeader';
 import { PhotoCropper } from '../components/PhotoCropper';
 import { PieceForm } from '../components/PieceForm';
 import { PieceGrid } from '../components/PieceGrid';
@@ -152,115 +153,118 @@ export function LibraryPage() {
 
   return (
     <>
-      <main className="flex-1 px-4 pt-6 pb-24 md:px-8 md:pb-8 lg:py-8">
-        <div className="grid gap-8 min-[1920px]:grid-cols-[minmax(0,1fr)_22rem] xl:grid-cols-[minmax(0,1fr)_20rem]">
-          <section aria-labelledby="library-heading" className="min-w-0 space-y-5">
-            <div className="flex flex-wrap items-end justify-between gap-3">
-              <div>
-                <h1
-                  id="library-heading"
-                  className="text-2xl font-semibold tracking-tight md:text-3xl"
-                >
-                  Your terrain
-                </h1>
-                <p className="text-muted text-sm">{totals(pieces)}</p>
-              </div>
+      <main className="mx-auto flex w-full max-w-[1480px] flex-1 flex-wrap items-start gap-7 px-4 pt-6 pb-24 md:px-8 md:pt-8 md:pb-12">
+        <section
+          aria-labelledby="library-heading"
+          className="flex min-w-0 flex-[999_1_640px] flex-col gap-5"
+        >
+          <PageHeader
+            id="library-heading"
+            title="Your terrain"
+            details={[
+              totals(pieces),
+              library.persistent && <SaveStatus key="save" saving={library.saving} />,
+            ]}
+            actions={
               <span className="hidden md:block">
                 <button
                   type="button"
                   disabled={!canAdd}
                   onClick={addPiece}
-                  className={BUTTON_STYLES.primary}
+                  className={`${BUTTON_STYLES.primary} h-11 px-[18px] text-[19px]`}
                 >
                   <PlusIcon className="size-[18px]" aria-hidden="true" />
                   Add a piece
                 </button>
               </span>
-            </div>
-            {!library.persistent && library.status !== 'loading' && (
-              <NotSavedNote signedIn={auth.user !== null} />
-            )}
-            {library.persistent && <SaveStatus saving={library.saving} />}
-            <LibraryMessages
-              loadError={library.loadError}
-              problems={library.problems}
-              actionError={photoEditor.error ?? actionError ?? library.writeError}
-              loading={library.status === 'loading' || photoEditor.busy === 'loading'}
+            }
+          />
+          {!library.persistent && library.status !== 'loading' && (
+            <NotSavedNote signedIn={auth.user !== null} />
+          )}
+          <LibraryMessages
+            loadError={library.loadError}
+            problems={library.problems}
+            actionError={photoEditor.error ?? actionError ?? library.writeError}
+            loading={library.status === 'loading' || photoEditor.busy === 'loading'}
+          />
+          {pieces.length === 0 && library.status === 'ready' && (
+            <EmptyLibrary
+              busy={busy}
+              onAddSample={() => {
+                void run(() => library.addPieces(sampleLibrary(library.newId)));
+              }}
             />
-            {pieces.length === 0 && library.status === 'ready' && (
-              <EmptyLibrary
-                busy={busy}
-                onAddSample={() => {
-                  void run(() => library.addPieces(sampleLibrary(library.newId)));
-                }}
-              />
-            )}
-            {pieces.length > 0 && (
-              <>
-                <LibraryFilterBar filter={shownFilter} types={types} onChange={setFilter} />
-                <p role="status" className="sr-only">
-                  {filtering ? matchText(shown.length) : ''}
+          )}
+          {pieces.length > 0 && (
+            <>
+              <LibraryFilterBar filter={shownFilter} types={types} onChange={setFilter} />
+              <p role="status" className="sr-only">
+                {filtering ? matchText(shown.length) : ''}
+              </p>
+              {shown.length === 0 ? (
+                <p className="text-muted rounded-sm border border-dashed border-[#6e5428] p-[18px] text-center">
+                  No pieces match.{' '}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFilter(NO_FILTER);
+                    }}
+                    className="text-brass-glow underline"
+                  >
+                    Show all pieces
+                  </button>
                 </p>
-                {shown.length === 0 ? (
-                  <p className="text-muted text-sm">
-                    No pieces match.{' '}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setFilter(NO_FILTER);
-                      }}
-                      className="text-accent-ink hover:text-accent-ink-hover underline"
-                    >
-                      Show all pieces
-                    </button>
-                  </p>
-                ) : (
-                  <PieceGrid
-                    shown={shown}
-                    library={pieces}
-                    photos={library.photos}
-                    unit={unit}
-                    busy={busy}
-                    onQuantityChange={(piece, quantity) => {
-                      if (canSetQuantity(pieces, piece, quantity)) {
-                        void run(() => library.updatePiece({ ...piece, quantity }));
-                      }
-                    }}
-                    onEdit={(piece) => {
-                      openForm(`Edit ${piece.name}`, draftFromPiece(piece, unit), piece);
-                    }}
-                    onDuplicate={(piece) => {
-                      openForm('Add a copy', copyDraft(piece, unit), null);
-                    }}
-                    onDelete={(piece) => {
-                      setDeleteError(null);
-                      setDeleting(piece);
-                    }}
-                    onPickPhoto={(piece, file) => {
-                      void photoEditor.open(piece, file);
-                    }}
-                    onRemovePhoto={(piece) => {
-                      void run(() => library.removePhoto(piece));
-                    }}
-                  />
-                )}
-              </>
-            )}
-          </section>
-          <aside className="space-y-4 xl:sticky xl:top-20 xl:self-start">
-            {pieces.length > 0 && (
-              <CollectionCheck pieces={pieces} preferences={preferences} unit={unit} />
-            )}
-            <p className="text-muted text-sm">
-              {pieces.length === 0
-                ? 'Until you add pieces, boards use the built-in sample set.'
-                : 'New boards use the pieces in your library.'}{' '}
-              <Link to="/board" className="text-accent-ink hover:text-accent-ink-hover underline">
-                Go to the board
-              </Link>
-            </p>
-          </aside>
-        </div>
+              ) : (
+                <PieceGrid
+                  shown={shown}
+                  library={pieces}
+                  photos={library.photos}
+                  unit={unit}
+                  busy={busy}
+                  onQuantityChange={(piece, quantity) => {
+                    if (canSetQuantity(pieces, piece, quantity)) {
+                      void run(() => library.updatePiece({ ...piece, quantity }));
+                    }
+                  }}
+                  onEdit={(piece) => {
+                    openForm(`Edit ${piece.name}`, draftFromPiece(piece, unit), piece);
+                  }}
+                  onDuplicate={(piece) => {
+                    openForm('Add a copy', copyDraft(piece, unit), null);
+                  }}
+                  onDelete={(piece) => {
+                    setDeleteError(null);
+                    setDeleting(piece);
+                  }}
+                  onPickPhoto={(piece, file) => {
+                    void photoEditor.open(piece, file);
+                  }}
+                  onRemovePhoto={(piece) => {
+                    void run(() => library.removePhoto(piece));
+                  }}
+                />
+              )}
+              <p className="text-faint text-xs italic">
+                Pictures are drawn to the same scale (one grid square is 1″), so you can compare
+                sizes at a glance. A photo replaces the drawing once you add one.
+              </p>
+            </>
+          )}
+        </section>
+        <aside className="flex max-w-[400px] min-w-0 flex-[1_1_320px] flex-col gap-3.5 xl:sticky xl:top-20">
+          {pieces.length > 0 && (
+            <CollectionCheck pieces={pieces} preferences={preferences} unit={unit} />
+          )}
+          <p className="text-muted text-xs">
+            {pieces.length === 0
+              ? 'Until you add pieces, boards use the built-in sample set.'
+              : 'New boards use the pieces in your library.'}{' '}
+            <Link to="/board" className="text-brass-glow underline">
+              Go to the board
+            </Link>
+          </p>
+        </aside>
       </main>
       <button
         type="button"

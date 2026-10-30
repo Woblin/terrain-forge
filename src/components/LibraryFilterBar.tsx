@@ -12,7 +12,7 @@ interface LibraryFilterBarProps {
 }
 
 const CHIP =
-  'inline-flex h-9 shrink-0 items-center gap-1.5 rounded-[3px] border px-3 text-sm font-semibold focus-visible:outline-2 focus-visible:outline-accent-ink pointer-coarse:h-10';
+  'inline-flex h-[34px] shrink-0 items-center gap-[7px] rounded-full border px-3 text-sm font-semibold focus-visible:outline-2 focus-visible:outline-accent-ink pointer-coarse:h-11';
 
 /** A search box and one chip per terrain type, to find pieces in a large library. */
 export function LibraryFilterBar({ filter, types, onChange }: LibraryFilterBarProps) {
@@ -20,7 +20,7 @@ export function LibraryFilterBar({ filter, types, onChange }: LibraryFilterBarPr
   const chips: readonly (TerrainType | null)[] = [null, ...types];
   return (
     <div className="flex flex-col gap-3 md:flex-row md:items-center">
-      <div className="parchment relative rounded-[3px] md:w-72">
+      <div className="parchment relative rounded-[3px] md:w-[300px]">
         <label htmlFor={searchId} className="sr-only">
           Search your terrain
         </label>
@@ -37,7 +37,7 @@ export function LibraryFilterBar({ filter, types, onChange }: LibraryFilterBarPr
           onChange={(event) => {
             onChange({ ...filter, search: event.target.value });
           }}
-          className="border-line-strong bg-field focus-visible:outline-accent-ink placeholder:text-faint h-10 w-full rounded-[3px] border pr-3 pl-9 text-sm shadow-[inset_0_1px_2px_rgb(42_29_18/0.12)] focus-visible:outline-2 pointer-coarse:h-11"
+          className="border-brass bg-field focus-visible:outline-accent-ink placeholder:text-faint h-10 w-full rounded-[3px] border pr-3 pl-9 text-sm shadow-[inset_0_1px_2px_rgb(42_29_18/0.12)] focus-visible:outline-2 pointer-coarse:h-11"
         />
       </div>
       <div

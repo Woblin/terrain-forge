@@ -14,6 +14,8 @@ interface SegmentedControlProps<T extends string> {
   onChange: (value: T) => void;
   /** What it sits on: parchment fills the picked segment seal red, iron fills it brass. */
   tone?: 'parchment' | 'iron';
+  /** A short label shown before the segments, as in "Sort  Newest | Name"; the legend is read out. */
+  shownLabel?: string;
   className?: string;
 }
 
@@ -37,6 +39,7 @@ export function SegmentedControl<T extends string>({
   value,
   onChange,
   tone = 'parchment',
+  shownLabel,
   className = '',
 }: SegmentedControlProps<T>) {
   const name = useId();
@@ -46,6 +49,11 @@ export function SegmentedControl<T extends string>({
       className={`flex items-center gap-0.5 rounded-sm border p-[3px] text-sm ${look.group} ${className}`}
     >
       <legend className="sr-only">{legend}</legend>
+      {shownLabel !== undefined && (
+        <span aria-hidden="true" className="text-muted pr-2 pl-1.5 text-xs">
+          {shownLabel}
+        </span>
+      )}
       {segments.map((segment) => (
         <label
           key={segment.value}

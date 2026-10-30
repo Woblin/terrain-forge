@@ -1,4 +1,5 @@
 import { canSetQuantity, type LibraryPiece } from '../domain/library';
+import { sharedView } from '../domain/sharedScale';
 import type { LengthUnit } from '../domain/units';
 import type { StoredPhoto } from '../hooks/useLibraryPhotos';
 import { PieceCard } from './PieceCard';
@@ -19,7 +20,10 @@ interface PieceGridProps {
   onRemovePhoto: (piece: LibraryPiece) => void;
 }
 
-/** The library's pieces as cards, two across on a phone and more as the window widens. */
+/**
+ * The library's pieces as cards, two across on a phone and more as the window widens. Every
+ * picture is drawn at the same scale.
+ */
 export function PieceGrid({
   shown,
   library,
@@ -33,13 +37,16 @@ export function PieceGrid({
   onPickPhoto,
   onRemovePhoto,
 }: PieceGridProps) {
+  // Measured over the whole library, so filtering never changes the scale.
+  const view = sharedView(library);
   return (
-    <ul className="grid grid-cols-2 gap-3 sm:grid-cols-[repeat(auto-fill,minmax(14rem,1fr))] md:gap-4">
+    <ul className="grid grid-cols-2 gap-3 sm:grid-cols-[repeat(auto-fill,minmax(220px,1fr))] md:gap-4">
       {shown.map((piece) => (
         <PieceCard
           key={piece.id}
           piece={piece}
           photoUrl={photos.get(piece.id)?.url}
+          view={view}
           unit={unit}
           busy={busy}
           canAddCopy={canSetQuantity(library, piece, piece.quantity + 1)}

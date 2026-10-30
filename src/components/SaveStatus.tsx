@@ -1,3 +1,4 @@
+import { CheckIcon } from 'lucide-react';
 import { useOnline } from '../hooks/useOnline';
 
 interface SaveStatusProps {
@@ -5,15 +6,22 @@ interface SaveStatusProps {
   saving: boolean;
 }
 
-/** Tells the player when their changes have not reached their account yet. */
+/** Whether the player's changes have reached their account yet. */
 export function SaveStatus({ saving }: SaveStatusProps) {
   const online = useOnline();
   return (
-    <p aria-live="polite" className="text-muted text-sm">
-      {saving &&
-        (online
-          ? 'Saving…'
-          : 'Not saved yet: you are offline. Changes are saved when you are back online.')}
-    </p>
+    <span aria-live="polite" className="inline-flex items-center gap-1.5">
+      {!saving && <CheckIcon className="text-pass size-4" aria-hidden="true" />}
+      {statusText(saving, online)}
+    </span>
   );
+}
+
+function statusText(saving: boolean, online: boolean): string {
+  if (!saving) {
+    return 'Saved to your account';
+  }
+  return online
+    ? 'Saving…'
+    : 'Not saved yet: you are offline. Changes are saved when you are back online.';
 }

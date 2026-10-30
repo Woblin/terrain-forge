@@ -7,3 +7,7 @@ export const WAR_TABLE =
 
 /** The pixels the board's war table adds on each side: its 12px padding. */
 export const BOARD_TABLE_INSET = 12;
+
+/** A small war table for a board thumbnail on a card: plain wood with the same two edges. */
+export const SMALL_WAR_TABLE =
+  'rounded-[3px] bg-table-wood p-1.5 shadow-[inset_0_0_0_1px_#2a1a0e,0_0_0_1px_var(--color-brass)]';

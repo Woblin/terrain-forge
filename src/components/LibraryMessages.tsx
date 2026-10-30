@@ -13,7 +13,7 @@ export function LibraryMessages({
   loading,
 }: LibraryMessagesProps) {
   return (
-    <div aria-live="polite" className="space-y-2 text-sm">
+    <div aria-live="polite" className="space-y-2 text-sm empty:hidden">
       {loading && <p className="text-soft">Loading…</p>}
       {[loadError, actionError, ...problems].map(
         (message) =>

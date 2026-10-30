@@ -38,3 +38,10 @@ export function formatArea(squareInches: number, unit: LengthUnit): string {
     ? `${String(Math.round(squareInches))} in²`
     : `${String(Math.round(squareInches * SQUARE_CM_PER_SQUARE_INCH))} cm²`;
 }
+
+/** A rough area for advice, for example `250 sq in` or `1,610 sq cm`, to the nearest ten. */
+export function formatRoughArea(squareInches: number, unit: LengthUnit): string {
+  const value = unit === 'in' ? squareInches : squareInches * SQUARE_CM_PER_SQUARE_INCH;
+  const rounded = Math.max(10, Math.round(value / 10) * 10);
+  return `${rounded.toLocaleString('en')} sq ${unit}`;
+}

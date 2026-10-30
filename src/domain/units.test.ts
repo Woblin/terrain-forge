@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { formatArea, formatLength, formatTableLength, fromInches, toInches } from './units';
+import {
+  formatArea,
+  formatLength,
+  formatRoughArea,
+  formatTableLength,
+  fromInches,
+  toInches,
+} from './units';
 
 describe('toInches', () => {
   it('keeps inches unchanged', () => {
@@ -38,6 +45,17 @@ describe('formatArea', () => {
   it('rounds to whole square inches or square centimetres', () => {
     expect(formatArea(141.6, 'in')).toBe('142 in²');
     expect(formatArea(10, 'cm')).toBe('65 cm²');
+  });
+});
+
+describe('formatRoughArea', () => {
+  it('rounds to the nearest ten in the unit shown', () => {
+    expect(formatRoughArea(254, 'in')).toBe('250 sq in');
+    expect(formatRoughArea(250, 'cm')).toBe('1,610 sq cm');
+  });
+
+  it('never rounds a shortfall down to nothing', () => {
+    expect(formatRoughArea(3, 'in')).toBe('10 sq in');
   });
 });
 
