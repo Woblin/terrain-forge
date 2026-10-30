@@ -2,7 +2,7 @@ import type { FocusEvent, PointerEvent } from 'react';
 import type { Placement, TerrainPiece } from '../domain/terrain';
 import { FootprintShape } from './FootprintShape';
 import { PiecePhoto } from './PiecePhoto';
-import { PIECE_HALO, TERRAIN_STYLES } from './terrainStyles';
+import { PIECE_HALO, PIECE_OUTLINE_OPACITY, TERRAIN_STYLES } from './terrainStyles';
 
 interface TerrainShapeProps {
   piece: TerrainPiece;
@@ -50,7 +50,7 @@ export function TerrainShape({
       <FootprintShape
         footprint={piece.footprint}
         className={`fill-none ${PIECE_HALO}`}
-        strokeWidth={5}
+        strokeWidth={3}
         vectorEffect="non-scaling-stroke"
       />
       {/* A photo covers the shape; parts the player hid let the mat show through. */}
@@ -63,6 +63,7 @@ export function TerrainShape({
         footprint={piece.footprint}
         className={`fill-none ${style.stroke}`}
         strokeWidth={1.5}
+        strokeOpacity={PIECE_OUTLINE_OPACITY}
         strokeDasharray={style.dash}
         vectorEffect="non-scaling-stroke"
       />
