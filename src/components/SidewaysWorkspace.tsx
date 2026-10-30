@@ -19,7 +19,7 @@ export function SidewaysWorkspace(props: WorkspaceSlots) {
       </section>
       <aside
         aria-label="Board tools"
-        className="border-line bg-surface flex w-80 shrink-0 flex-col gap-3 rounded-2xl border p-3 shadow-sm min-[800px]:w-[22rem]"
+        className="parchment frame flex w-80 shrink-0 flex-col gap-3 rounded-sm p-4 min-[800px]:w-[22rem]"
       >
         {/* The selected piece's tools take the summary's place, so they never cover the board. */}
         {measureBar}

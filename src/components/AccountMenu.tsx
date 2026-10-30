@@ -47,7 +47,7 @@ export function AccountMenu() {
           <Link
             to="/sign-in"
             state={{ from: location.pathname }}
-            className={`${BUTTON_STYLES.secondary} py-1.5 text-sm`}
+            className={`${BUTTON_STYLES.secondary} py-1 text-sm`}
           >
             Sign in
           </Link>
@@ -60,8 +60,8 @@ export function AccountMenu() {
         title={user === null ? 'Settings' : (user.email ?? 'Your account')}
         className={
           user === null
-            ? 'text-soft hover:bg-hover hover:text-ink focus-visible:outline-accent-ink grid size-9 place-items-center rounded-lg focus-visible:outline-2'
-            : 'focus-visible:outline-accent-ink rounded-full focus-visible:outline-2 focus-visible:outline-offset-2'
+            ? 'text-on-iron-muted hover:bg-hover hover:text-on-iron focus-visible:outline-brass-bright grid size-9 place-items-center rounded-sm focus-visible:outline-2'
+            : 'focus-visible:outline-brass-bright rounded-full focus-visible:outline-2 focus-visible:outline-offset-2'
         }
       >
         {user === null ? (
@@ -74,7 +74,7 @@ export function AccountMenu() {
         id={menuId}
         ref={menu}
         popover="auto"
-        className="border-line bg-surface text-ink shadow-shade top-14 right-3 bottom-auto left-auto m-0 w-72 space-y-3 rounded-2xl border p-3 shadow-2xl"
+        className="parchment frame top-16 right-3 bottom-auto left-auto m-0 w-72 space-y-3 rounded-sm p-4"
       >
         {user !== null && (
           <div className="border-line space-y-1 border-b pb-3">

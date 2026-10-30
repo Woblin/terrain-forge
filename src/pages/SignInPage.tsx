@@ -54,7 +54,7 @@ export function SignInPage() {
     <main className="grid flex-1 lg:grid-cols-[minmax(0,1fr)_minmax(28rem,36rem)] xl:grid-cols-2">
       {wide && <ExampleBoardArt />}
       <div className="flex justify-center px-4 py-8 md:items-center md:px-8 md:py-12">
-        <div className="md:border-line md:bg-surface md:shadow-shade w-full max-w-md space-y-6 md:rounded-3xl md:border md:p-8 md:shadow-xl">
+        <div className="parchment frame w-full max-w-md space-y-6 rounded-sm p-6 md:p-8">
           <div className="space-y-2">
             <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">Sign in</h1>
             <p className="text-muted">

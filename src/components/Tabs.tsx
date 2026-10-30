@@ -40,7 +40,7 @@ export function Tabs<T extends string>({
       <div
         role="tablist"
         aria-label={label}
-        className="bg-raised flex shrink-0 gap-1 rounded-xl p-1 text-sm font-medium"
+        className="border-brass font-display flex shrink-0 border-b text-[17px]"
       >
         {tabs.map((tab) => {
           const selected = tab.id === active?.id;
@@ -62,7 +62,7 @@ export function Tabs<T extends string>({
                   step(event.key === 'ArrowRight' ? 1 : -1);
                 }
               }}
-              className={`focus-visible:outline-accent-ink flex-1 rounded-lg px-3 py-1.5 focus-visible:outline-2 pointer-coarse:py-2 ${selected ? 'bg-selected text-ink shadow-sm' : 'text-muted hover:text-ink'}`}
+              className={`focus-visible:outline-accent-ink -mb-px flex-1 rounded-t-sm border border-b-0 px-3 pt-2 pb-1.5 focus-visible:outline-2 focus-visible:-outline-offset-2 pointer-coarse:min-h-11 ${selected ? 'border-brass bg-raised text-accent-ink' : 'text-soft hover:text-ink border-transparent'}`}
             >
               {tab.label}
             </button>

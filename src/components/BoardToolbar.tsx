@@ -65,7 +65,7 @@ export function BoardToolbar({
     <div
       role="toolbar"
       aria-label="Edit the board"
-      className="border-line bg-surface/90 shadow-shade flex items-center gap-1 rounded-xl border p-1 shadow-lg backdrop-blur"
+      className="on-leather border-brass bg-iron-raised flex items-center gap-1 rounded-sm border p-1 shadow-[inset_0_0_0_1px_#3d2e1c,0_6px_16px_rgb(0_0_0/0.5)]"
     >
       <IconButton icon={Undo2Icon} label="Undo" onClick={onUndo} disabled={!canUndo} />
       <IconButton icon={Redo2Icon} label="Redo" onClick={onRedo} disabled={!canRedo} />

@@ -47,7 +47,7 @@ export function BottomSheet({
   return (
     <section
       aria-label={label}
-      className={`border-line bg-surface absolute inset-x-0 bottom-0 z-20 flex flex-col rounded-t-3xl border-t shadow-[0_-12px_40px_var(--shade)] transition-[height] duration-200 motion-reduce:transition-none ${HEIGHT_CLASSES[height]}`}
+      className={`parchment border-brass absolute inset-x-0 bottom-0 z-20 flex flex-col rounded-t-3xl border-t shadow-[0_-12px_40px_var(--shade)] transition-[height] duration-200 motion-reduce:transition-none ${HEIGHT_CLASSES[height]}`}
     >
       <button
         type="button"

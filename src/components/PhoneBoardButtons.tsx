@@ -37,14 +37,14 @@ export function PhoneBoardButtons({
         popoverTarget={menuId}
         aria-label="Board options"
         title="Board options"
-        className="border-line bg-surface/90 text-soft shadow-shade focus-visible:outline-accent-ink grid size-11 place-items-center rounded-full border shadow-lg backdrop-blur focus-visible:outline-2"
+        className="border-brass bg-iron/90 text-on-iron shadow-shade focus-visible:outline-brass-bright grid size-11 place-items-center rounded-full border shadow-lg focus-visible:outline-2"
       >
         <LayersIcon className="size-[18px]" aria-hidden="true" />
       </button>
       <div
         id={menuId}
         popover="auto"
-        className="border-line bg-surface text-ink shadow-shade top-auto right-3 bottom-24 left-3 m-0 rounded-2xl border p-4 shadow-2xl"
+        className="parchment frame top-auto right-3 bottom-24 left-3 m-0 rounded-sm p-5"
       >
         <LayersMenu
           settings={layers}

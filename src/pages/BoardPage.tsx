@@ -819,7 +819,7 @@ export function BoardPage() {
           notice === null ? null : (
             <div
               role="alert"
-              className="border-warn-line bg-warn-soft text-warn-ink shadow-shade flex items-start gap-2 rounded-xl border py-1 pr-1 pl-3 text-sm shadow-lg"
+              className="border-warn-line bg-warn-soft text-warn-ink shadow-shade flex items-start gap-2 rounded-sm border py-1 pr-1 pl-3 text-sm shadow-lg"
             >
               <p className="flex-1 py-1.5">{notice}</p>
               <IconButton

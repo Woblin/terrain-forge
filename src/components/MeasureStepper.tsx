@@ -14,7 +14,7 @@ export function MeasureStepper({ current, total, onStep }: MeasureStepperProps) 
     <div
       role="toolbar"
       aria-label="Measure piece by piece"
-      className="border-line bg-surface/95 shadow-shade flex items-center gap-1 rounded-2xl border p-1.5 shadow-2xl backdrop-blur"
+      className="on-leather border-brass bg-iron-raised shadow-shade flex items-center gap-1 rounded-sm border p-1.5 shadow-2xl"
     >
       <IconButton
         icon={ChevronLeftIcon}

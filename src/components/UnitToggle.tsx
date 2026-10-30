@@ -14,12 +14,14 @@ const LABELLED_SEGMENTS: readonly Segment<LengthUnit>[] = [
 
 interface UnitToggleProps {
   className?: string;
+  /** What it sits on; parchment by default. */
+  tone?: 'parchment' | 'iron';
   /** Spells out the units, where there is room, such as the account page. */
   labelled?: boolean;
 }
 
 /** Switches every length shown in the app between inches and centimetres. */
-export function UnitToggle({ className, labelled = false }: UnitToggleProps) {
+export function UnitToggle({ className, tone, labelled = false }: UnitToggleProps) {
   const { unit, setUnit } = useUnits();
   return (
     <SegmentedControl
@@ -27,6 +29,7 @@ export function UnitToggle({ className, labelled = false }: UnitToggleProps) {
       segments={labelled ? LABELLED_SEGMENTS : SEGMENTS}
       value={unit}
       onChange={setUnit}
+      tone={tone}
       className={className}
     />
   );

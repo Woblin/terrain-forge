@@ -33,10 +33,10 @@ export function UnsavedPiecesPrompt() {
       onCancel={(event) => {
         event.preventDefault();
       }}
-      className="border-line bg-surface text-ink shadow-shade m-auto max-w-[calc(100vw-2rem)] rounded-2xl border p-0 shadow-2xl backdrop:bg-black/60 backdrop:backdrop-blur-sm"
+      className="parchment frame m-auto max-w-[calc(100vw-2rem)] rounded-sm p-0 backdrop:bg-black/70"
     >
-      <div className="max-w-sm space-y-4 p-5">
-        <h2 id={`${id}-title`} className="text-lg font-semibold">
+      <div className="max-w-sm space-y-4 p-6">
+        <h2 id={`${id}-title`} className="font-display text-[22px] leading-tight">
           Save the terrain you just made?
         </h2>
         <div id={`${id}-message`} className="text-soft space-y-2 text-sm">

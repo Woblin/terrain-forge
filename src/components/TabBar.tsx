@@ -17,7 +17,7 @@ export function TabBar({ className = '' }: TabBarProps) {
   return (
     <nav
       aria-label="Main"
-      className={`border-line bg-canvas/90 fixed inset-x-0 bottom-0 z-30 border-t pb-[env(safe-area-inset-bottom)] backdrop-blur ${className}`}
+      className={`border-brass bg-iron fixed inset-x-0 bottom-0 z-30 border-t pb-[env(safe-area-inset-bottom)] ${className}`}
     >
       <ul className="flex">
         {navItemsFor(signedIn).map((item) => (
@@ -49,5 +49,5 @@ export function TabBar({ className = '' }: TabBarProps) {
 }
 
 function tabClasses({ isActive }: { isActive: boolean }): string {
-  return `flex h-16 flex-col items-center justify-center gap-1 text-[11px] font-medium focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent-ink ${isActive ? 'text-accent-ink' : 'text-faint hover:text-ink'}`;
+  return `-mt-px flex h-16 flex-col items-center justify-center gap-1 border-t-2 text-[13px] font-semibold focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brass-bright ${isActive ? 'border-brass-bright text-brass-glow' : 'border-transparent text-on-iron-muted hover:text-on-iron'}`;
 }

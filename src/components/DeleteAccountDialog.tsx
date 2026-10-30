@@ -42,16 +42,16 @@ export function DeleteAccountDialog({
           onCancel();
         }
       }}
-      className="border-line bg-surface text-ink shadow-shade m-auto max-w-[calc(100vw-2rem)] rounded-2xl border p-0 shadow-2xl backdrop:bg-black/60 backdrop:backdrop-blur-sm"
+      className="parchment frame-seal m-auto max-w-[calc(100vw-2rem)] rounded-sm p-0 backdrop:bg-black/70"
     >
       <form
-        className="max-w-sm space-y-4 p-5"
+        className="max-w-sm space-y-4 p-6"
         onSubmit={(event) => {
           event.preventDefault();
           onConfirm(usesPassword ? { kind: 'password', password } : { kind: 'google' });
         }}
       >
-        <h2 id={`${id}-title`} className="text-lg font-semibold">
+        <h2 id={`${id}-title`} className="font-display text-[22px] leading-tight">
           Delete your account?
         </h2>
         <p className="text-soft text-sm">
@@ -89,7 +89,7 @@ export function DeleteAccountDialog({
             onClick={onCancel}
             className={BUTTON_STYLES.secondary}
           >
-            Cancel
+            Keep my account
           </button>
           <button
             type="submit"

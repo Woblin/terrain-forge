@@ -64,6 +64,7 @@ export function SavedBoardsPage() {
                 segments={ORDERS}
                 value={order}
                 onChange={setOrder}
+                tone="iron"
               />
             )}
             <Link
@@ -101,7 +102,7 @@ export function SavedBoardsPage() {
               loading={savedBoards.status === 'loading'}
             />
             {boards.length === 0 && savedBoards.status === 'ready' ? (
-              <div className="border-line-strong space-y-3 rounded-2xl border border-dashed p-8 text-center">
+              <div className="border-line-strong space-y-3 rounded-sm border border-dashed p-8 text-center">
                 <p className="text-soft">No saved boards yet.</p>
                 <p className="text-muted text-sm">
                   Generate a board you like, then save it from the Setup panel.

@@ -63,12 +63,9 @@ export function HomePage() {
       <section aria-label="What Terrain Forge does" className="px-4 pb-16 md:px-8 lg:px-16">
         <ul className="grid gap-4 md:grid-cols-3">
           {FEATURES.map((feature) => (
-            <li
-              key={feature.title}
-              className="border-line bg-surface space-y-2 rounded-2xl border p-5 shadow-sm"
-            >
+            <li key={feature.title} className="parchment frame space-y-2 rounded-sm p-6">
               <feature.icon className="text-accent-ink size-6" aria-hidden="true" />
-              <h2 className="font-semibold">{feature.title}</h2>
+              <h2 className="font-display text-[22px]">{feature.title}</h2>
               <p className="text-muted text-sm">{feature.text}</p>
             </li>
           ))}

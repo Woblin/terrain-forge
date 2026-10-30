@@ -37,10 +37,10 @@ export function SidePanel({
   const panel = (
     <section
       aria-label={title}
-      className={`border-line bg-surface flex h-full flex-col overflow-hidden rounded-2xl border shadow-sm ${overlay ? `shadow-shade absolute inset-y-0 z-20 shadow-2xl ${left ? 'left-0' : 'right-0'}` : ''} ${widthClassName}`}
+      className={`parchment frame flex h-full flex-col overflow-hidden rounded-sm ${overlay ? `absolute inset-y-0 z-20 ${left ? 'left-0' : 'right-0'}` : ''} ${widthClassName}`}
     >
-      <div className="flex shrink-0 items-center justify-between gap-2 px-4 pt-3">
-        <h2 className="font-semibold">{title}</h2>
+      <div className="flex shrink-0 items-center justify-between gap-2 pt-3.5 pr-4 pl-5">
+        <h2 className="font-display text-2xl">{title}</h2>
         <IconButton
           icon={left ? PanelLeftCloseIcon : PanelRightCloseIcon}
           label={`Hide ${title.toLowerCase()}`}
@@ -49,11 +49,11 @@ export function SidePanel({
           }}
         />
       </div>
-      <div className="min-h-0 flex-1 overflow-y-auto px-4 pt-2 pb-4">{children}</div>
+      <div className="min-h-0 flex-1 overflow-y-auto px-5 pt-1.5 pb-5">{children}</div>
     </section>
   );
   const rail = (
-    <div className="border-line bg-surface flex h-full w-14 shrink-0 flex-col items-center gap-2 rounded-2xl border py-3 shadow-sm">
+    <div className="parchment frame flex h-full w-14 shrink-0 flex-col items-center gap-2 rounded-sm py-3">
       <IconButton
         icon={left ? PanelLeftOpenIcon : PanelRightOpenIcon}
         label={`Show ${title.toLowerCase()}`}

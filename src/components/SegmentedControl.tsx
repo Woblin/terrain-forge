@@ -12,8 +12,23 @@ interface SegmentedControlProps<T extends string> {
   segments: readonly Segment<T>[];
   value: T;
   onChange: (value: T) => void;
+  /** What it sits on: parchment fills the picked segment seal red, iron fills it brass. */
+  tone?: 'parchment' | 'iron';
   className?: string;
 }
+
+const TONES = {
+  parchment: {
+    group: 'border-line-strong bg-field',
+    picked: 'bg-accent text-on-accent shadow-[inset_0_1px_0_rgb(255_220_180/0.25)]',
+    idle: 'text-soft hover:text-ink hover:bg-hover',
+  },
+  iron: {
+    group: 'border-iron-line bg-[#1f1810]',
+    picked: 'bg-brass-bright text-canvas',
+    idle: 'text-on-iron-muted hover:text-on-iron',
+  },
+} as const;
 
 /** A row of options of which exactly one is picked, built on radio buttons. */
 export function SegmentedControl<T extends string>({
@@ -21,19 +36,21 @@ export function SegmentedControl<T extends string>({
   segments,
   value,
   onChange,
+  tone = 'parchment',
   className = '',
 }: SegmentedControlProps<T>) {
   const name = useId();
+  const look = TONES[tone];
   return (
     <fieldset
-      className={`bg-raised flex items-center gap-0.5 rounded-lg p-0.5 text-sm ${className}`}
+      className={`flex items-center gap-0.5 rounded-sm border p-[3px] text-sm ${look.group} ${className}`}
     >
       <legend className="sr-only">{legend}</legend>
       {segments.map((segment) => (
         <label
           key={segment.value}
           title={segment.ariaLabel}
-          className={`has-[:focus-visible]:outline-accent-ink flex flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-md px-2.5 py-1 font-medium has-[:focus-visible]:outline-2 ${segment.value === value ? 'bg-selected text-ink shadow-sm' : 'text-muted hover:text-ink'}`}
+          className={`has-[:focus-visible]:outline-accent-ink flex flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-xs px-2.5 py-0.5 font-semibold has-[:focus-visible]:outline-2 ${segment.value === value ? look.picked : look.idle}`}
         >
           <input
             type="radio"
