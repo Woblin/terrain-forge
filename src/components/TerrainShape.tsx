@@ -78,8 +78,9 @@ export function TerrainShape({
       {selected && (
         <FootprintShape
           footprint={piece.footprint}
-          className="fill-none stroke-yellow-300"
+          className="stroke-brass-glow fill-none"
           strokeWidth={3}
+          strokeDasharray="7 4"
           vectorEffect="non-scaling-stroke"
         />
       )}

@@ -15,7 +15,7 @@ export function MatPicker({ value, onChange, darkness, onDarknessChange }: MatPi
   const name = useId();
   return (
     <fieldset className="space-y-2">
-      <legend className="text-sm font-semibold">Mat</legend>
+      <legend className="sr-only">Mat</legend>
       <p className="text-muted text-xs">The ground under the terrain. Saved with the board.</p>
       <div className="grid grid-cols-4 gap-2 p-1">
         {MATS.map((mat) => {
@@ -43,7 +43,7 @@ export function MatPicker({ value, onChange, darkness, onDarknessChange }: MatPi
                     ? undefined
                     : { backgroundImage: `url("${picture}")`, backgroundSize: 'cover' }
                 }
-                className={`bg-mat ring-offset-surface peer-focus-visible:outline-accent-ink block aspect-square w-full rounded-lg ring-offset-2 peer-focus-visible:outline-2 peer-focus-visible:outline-offset-4 ${checked ? 'ring-accent-ink ring-2' : 'ring-line-strong ring-1 group-hover:ring-2'}`}
+                className={`bg-mat ring-offset-surface peer-focus-visible:outline-accent-ink block aspect-square w-full rounded-xs ring-offset-2 peer-focus-visible:outline-2 peer-focus-visible:outline-offset-4 ${checked ? 'ring-accent-ink ring-2' : 'ring-brass ring-1 group-hover:ring-2'}`}
               />
               {mat.name}
             </label>

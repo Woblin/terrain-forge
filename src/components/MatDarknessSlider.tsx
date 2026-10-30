@@ -1,5 +1,6 @@
 import { useId } from 'react';
 import { MAT_DARKNESS_RANGE } from '../domain/mats';
+import { matDarknessName } from './matDarknessName';
 
 interface MatDarknessSliderProps {
   value: number;
@@ -15,10 +16,12 @@ export function MatDarknessSlider({ value, disabled, onChange }: MatDarknessSlid
   return (
     <div className={`py-1.5 text-sm ${disabled ? 'opacity-50' : ''}`}>
       <div className="flex items-center justify-between gap-3">
-        <label htmlFor={id}>Darken mat</label>
+        <label htmlFor={id} className="font-semibold">
+          Darken mat
+        </label>
         <span className="flex items-center gap-2">
-          <output htmlFor={id} className="text-muted text-xs">
-            {darknessName(value)}
+          <output htmlFor={id} className="text-muted text-xs italic">
+            {matDarknessName(value)}
           </output>
           {value !== standard && !disabled && (
             <button
@@ -41,7 +44,7 @@ export function MatDarknessSlider({ value, disabled, onChange }: MatDarknessSlid
         step={step}
         value={value}
         disabled={disabled}
-        aria-valuetext={darknessName(value)}
+        aria-valuetext={matDarknessName(value)}
         onChange={(event) => {
           onChange(Number(event.target.value));
         }}
@@ -49,15 +52,4 @@ export function MatDarknessSlider({ value, disabled, onChange }: MatDarknessSlid
       />
     </div>
   );
-}
-
-function darknessName(darkness: number): string {
-  const { min, standard } = MAT_DARKNESS_RANGE;
-  if (darkness === min) {
-    return 'None, picture as it is';
-  }
-  if (darkness === standard) {
-    return 'Standard';
-  }
-  return darkness < standard ? 'Lighter' : 'Darker';
 }

@@ -1,8 +1,14 @@
 import { SparklesIcon, XIcon } from 'lucide-react';
-import { useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
+import { useEffect, useEffectEvent, useId, useMemo, useRef, useState } from 'react';
 import { useLocation, useSearchParams } from 'react-router';
 import { boardCentre } from '../domain/board';
-import { drawsUpright, fitBoard, inchesPerPixel, screenMoveToBoard } from '../domain/boardFit';
+import {
+  drawsUpright,
+  fitBoard,
+  inchesPerPixel,
+  screenMoveToBoard,
+  type ScreenSize,
+} from '../domain/boardFit';
 import { fairnessInputFor } from '../domain/boardAnalysis';
 import { checkBoard } from '../domain/boardChecks';
 import type { Board } from '../domain/board';
@@ -44,21 +50,23 @@ import { boardLinkSearch, parseBoardLink, type ParsedBoardLink } from '../domain
 import { normalizeRotation, snapRotation } from '../domain/snapping';
 import type { Placement, TerrainPiece } from '../domain/terrain';
 import { formatLength, type LengthUnit } from '../domain/units';
+import { BoardFooter } from '../components/BoardFooter';
+import { BoardHeaderBar, type BoardSaveState } from '../components/BoardHeaderBar';
 import { BoardToolbar } from '../components/BoardToolbar';
 import { BoardView } from '../components/BoardView';
 import { BoardWorkspace } from '../components/BoardWorkspace';
 import { BUTTON_STYLES } from '../components/buttonStyles';
 import { DeploymentZones } from '../components/DeploymentZones';
 import { EdgeDistanceOverlay, type MeasuredPiece } from '../components/EdgeDistanceOverlay';
-import { EditorStatus } from '../components/EditorStatus';
 import { FairnessAnnouncer } from '../components/FairnessAnnouncer';
+import { FairBadge } from '../components/FairBadge';
 import { FairnessPanel } from '../components/FairnessPanel';
 import { FairnessVerdict } from '../components/FairnessVerdict';
 import { GeneratorControls } from '../components/GeneratorControls';
 import { HiddenAreaOverlay } from '../components/HiddenAreaOverlay';
 import { IconButton } from '../components/IconButton';
 import { LaneOverlay } from '../components/LaneOverlay';
-import { MatPicker } from '../components/MatPicker';
+import { MatAccordion } from '../components/MatAccordion';
 import { MeasureStepper } from '../components/MeasureStepper';
 import { measureDetail } from '../components/measureText';
 import { PiecePalette } from '../components/PiecePalette';
@@ -66,11 +74,11 @@ import { PhoneBoardButtons } from '../components/PhoneBoardButtons';
 import { pieceLabel } from '../components/pieceLabel';
 import { RotateHandle } from '../components/RotateHandle';
 import { SaveBoardControls } from '../components/SaveBoardControls';
-import { SeedField } from '../components/SeedField';
 import { SelectionBar } from '../components/SelectionBar';
 import { TerrainLegend } from '../components/TerrainLegend';
 import { TerrainChoiceDialog } from '../components/TerrainChoiceDialog';
 import { TerrainShape } from '../components/TerrainShape';
+import { BOARD_TABLE_INSET } from '../components/warTableStyles';
 import { copyText } from '../services/clipboard';
 import { useBoardAnalysis } from '../hooks/useBoardAnalysis';
 import { useBoardDrag } from '../hooks/useBoardDrag';
@@ -117,6 +125,12 @@ const OWN: CollectionSource = { kind: 'own' };
 
 /** The address parameter that names a saved board, as in `/board?saved=<id>`. */
 const SAVED_PARAM = 'saved';
+
+/** A name the player gave a board that is not saved, kept for the board it was given to. */
+interface DraftName {
+  readonly origin: object;
+  readonly name: string;
+}
 
 /** A new board the player asked for, waiting for them to pick its terrain. */
 interface PendingBoard {
@@ -178,7 +192,12 @@ export function BoardPage() {
   // A phone has no room for every piece's distances, so it measures the selected piece only.
   const measuresOnePiece = layout === 'phone' || layout === 'sideways';
   const frameRef = useRef<SVGGElement>(null);
-  const [boardArea, boardAreaRef, boardSpace] = useElementSize<HTMLDivElement>();
+  const [boardArea, boardAreaRef, areaSize] = useElementSize<HTMLDivElement>();
+  // The board sits on a war table, whose edge takes some of the space measured for it.
+  const boardSpace = insideTable(areaSize);
+  const rulesId = useId();
+  const [rulesAsked, setRulesAsked] = useState(0);
+  const [draftName, setDraftName] = useState<DraftName | null>(null);
 
   const collection = source.kind === 'own' ? ownCollection : source.pieces;
   const knownIds = useMemo(() => new Set(collection.map((piece) => piece.id)), [collection]);
@@ -411,7 +430,33 @@ export function BoardPage() {
   function renameBoard(name: string): void {
     if (opened !== null) {
       savedBoards.rename(opened.id, name);
+    } else if (origin !== undefined) {
+      setDraftName({ origin, name });
     }
+  }
+
+  function boardName(): string {
+    if (shownOpened !== null) {
+      return shownOpened.name;
+    }
+    if (draftName !== null && draftName.origin === origin) {
+      return draftName.name;
+    }
+    return defaultBoardName(
+      setup?.preset.name ?? chosenPreset.name,
+      setup?.deployment.name ?? '',
+      new Date(),
+    );
+  }
+
+  function saveState(): BoardSaveState {
+    if (shownOpened === null) {
+      return 'notSaved';
+    }
+    if (unsaved) {
+      return 'unsaved';
+    }
+    return savedBoards.saving ? 'saving' : 'saved';
   }
 
   const libraryLoaded = library.status !== 'loading';
@@ -638,21 +683,11 @@ export function BoardPage() {
         deploymentId={choice.deploymentId}
         status={status}
         unit={unit}
-        enabledRules={enabledRulesFor(chosenPreset, settings.preferences)}
+        ruleCount={enabledRulesFor(chosenPreset, settings.preferences).length}
         settingsError={settings.error}
         onPresetChange={(presetId) => {
           setChoice({ presetId, deploymentId: DEFAULT_DEPLOYMENT_ID });
           settings.choosePreset(presetId);
-        }}
-        onRuleChange={(rule, enabled) => {
-          settings.switchRule(chosenPreset, rule, enabled);
-        }}
-        canReset={
-          !usesDefaultRules(chosenPreset, settings.preferences) || !isDefaultView(session.view)
-        }
-        onReset={() => {
-          settings.resetRules(chosenPreset);
-          setView(DEFAULT_VIEW_OPTIONS);
         }}
         onDeploymentChange={(deploymentId) => {
           setChoice({ ...choice, deploymentId });
@@ -660,8 +695,11 @@ export function BoardPage() {
         onGenerate={() => {
           requestNew(randomSeed());
         }}
+        onChooseRules={() => {
+          setRulesAsked(rulesAsked + 1);
+        }}
       />
-      <MatPicker
+      <MatAccordion
         value={matId}
         onChange={(next) => {
           setMat(next);
@@ -671,33 +709,31 @@ export function BoardPage() {
         darkness={matDarkness}
         onDarknessChange={setMatDarkness}
       />
-      <SeedField
-        seedCode={origin === undefined ? null : seedToCode(origin.seed)}
-        edited={present?.edited ?? false}
-        onLoadSeed={(seed) => {
-          requestNew(seed);
-        }}
-        onRandomSeed={() => {
-          requestNew(randomSeed());
-        }}
-        onCopyLink={() => copyText(shareUrl())}
-      />
-      <SaveBoardControls
-        access={savedBoards.access}
-        opened={shownOpened}
-        unsaved={unsaved}
-        sending={savedBoards.saving}
-        hasBoard={present !== null && savedBoards.status === 'ready'}
-        defaultName={defaultBoardName(
-          setup?.preset.name ?? chosenPreset.name,
-          setup?.deployment.name ?? '',
-          new Date(),
-        )}
-        error={savedBoards.writeError}
-        onSave={saveBoard}
-        onRename={renameBoard}
-      />
     </div>
+  );
+
+  const header = (
+    <BoardHeaderBar
+      name={boardName()}
+      onRename={renameBoard}
+      saveState={saveState()}
+      code={origin === undefined ? null : seedToCode(origin.seed)}
+      edited={present?.edited ?? false}
+      onLoadSeed={(seed) => {
+        requestNew(seed);
+      }}
+      onCopyLink={() => copyText(shareUrl())}
+      saveControls={
+        <SaveBoardControls
+          access={savedBoards.access}
+          opened={shownOpened}
+          name={boardName()}
+          hasBoard={present !== null && savedBoards.status === 'ready'}
+          error={savedBoards.writeError}
+          onSave={saveBoard}
+        />
+      }
+    />
   );
 
   const fairnessPanel = (
@@ -707,6 +743,23 @@ export function BoardPage() {
       error={analysis.error}
       balance={fairnessInput?.balance ?? null}
       enabledRules={fairnessInput?.enabledRules ?? NO_RULES}
+      rulesId={rulesId}
+      rules={{
+        chosen: enabledRulesFor(chosenPreset, settings.preferences),
+        onChange: (rule, enabled) => {
+          settings.switchRule(chosenPreset, rule, enabled);
+        },
+        canReset:
+          !usesDefaultRules(chosenPreset, settings.preferences) || !isDefaultView(session.view),
+        onReset: () => {
+          settings.resetRules(chosenPreset);
+          setView(DEFAULT_VIEW_OPTIONS);
+        },
+      }}
+      generating={status.running}
+      onGenerate={() => {
+        requestNew(randomSeed());
+      }}
       edited={present?.edited ?? false}
       misplaced={problems.size}
       warnings={prepared?.warnings ?? NO_WARNINGS}
@@ -744,6 +797,12 @@ export function BoardPage() {
       size={drawnSize}
       description={boardDescription(setup, shownPieces.length, unit)}
       dimmed={status.running}
+      badge={
+        // Phones show the verdict in the sheet below the board, which keeps the corner clear.
+        report === null || measuresOnePiece ? undefined : (
+          <FairBadge report={report} enabledRules={fairnessInput?.enabledRules ?? NO_RULES} />
+        )
+      }
       onBackgroundPointerDown={() => {
         dispatch({ type: 'selected', key: null });
       }}
@@ -752,7 +811,12 @@ export function BoardPage() {
       onPointerCancel={drag.cancel}
     >
       {setup !== undefined && (
-        <DeploymentZones deployment={setup.deployment} upright={upright} labelled />
+        <DeploymentZones
+          board={setup.board}
+          deployment={setup.deployment}
+          upright={upright}
+          labelled
+        />
       )}
       {showHidden && analysis.analysis !== null && (
         <HiddenAreaOverlay hidden={analysis.analysis.hidden} />
@@ -832,14 +896,17 @@ export function BoardPage() {
             </div>
           )
         }
+        header={header}
         setup={setupPanel}
         fairness={fairnessPanel}
+        rulesAsked={rulesAsked}
+        rulesId={rulesId}
         pieces={piecesPanel}
         toolbar={
           <BoardToolbar
             canUndo={canUndo(editor)}
             canRedo={canRedo(editor)}
-            hasSelection={selection !== null}
+            selectionName={selection?.name ?? null}
             snap={snap}
             movePairs={movePairs}
             showPhotos={showPhotos}
@@ -871,28 +938,7 @@ export function BoardPage() {
         boardAreaRef={boardAreaRef}
         board={boardDrawing}
         legend={legend}
-        footer={
-          <div className="space-y-2">
-            <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-2">
-              <EditorStatus selection={selection} />
-              {legend}
-            </div>
-            <details className="text-soft text-sm pointer-coarse:hidden">
-              <summary className="text-muted cursor-pointer">Keyboard shortcuts</summary>
-              <ul className="mt-2 list-disc space-y-1 pl-5">
-                <li>Tab and Shift+Tab move between pieces on the board.</li>
-                <li>
-                  Arrow keys move the selected piece {formatLength(0.5, unit)}; with Shift,{' '}
-                  {formatLength(0.1, unit)}.
-                </li>
-                <li>
-                  Q and E turn it 15° left and right. Delete removes it. Escape lets go of it.
-                </li>
-                <li>Ctrl+Z undoes, Ctrl+Shift+Z or Ctrl+Y redoes (Cmd on a Mac).</li>
-              </ul>
-            </details>
-          </div>
-        }
+        footer={<BoardFooter legend={legend} selection={selection} unit={unit} />}
         phoneButtons={
           <PhoneBoardButtons
             canUndo={canUndo(editor)}
@@ -981,6 +1027,12 @@ export function BoardPage() {
       )}
     </>
   );
+}
+
+/** The room left for the board inside the war table around it. */
+function insideTable(area: ScreenSize): ScreenSize {
+  const edge = 2 * BOARD_TABLE_INSET;
+  return { width: Math.max(0, area.width - edge), height: Math.max(0, area.height - edge) };
 }
 
 /**

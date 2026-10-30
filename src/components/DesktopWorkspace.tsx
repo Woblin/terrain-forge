@@ -1,5 +1,7 @@
 import { ScaleIcon, SlidersHorizontalIcon } from 'lucide-react';
+import { useEffect, useEffectEvent } from 'react';
 import { useOpenPanels } from '../hooks/useOpenPanels';
+import { useRulesRequest } from '../hooks/useRulesRequest';
 import { BoardStage } from './BoardStage';
 import { DetailsTabs } from './DetailsTabs';
 import { SidePanel } from './SidePanel';
@@ -8,8 +10,19 @@ import { DETAILS_TITLE, SETUP_TITLE, type WorkspaceSlots } from './workspaceSlot
 /** The board between the setup and details panels, which fold to rails and stay that way. */
 export function DesktopWorkspace(props: WorkspaceSlots) {
   const [panels, changePanels] = useOpenPanels();
+  const [showRules, rulesShown] = useRulesRequest(props.rulesAsked);
+  const openDetails = useEffectEvent(() => {
+    if (!panels.details) {
+      changePanels({ details: true });
+    }
+  });
+  useEffect(() => {
+    if (showRules) {
+      openDetails();
+    }
+  }, [showRules]);
   return (
-    <main className="flex min-h-0 flex-1 gap-3 p-3 min-[1920px]:gap-4 min-[1920px]:p-4">
+    <main className="flex min-h-0 flex-1 gap-3.5 p-3.5 min-[1920px]:gap-4 min-[1920px]:p-4">
       <SidePanel
         side="left"
         title={SETUP_TITLE}
@@ -19,7 +32,7 @@ export function DesktopWorkspace(props: WorkspaceSlots) {
           changePanels({ setup });
         }}
         overlay={false}
-        widthClassName="w-80 shrink-0"
+        widthClassName="w-[300px] shrink-0"
       >
         {props.setup}
       </SidePanel>
@@ -35,7 +48,7 @@ export function DesktopWorkspace(props: WorkspaceSlots) {
         overlay={false}
         widthClassName="w-[360px] shrink-0 min-[1920px]:w-[400px]"
       >
-        <DetailsTabs {...props} />
+        <DetailsTabs {...props} showRules={showRules} onRulesShown={rulesShown} />
       </SidePanel>
     </main>
   );

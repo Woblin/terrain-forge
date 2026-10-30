@@ -1,5 +1,6 @@
 import { ScaleIcon, SlidersHorizontalIcon } from 'lucide-react';
 import { useState } from 'react';
+import { useRulesRequest } from '../hooks/useRulesRequest';
 import { BoardStage } from './BoardStage';
 import { DetailsTabs } from './DetailsTabs';
 import { SidePanel } from './SidePanel';
@@ -10,6 +11,10 @@ type TabletPanel = 'setup' | 'details' | null;
 /** The board with both panels as rails; one panel at a time slides over the board. */
 export function TabletWorkspace(props: WorkspaceSlots) {
   const [open, setOpen] = useState<TabletPanel>(null);
+  const [showRules, rulesShown] = useRulesRequest(props.rulesAsked);
+  if (showRules && open !== 'details') {
+    setOpen('details');
+  }
   function openPanel(panel: TabletPanel, isOpen: boolean): void {
     setOpen(isOpen ? panel : null);
   }
@@ -40,7 +45,7 @@ export function TabletWorkspace(props: WorkspaceSlots) {
         overlay
         widthClassName="w-[360px]"
       >
-        <DetailsTabs {...props} />
+        <DetailsTabs {...props} showRules={showRules} onRulesShown={rulesShown} />
       </SidePanel>
     </main>
   );
