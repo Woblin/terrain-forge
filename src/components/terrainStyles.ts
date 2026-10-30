@@ -63,7 +63,10 @@ export const TERRAIN_STYLES: Readonly<Record<TerrainType, TerrainStyle>> = {
 };
 
 /** A dark ring around every piece, so that pieces stand out from a mat of the same colour. */
-export const PIECE_HALO = 'stroke-black/55';
+export const PIECE_HALO = 'stroke-black/35';
+
+/** How strongly a piece's coloured outline shows, kept soft so the outline does not outshine the piece. */
+export const PIECE_OUTLINE_OPACITY = 0.45;
 
 /** The two players' colours, for zones and overlays: Player A blue, Player B orange. */
 export const PLAYER_STYLES = {
