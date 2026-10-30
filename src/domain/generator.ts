@@ -129,7 +129,7 @@ function fitsOnBoard(piece: TerrainPiece, board: Board, edgeMargin: number): boo
   return (w <= width && d <= depth) || (d <= width && w <= depth);
 }
 
-function tooLargeWarnings(
+export function tooLargeWarnings(
   pieces: readonly TerrainPiece[],
   board: Board,
   edgeMargin: number,

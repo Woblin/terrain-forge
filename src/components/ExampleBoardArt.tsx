@@ -1,27 +1,36 @@
+import { findMat } from '../domain/mats';
 import { SAMPLE_COLLECTION } from '../domain/sampleCollection';
 import { useExampleBoard } from '../hooks/useExampleBoard';
 import { BoardPicture } from './BoardPicture';
+import { FairBadge } from './FairBadge';
+import { WAR_TABLE } from './warTableStyles';
 
-/** The left half of the sign-in page on wide screens: an example board as artwork. */
+const EXAMPLE_MAT = findMat('grass');
+
+/** An example board on a tilted war table, as artwork for the home and sign-in pages. */
 export function ExampleBoardArt() {
   const example = useExampleBoard();
+  if (example.setup === undefined) {
+    return null;
+  }
   return (
     <div
       aria-hidden="true"
-      className="bg-mat relative flex flex-col justify-center gap-8 overflow-hidden p-12 xl:p-16"
+      className={`w-full max-w-[760px] p-2.5 md:-rotate-2 md:p-3.5 ${WAR_TABLE}`}
     >
-      {example.setup !== undefined && (
-        <div className="shadow-shade -rotate-2 overflow-hidden rounded-3xl shadow-2xl ring-1 ring-white/10">
-          <BoardPicture setup={example.setup} layout={example.layout} pieces={SAMPLE_COLLECTION} />
-        </div>
-      )}
-      <div className="max-w-lg space-y-2 text-zinc-100">
-        <p className="text-2xl font-semibold tracking-tight">
-          Fair battlefields from your own terrain.
-        </p>
-        <p className="text-zinc-400">
-          Save your terrain once, and every board you generate is built from what is on your shelf.
-        </p>
+      <div className="relative">
+        <BoardPicture
+          setup={example.setup}
+          layout={example.layout}
+          pieces={SAMPLE_COLLECTION}
+          mat={EXAMPLE_MAT}
+        />
+        <span className="pointer-events-none absolute inset-0 shadow-[inset_0_0_40px_rgb(0_0_0/0.45)]" />
+        {example.layout !== null && example.report !== null && (
+          <div className="absolute top-2.5 right-2.5 hidden sm:block">
+            <FairBadge report={example.report} enabledRules={example.layout.enabledRules} />
+          </div>
+        )}
       </div>
     </div>
   );

@@ -8,6 +8,7 @@ import {
   Trash2Icon,
 } from 'lucide-react';
 import { LIBRARY_LIMITS, needsRecrop, type LibraryPiece } from '../domain/library';
+import type { SharedView } from '../domain/sharedScale';
 import { formatLength, type LengthUnit } from '../domain/units';
 import { ActionsMenu } from './ActionsMenu';
 import { BUTTON_STYLES } from './buttonStyles';
@@ -19,6 +20,8 @@ import { TERRAIN_STYLES } from './terrainStyles';
 interface PieceCardProps {
   piece: LibraryPiece;
   photoUrl: string | undefined;
+  /** The area every card's picture shows, so pieces are drawn at one scale. */
+  view: SharedView;
   unit: LengthUnit;
   /** True while any change to the library is being saved. */
   busy: boolean;
@@ -38,6 +41,7 @@ const MENU_ICON = 'text-muted size-4';
 export function PieceCard({
   piece,
   photoUrl,
+  view,
   unit,
   busy,
   canAddCopy,
@@ -55,15 +59,33 @@ export function PieceCard({
   const style = TERRAIN_STYLES[piece.type];
   const photoAction = !hasPhoto ? 'Add photo' : recrop ? 'Re-crop photo' : 'Replace photo';
   return (
-    <li className="parchment frame flex flex-col overflow-hidden rounded-sm">
-      <PieceThumbnail piece={piece} photoUrl={photoUrl} className="aspect-[4/3] w-full" />
-      <div className="flex flex-1 flex-col gap-2 p-3">
-        <div className="flex items-start gap-1">
+    <li className="parchment card-frame flex flex-col overflow-hidden rounded-sm">
+      <div className="relative mx-1.5 mt-1.5">
+        <PieceThumbnail
+          piece={piece}
+          photoUrl={photoUrl}
+          view={view}
+          className="block aspect-[4/3] w-full rounded-[2px]"
+        />
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 rounded-[2px] shadow-[inset_0_0_18px_rgb(0_0_0/0.5)]"
+        />
+        {/* The stepper below says how many to screen readers. */}
+        <span
+          aria-hidden="true"
+          className="bg-iron/80 text-on-iron absolute bottom-1.5 left-2 rounded-[2px] px-[7px] text-[13px] font-semibold"
+        >
+          ×{piece.quantity}
+        </span>
+      </div>
+      <div className="flex flex-1 flex-col gap-1.5 px-3 pt-2.5 pb-3">
+        <div className="flex items-start gap-1.5">
           <div className="min-w-0 flex-1">
-            <h2 className="truncate font-semibold" title={piece.name}>
+            <h2 className="font-display truncate text-[19px] leading-[1.15]" title={piece.name}>
               {piece.name}
             </h2>
-            <p className="text-muted text-xs tabular-nums">
+            <p className="text-muted mt-0.5 text-xs tabular-nums">
               {formatLength(width, unit)} × {formatLength(depth, unit)},{' '}
               {piece.footprint.kind === 'rect' ? 'rectangle' : 'oval'}
             </p>
@@ -145,9 +167,9 @@ export function PieceCard({
             The piece changed shape since its photo was cropped. Re-crop the photo.
           </p>
         )}
-        <div className="mt-auto flex flex-wrap items-center justify-between gap-2 pt-1">
+        <div className="mt-auto flex flex-wrap items-center justify-between gap-2 pt-1.5">
           <div
-            className="border-line flex items-center rounded-lg border"
+            className="border-line-strong bg-field flex items-center rounded-[3px] border"
             role="group"
             aria-label={`How many ${piece.name}`}
           >
@@ -159,8 +181,8 @@ export function PieceCard({
               }}
               disabled={busy || piece.quantity <= LIBRARY_LIMITS.minQuantity}
             />
-            <span className="w-8 text-center text-sm font-medium tabular-nums" aria-live="polite">
-              ×{piece.quantity}
+            <span className="min-w-[26px] text-center font-bold tabular-nums" aria-live="polite">
+              {piece.quantity}
             </span>
             <IconButton
               icon={PlusIcon}
@@ -176,7 +198,7 @@ export function PieceCard({
             onClick={onEdit}
             disabled={busy}
             aria-label={`Edit ${piece.name}`}
-            className={`${BUTTON_STYLES.secondary} h-9 px-3 text-sm pointer-coarse:h-11`}
+            className={`${BUTTON_STYLES.secondary} h-[34px] px-2.5 text-xs pointer-coarse:h-11`}
           >
             <PencilIcon className="size-4" aria-hidden="true" />
             Edit

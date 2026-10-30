@@ -16,7 +16,7 @@ export function MainNav({ className = '' }: MainNavProps) {
           key={item.to}
           to={item.to}
           className={({ isActive }) =>
-            `focus-visible:outline-brass-bright border-b-2 px-3 py-1.5 focus-visible:outline-2 ${isActive ? 'border-brass-bright text-[#f3e6c4]' : 'text-on-iron-muted hover:text-on-iron border-transparent'}`
+            `focus-visible:outline-brass-bright border-b-2 px-3 py-1.5 focus-visible:outline-2 ${isActive ? 'border-brass-bright text-on-iron-bright' : 'text-on-iron-muted hover:text-on-iron border-transparent'}`
           }
         >
           {item.label}

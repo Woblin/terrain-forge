@@ -4,7 +4,7 @@ import { recentBoards } from '../domain/savedBoard';
 import { useBoardOpener } from '../hooks/useBoardOpener';
 import { useSavedBoards } from '../hooks/savedBoardsContext';
 import { ConfirmDialog } from './ConfirmDialog';
-import { SavedBoardCard } from './SavedBoardCard';
+import { RecentBoardCard } from './RecentBoardCard';
 
 /** How many saved boards the home page shows. */
 const RECENT_COUNT = 3;
@@ -18,26 +18,28 @@ export function RecentBoards() {
     return null;
   }
   return (
-    <section aria-labelledby="recent-boards-heading" className="space-y-4">
+    <section aria-labelledby="recent-boards-heading" className="flex flex-col gap-4">
       <div className="flex items-baseline justify-between gap-3">
-        <h2 id="recent-boards-heading" className="text-xl font-semibold tracking-tight">
+        <h2
+          id="recent-boards-heading"
+          className="font-display text-on-iron-bright text-[28px] leading-tight"
+        >
           Your recent boards
         </h2>
         <Link
           to="/boards"
-          className="text-accent-ink hover:text-accent-ink-hover inline-flex items-center gap-1 text-sm font-medium"
+          className="text-brass-glow inline-flex items-center gap-1.5 font-semibold hover:underline"
         >
           All boards
           <ArrowRightIcon className="size-4" aria-hidden="true" />
         </Link>
       </div>
-      <ul className="grid gap-3 md:grid-cols-3 md:gap-4">
+      <ul className="grid grid-cols-[repeat(auto-fit,minmax(min(300px,100%),1fr))] gap-5">
         {boards.map((board) => (
-          <SavedBoardCard
+          <RecentBoardCard
             key={board.id}
             board={board}
             unsaved={opener.unsavedId === board.id}
-            heading="h3"
             onOpen={() => {
               opener.request(board);
             }}

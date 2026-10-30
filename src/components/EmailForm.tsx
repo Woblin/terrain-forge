@@ -10,7 +10,7 @@ import {
   type AccountFormMode,
 } from '../domain/account';
 import { BUTTON_STYLES } from './buttonStyles';
-import { FIELD_ERROR_STYLES, LABEL_STYLES, LARGE_FIELD_STYLES } from './fieldStyles';
+import { FIELD_ERROR_STYLES, LARGE_FIELD_STYLES, LARGE_LABEL_STYLES } from './fieldStyles';
 import { PasswordChecklist } from './PasswordChecklist';
 import { TextButton } from './TextButton';
 
@@ -105,7 +105,7 @@ export function EmailForm({ mode, busy, error, notice, onModeChange, onSubmit }:
             onClick={() => {
               setShowPassword(!showPassword);
             }}
-            className="text-muted hover:text-ink focus-visible:outline-accent-ink absolute inset-y-0 right-0 grid w-12 place-items-center rounded-r-xl focus-visible:outline-2"
+            className="text-muted hover:text-ink focus-visible:outline-accent-ink absolute top-1 right-1 grid size-9 place-items-center rounded-[3px] focus-visible:outline-2"
           >
             {showPassword ? (
               <EyeOffIcon className="size-5" aria-hidden="true" />
@@ -140,7 +140,7 @@ export function EmailForm({ mode, busy, error, notice, onModeChange, onSubmit }:
     const message = errors[setup.name];
     return (
       <div>
-        <label htmlFor={`${id}-${setup.name}`} className={LABEL_STYLES}>
+        <label htmlFor={`${id}-${setup.name}`} className={LARGE_LABEL_STYLES}>
           {setup.label}
         </label>
         {input}
@@ -165,8 +165,13 @@ export function EmailForm({ mode, busy, error, notice, onModeChange, onSubmit }:
   }
 
   return (
-    <form onSubmit={submit} noValidate aria-labelledby={`${id}-title`} className="space-y-4">
-      <h2 id={`${id}-title`} className="font-display text-[22px] leading-tight">
+    <form
+      onSubmit={submit}
+      noValidate
+      aria-labelledby={`${id}-title`}
+      className="flex flex-col gap-3.5"
+    >
+      <h2 id={`${id}-title`} className="font-display text-accent-ink text-[19px] leading-tight">
         {TITLES[mode]}
       </h2>
       {emailField()}
@@ -186,20 +191,27 @@ export function EmailForm({ mode, busy, error, notice, onModeChange, onSubmit }:
       {error !== null && (
         <p
           role="alert"
-          className="border-fail-line bg-fail-soft text-fail rounded-lg border p-3 text-sm"
+          className="border-fail-line bg-fail-soft text-fail rounded-[3px] border px-3 py-2.5 text-sm"
         >
           {error}
         </p>
       )}
       {notice !== null && (
-        <p role="status" className="bg-pass-soft text-pass rounded-lg p-3 text-sm">
+        <p
+          role="status"
+          className="border-pass-line bg-pass-soft text-pass rounded-[3px] border px-3 py-2.5 text-sm"
+        >
           {notice}
         </p>
       )}
-      <button type="submit" disabled={busy} className={`${BUTTON_STYLES.primary} h-12 w-full`}>
+      <button
+        type="submit"
+        disabled={busy}
+        className={`${BUTTON_STYLES.primary} h-[50px] w-full text-xl`}
+      >
         {busy ? 'Working…' : SUBMIT_LABELS[mode]}
       </button>
-      <div className="flex flex-wrap justify-between gap-2 text-sm">
+      <div className="flex flex-wrap justify-between gap-2 text-sm font-semibold">
         {mode === 'signIn' ? (
           <>
             <TextButton
@@ -214,7 +226,7 @@ export function EmailForm({ mode, busy, error, notice, onModeChange, onSubmit }:
                 switchTo('resetPassword');
               }}
             >
-              Forgot password?
+              Forgot your password?
             </TextButton>
           </>
         ) : (

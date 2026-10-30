@@ -1,10 +1,10 @@
 import { HandIcon, MountainIcon, ScaleIcon, SparklesIcon, type LucideIcon } from 'lucide-react';
 import { Link } from 'react-router';
-import { BoardPicture } from '../components/BoardPicture';
 import { BUTTON_STYLES } from '../components/buttonStyles';
+import { ExampleBoardArt } from '../components/ExampleBoardArt';
+import { HeroRule } from '../components/HeroRule';
 import { RecentBoards } from '../components/RecentBoards';
-import { SAMPLE_COLLECTION } from '../domain/sampleCollection';
-import { useExampleBoard } from '../hooks/useExampleBoard';
+import { HERO_LAYOUT } from '../components/heroLayout';
 
 const FEATURES: readonly { icon: LucideIcon; title: string; text: string }[] = [
   {
@@ -25,48 +25,55 @@ const FEATURES: readonly { icon: LucideIcon; title: string; text: string }[] = [
 ];
 
 export function HomePage() {
-  const example = useExampleBoard();
   return (
-    <main className="flex-1">
-      <section className="grid items-center gap-10 px-4 pt-8 pb-12 md:px-8 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-16 lg:px-16 lg:py-20">
-        <div className="max-w-xl space-y-6">
-          <h1 className="text-4xl leading-tight font-semibold tracking-tight md:text-5xl">
+    <main className={`${HERO_LAYOUT.page} gap-14 pb-24 md:pb-16`}>
+      <section className={HERO_LAYOUT.hero}>
+        <div className={`${HERO_LAYOUT.text} gap-[22px]`}>
+          <HeroRule>For tabletop wargames</HeroRule>
+          <h1 className="font-display text-on-iron-bright text-[40px] leading-[1.04] text-balance md:text-[56px]">
             Fair battlefields from your own terrain.
           </h1>
-          <p className="text-muted text-lg">
+          <p className="text-soft text-[19px] leading-[1.45] text-pretty md:text-xl">
             Balanced terrain layouts for Warhammer, Age of Sigmar, One Page Rules and more, in a
             second. Tweak them by hand and save them for game night.
           </p>
-          <div className="flex flex-wrap gap-3">
-            <Link to="/board" state={{ newBoard: true }} className={BUTTON_STYLES.primary}>
+          <div className="flex flex-wrap gap-3 pt-1">
+            <Link
+              to="/board"
+              state={{ newBoard: true }}
+              className={`${BUTTON_STYLES.primary} h-[50px] gap-2.5 px-[22px] text-[21px]`}
+            >
               <SparklesIcon className="size-[18px]" aria-hidden="true" />
               New battlefield
             </Link>
-            <Link to="/library" className={BUTTON_STYLES.secondary}>
+            <Link
+              to="/library"
+              className={`${BUTTON_STYLES.secondary} border-brass bg-iron-raised/70 h-[50px] px-5 text-lg`}
+            >
               Your terrain
             </Link>
           </div>
         </div>
-        {example.setup !== undefined && (
-          <div className="shadow-shade ring-line overflow-hidden rounded-3xl shadow-2xl ring-1 lg:-rotate-2">
-            <BoardPicture
-              setup={example.setup}
-              layout={example.layout}
-              pieces={SAMPLE_COLLECTION}
-            />
-          </div>
-        )}
+        <div className={HERO_LAYOUT.art}>
+          <ExampleBoardArt />
+        </div>
       </section>
-      <div className="px-4 pb-12 empty:hidden md:px-8 lg:px-16">
-        <RecentBoards />
-      </div>
-      <section aria-label="What Terrain Forge does" className="px-4 pb-16 md:px-8 lg:px-16">
-        <ul className="grid gap-4 md:grid-cols-3">
+      <RecentBoards />
+      <section aria-label="What Terrain Forge does">
+        <ul className="grid grid-cols-[repeat(auto-fit,minmax(min(300px,100%),1fr))] gap-5">
           {FEATURES.map((feature) => (
-            <li key={feature.title} className="parchment frame space-y-2 rounded-sm p-6">
-              <feature.icon className="text-accent-ink size-6" aria-hidden="true" />
+            <li
+              key={feature.title}
+              className="parchment frame flex flex-col gap-2.5 rounded-sm px-[22px] pt-[22px] pb-6"
+            >
+              <span
+                aria-hidden="true"
+                className="bg-seal text-on-seal grid size-11 place-items-center rounded-full shadow-[0_0_0_2px_var(--surface),0_0_0_3px_var(--color-brass)]"
+              >
+                <feature.icon className="size-[22px]" />
+              </span>
               <h2 className="font-display text-[22px]">{feature.title}</h2>
-              <p className="text-muted text-sm">{feature.text}</p>
+              <p className="text-soft text-base leading-[1.45]">{feature.text}</p>
             </li>
           ))}
         </ul>

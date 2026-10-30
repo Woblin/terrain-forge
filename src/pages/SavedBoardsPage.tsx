@@ -6,6 +6,7 @@ import { BoardNameDialog } from '../components/BoardNameDialog';
 import { BUTTON_STYLES } from '../components/buttonStyles';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { LibraryMessages } from '../components/LibraryMessages';
+import { PageHeader } from '../components/PageHeader';
 import { SaveStatus } from '../components/SaveStatus';
 import { SavedBoardCard } from '../components/SavedBoardCard';
 import { SegmentedControl, type Segment } from '../components/SegmentedControl';
@@ -49,34 +50,38 @@ export function SavedBoardsPage() {
 
   return (
     <>
-      <main className="flex-1 space-y-5 px-4 py-6 md:px-8 lg:py-8">
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">My boards</h1>
-            {savedBoards.access === 'account' && savedBoards.status === 'ready' && (
-              <p className="text-muted text-sm">{countText(boards.length)}</p>
-            )}
-          </div>
-          <div className="flex items-center gap-3">
-            {boards.length > 1 && (
-              <SegmentedControl
-                legend="Sort by"
-                segments={ORDERS}
-                value={order}
-                onChange={setOrder}
-                tone="iron"
-              />
-            )}
-            <Link
-              to="/board"
-              state={{ newBoard: true }}
-              className={`${BUTTON_STYLES.primary} text-sm`}
-            >
-              <PlusIcon className="size-4" aria-hidden="true" />
-              New board
-            </Link>
-          </div>
-        </div>
+      <main className="mx-auto flex w-full max-w-[1480px] flex-1 flex-col gap-[22px] px-4 pt-6 pb-24 md:px-8 md:pt-8 md:pb-12">
+        <PageHeader
+          title="My boards"
+          details={
+            savedBoards.access === 'account' && savedBoards.status === 'ready'
+              ? [countText(boards.length), <SaveStatus key="save" saving={savedBoards.saving} />]
+              : []
+          }
+          actions={
+            <>
+              {boards.length > 1 && (
+                <SegmentedControl
+                  legend="Sort by"
+                  shownLabel="Sort"
+                  segments={ORDERS}
+                  value={order}
+                  onChange={setOrder}
+                  tone="iron"
+                  className="[&>label]:h-8"
+                />
+              )}
+              <Link
+                to="/board"
+                state={{ newBoard: true }}
+                className={`${BUTTON_STYLES.primary} h-11 px-[18px] text-[19px]`}
+              >
+                <PlusIcon className="size-[18px]" aria-hidden="true" />
+                New board
+              </Link>
+            </>
+          }
+        />
         {savedBoards.access === 'signedOut' && (
           <p className="text-soft">
             <Link
@@ -94,7 +99,6 @@ export function SavedBoardsPage() {
         )}
         {savedBoards.access === 'account' && (
           <>
-            <SaveStatus saving={savedBoards.saving} />
             <LibraryMessages
               loadError={savedBoards.loadError}
               problems={savedBoards.problems}
@@ -112,7 +116,7 @@ export function SavedBoardsPage() {
                 </Link>
               </div>
             ) : (
-              <ul className="grid gap-3 md:grid-cols-[repeat(auto-fill,minmax(17rem,1fr))] md:gap-4">
+              <ul className="grid grid-cols-[repeat(auto-fill,minmax(min(300px,100%),1fr))] gap-5">
                 {sortSavedBoards(boards, order).map((board) => (
                   <SavedBoardCard
                     key={board.id}
