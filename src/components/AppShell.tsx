@@ -16,24 +16,24 @@ export function AppShell() {
   const fixedHeight = fillsWindow(location.pathname);
   return (
     <div className={`flex flex-col ${fixedHeight ? 'h-dvh' : 'min-h-dvh'}`}>
-      <header className="border-line bg-canvas/85 sticky top-0 z-30 border-b pt-[env(safe-area-inset-top)] backdrop-blur">
-        <div className="flex h-13 items-center gap-3 px-3 md:h-14 md:gap-6 md:px-4">
+      <header className="border-brass bg-iron text-on-iron sticky top-0 z-30 border-b pt-[env(safe-area-inset-top)] shadow-[0_1px_0_#3a2c1a,0_4px_14px_rgb(0_0_0/0.45)]">
+        <div className="flex h-13 items-center gap-3 px-3 md:h-15 md:gap-7 md:px-[18px]">
           <Link
             to="/"
             aria-label="Terrain Forge home"
-            className="focus-visible:outline-accent-ink flex items-center gap-2.5 rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2"
+            className="focus-visible:outline-brass-bright flex items-center gap-3 rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2"
           >
-            <LogoMark />
-            <span className="hidden text-[15px] font-semibold tracking-tight md:inline">
+            <LogoMark className="h-[30px] w-[26px] md:h-[34px] md:w-[30px]" />
+            <span className="font-display hidden text-[26px] leading-none tracking-[0.5px] md:inline">
               Terrain Forge
             </span>
           </Link>
-          <p className="text-[17px] font-semibold tracking-tight md:hidden">
+          <p className="font-display text-[22px] leading-none md:hidden">
             {pageTitle(location.pathname)}
           </p>
           <MainNav className="hidden md:flex" />
-          <div className="ml-auto flex items-center gap-2 md:gap-3">
-            <UnitToggle className="hidden lg:flex" />
+          <div className="ml-auto flex items-center gap-2 md:gap-3.5">
+            <UnitToggle tone="iron" className="hidden lg:flex" />
             <AccountMenu />
           </div>
         </div>

@@ -54,7 +54,7 @@ export function SavedBoardCard({
           { label: 'Delete', icon: Trash2Icon, run: manage.onDelete, danger: true },
         ];
   return (
-    <li className="border-line bg-surface hover:border-line-strong has-[[data-open]:focus-visible]:outline-accent-ink relative flex gap-3 rounded-2xl border p-3 shadow-sm transition-colors has-[[data-open]:focus-visible]:outline-2 md:flex-col md:gap-0 md:overflow-hidden md:p-0">
+    <li className="parchment frame has-[[data-open]:focus-visible]:outline-accent-ink relative flex gap-3 rounded-sm p-4 transition-colors has-[[data-open]:focus-visible]:outline-2 md:flex-col md:gap-0 md:overflow-hidden md:p-0">
       <SavedBoardPicture
         board={board}
         className="w-28 self-start rounded-lg md:w-full md:rounded-none"
@@ -66,7 +66,7 @@ export function SavedBoardCard({
               type="button"
               data-open
               onClick={onOpen}
-              className="text-left outline-none after:absolute after:inset-0 after:rounded-2xl"
+              className="text-left outline-none after:absolute after:inset-0 after:rounded-sm"
             >
               {board.name}
             </button>

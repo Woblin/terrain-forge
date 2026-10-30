@@ -28,7 +28,7 @@ export function FairnessVerdict({
   return (
     <p
       title={compact ? text : undefined}
-      className={`flex items-center gap-2 rounded-xl font-medium ${passed ? 'bg-pass-soft text-pass' : 'bg-fail-soft text-fail'} ${size}`}
+      className={`flex items-center gap-2 rounded-[3px] border font-semibold ${passed ? 'bg-pass-soft border-pass-line text-pass' : 'bg-fail-soft border-fail-line text-fail'} ${size}`}
     >
       <Icon className="size-[18px] shrink-0" aria-hidden="true" />
       <span className={compact ? 'truncate' : ''}>{text}</span>

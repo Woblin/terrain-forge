@@ -15,9 +15,8 @@ interface IconButtonProps {
 }
 
 const LOOKS = {
-  plain: 'size-9 rounded-lg pointer-coarse:size-11',
-  round:
-    'size-11 rounded-full border border-line bg-surface/90 shadow-lg shadow-shade backdrop-blur',
+  plain: 'size-9 rounded-[3px] pointer-coarse:size-11',
+  round: 'on-leather size-11 rounded-full border border-brass bg-iron/90 shadow-lg shadow-shade',
 } as const;
 
 /** A button that shows only an icon; its label is read out and shown as a tooltip. */
@@ -48,7 +47,7 @@ export function IconButton({
 
 function tone(pressed: boolean, danger: boolean): string {
   if (pressed) {
-    return 'bg-accent-soft text-accent-ink';
+    return 'bg-accent-soft text-ink shadow-[inset_0_0_0_1px_rgb(201_163_82/0.6)]';
   }
   return danger
     ? 'text-fail enabled:hover:bg-fail-soft'

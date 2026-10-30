@@ -66,7 +66,7 @@ export function ActionsMenu({ label, children }: ActionsMenuProps) {
           setOpen(event.newState === 'open');
         }}
         style={place}
-        className="border-line bg-surface text-ink shadow-shade m-0 w-56 rounded-xl border p-1.5 shadow-2xl"
+        className="parchment frame m-0 w-56 rounded-sm p-2"
       >
         {children(close)}
       </div>

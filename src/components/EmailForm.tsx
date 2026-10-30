@@ -166,7 +166,7 @@ export function EmailForm({ mode, busy, error, notice, onModeChange, onSubmit }:
 
   return (
     <form onSubmit={submit} noValidate aria-labelledby={`${id}-title`} className="space-y-4">
-      <h2 id={`${id}-title`} className="text-lg font-semibold">
+      <h2 id={`${id}-title`} className="font-display text-[22px] leading-tight">
         {TITLES[mode]}
       </h2>
       {emailField()}

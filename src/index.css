@@ -7,100 +7,310 @@
 @custom-variant roomy (@media (min-width: 768px) and (min-height: 600px));
 
 /*
- * Colour tokens, light theme. Components use the token names (bg-surface, text-muted, ...)
- * and never raw palette colours, so each theme is defined once, here.
+ * Colour tokens, light theme ("Old World campaign book"). Components use the token names
+ * (bg-surface, text-muted, ...) and never raw palette colours, so each theme is defined once, here.
+ *
+ * Pages sit on dark leather in both themes, while panels and cards are parchment. The text
+ * tokens (ink, soft, muted, faint, line, pass, fail, ...) therefore depend on what they sit on:
+ * `body` and the `on-leather` utility set the light-ink values used on leather, iron and wood;
+ * the `parchment` utility sets the values for the current theme's parchment. The `--p-*`
+ * tokens hold the parchment values and the `--l-*` tokens the leather values.
  */
 :root {
   color-scheme: light;
-  --canvas: var(--color-zinc-100);
-  --surface: var(--color-white);
-  --raised: var(--color-zinc-100);
-  --selected: var(--color-white);
-  --hover: rgb(9 9 11 / 0.05);
-  --line: rgb(9 9 11 / 0.1);
-  --line-strong: rgb(9 9 11 / 0.2);
-  --ink: var(--color-zinc-900);
-  --soft: var(--color-zinc-700);
-  --muted: var(--color-zinc-600);
-  --faint: var(--color-zinc-500);
-  --accent-ink: var(--color-amber-700);
-  --accent-ink-hover: var(--color-amber-800);
-  --pass: var(--color-emerald-700);
-  --pass-soft: var(--color-emerald-50);
-  --fail: var(--color-rose-700);
-  --fail-soft: var(--color-rose-50);
-  --fail-line: var(--color-rose-300);
-  --warn-ink: var(--color-amber-900);
-  --warn-soft: var(--color-amber-50);
-  --warn-line: var(--color-amber-300);
-  --shade: rgb(24 24 27 / 0.12);
+
+  /* Leather page background, the same in both themes apart from its depth. */
+  --canvas: #1d1610;
+  --canvas-glow: #2c2219;
+
+  /* Parchment panels and cards. */
+  --surface: #efe3c4;
+  --surface-glow: #f5ebd2;
+  --surface-mid: #ebdcb6;
+  --surface-edge: #dfcb9d;
+  --raised: #f8f0db;
+  --p-field: #f8f0db;
+  --panel-shadow: rgb(0 0 0 / 0.5);
+
+  /* Text and lines on parchment. */
+  --p-ink: #2a1d12;
+  --p-soft: #5c4630;
+  --p-muted: #5c4630;
+  --p-faint: #6e5a40;
+  --p-line: rgb(138 106 46 / 0.45);
+  --p-line-strong: rgb(138 106 46 / 0.75);
+  --p-button-line: rgb(42 29 18 / 0.5);
+  --p-hover: rgb(42 29 18 / 0.06);
+  --p-tint: rgb(255 250 235 / 0.5);
+  --p-pass: #2f5d2a;
+  --p-pass-soft: rgb(47 93 42 / 0.1);
+  --p-pass-line: rgb(47 93 42 / 0.4);
+  --p-warn-ink: #6b4708;
+  --p-warn-soft: rgb(176 120 20 / 0.14);
+  --p-warn-line: rgb(176 120 20 / 0.45);
+  --p-fail: #8f1d14;
+  --p-fail-soft: rgb(143 29 20 / 0.08);
+  --p-fail-line: rgb(143 29 20 / 0.4);
+  --p-seal-ink: #8f1d14;
+  --p-seal-ink-hover: #5e110b;
+
+  /* Text and lines on leather, iron and wood: the same in both themes. */
+  --l-ink: #ecdcb4;
+  --l-soft: #cbb994;
+  --l-muted: #cbb994;
+  --l-faint: #ab9874;
+  --l-line: rgb(201 163 82 / 0.3);
+  --l-line-strong: #6e5428;
+  --l-button-line: #6e5428;
+  --l-hover: rgb(255 240 210 / 0.07);
+  --l-tint: rgb(255 240 210 / 0.04);
+  --l-pass: #9fd08e;
+  --l-pass-soft: rgb(159 208 142 / 0.1);
+  --l-pass-line: rgb(159 208 142 / 0.4);
+  --l-warn-ink: #f0cf7e;
+  --l-warn-soft: rgb(240 207 126 / 0.1);
+  --l-warn-line: rgb(240 207 126 / 0.4);
+  --l-fail: #ee8b78;
+  --l-fail-soft: rgb(238 139 120 / 0.1);
+  --l-fail-line: rgb(238 139 120 / 0.45);
+  --l-seal-ink: #ee8b78;
+  --l-seal-ink-hover: #f6b0a2;
+  --l-field: #16110c;
+
+  /* Switches on parchment. */
+  --switch-on: #8f1d14;
+  --switch-off: #d6c496;
+  --switch-knob: #f8f0db;
+
+  --shade: rgb(0 0 0 / 0.45);
 }
 
-/* Colour tokens, dark theme. */
+/* Colour tokens, dark theme: only the parchment changes; leather, iron, brass and seal stay. */
 .dark {
   color-scheme: dark;
-  --canvas: var(--color-zinc-950);
-  --surface: var(--color-zinc-900);
-  --raised: var(--color-zinc-800);
-  --selected: var(--color-zinc-600);
-  --hover: rgb(255 255 255 / 0.07);
-  --line: rgb(255 255 255 / 0.08);
-  --line-strong: rgb(255 255 255 / 0.18);
-  --ink: var(--color-zinc-50);
-  --soft: var(--color-zinc-300);
-  --muted: var(--color-zinc-400);
-  --faint: var(--color-zinc-500);
-  --accent-ink: var(--color-amber-400);
-  --accent-ink-hover: var(--color-amber-300);
-  --pass: var(--color-emerald-400);
-  --pass-soft: rgb(6 78 59 / 0.45);
-  --fail: var(--color-rose-400);
-  --fail-soft: rgb(76 5 25 / 0.55);
-  --fail-line: rgb(251 113 133 / 0.5);
-  --warn-ink: var(--color-amber-100);
-  --warn-soft: rgb(69 26 3 / 0.55);
-  --warn-line: rgb(251 191 36 / 0.4);
-  --shade: rgb(0 0 0 / 0.5);
+  --canvas: #0e0b08;
+  --canvas-glow: #1a140f;
+
+  --surface: #221a12;
+  --surface-glow: #2a2017;
+  --surface-mid: #221a12;
+  --surface-edge: #1a140e;
+  --raised: #2e241a;
+  --p-field: #16110c;
+  --panel-shadow: rgb(0 0 0 / 0.7);
+
+  --p-ink: #ecdcb4;
+  --p-soft: #bba886;
+  --p-muted: #bba886;
+  --p-faint: #9c8a6a;
+  --p-line: rgb(138 106 46 / 0.55);
+  --p-line-strong: rgb(160 126 60 / 0.8);
+  --p-button-line: rgb(236 220 180 / 0.45);
+  --p-hover: rgb(255 240 210 / 0.06);
+  --p-tint: rgb(255 240 210 / 0.04);
+  --p-pass: #9fd08e;
+  --p-pass-soft: rgb(159 208 142 / 0.1);
+  --p-pass-line: rgb(159 208 142 / 0.4);
+  --p-warn-ink: #f0cf7e;
+  --p-warn-soft: rgb(240 207 126 / 0.1);
+  --p-warn-line: rgb(240 207 126 / 0.4);
+  --p-fail: #ee8b78;
+  --p-fail-soft: rgb(238 139 120 / 0.1);
+  --p-fail-line: rgb(238 139 120 / 0.45);
+  --p-seal-ink: #ee8b78;
+  --p-seal-ink-hover: #f6b0a2;
+
+  --switch-on: #b8352a;
+  --switch-off: #4a3c2a;
+  --switch-knob: #e8dcc0;
+
+  --shade: rgb(0 0 0 / 0.6);
+}
+
+@theme {
+  /* Garamond runs small, so body text is 15 to 16px and helper text 14px. */
+  --text-xs: 0.875rem;
+  --text-xs--line-height: 1.3;
+  --text-sm: 0.9375rem;
+  --text-sm--line-height: 1.4;
+  --text-base: 1rem;
+  --text-base--line-height: 1.5;
 }
 
 @theme inline {
-  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-sans: 'EB Garamond', Garamond, Georgia, serif;
+  /* Titles, headings, tabs, nav links, primary buttons and other labels. */
+  --font-display: 'IM Fell English SC', Georgia, serif;
   --color-canvas: var(--canvas);
   --color-surface: var(--surface);
   --color-raised: var(--raised);
-  --color-selected: var(--selected);
+  --color-selected: var(--raised);
+  --color-field: var(--field);
   --color-hover: var(--hover);
+  --color-tint: var(--tint);
   --color-line: var(--line);
   --color-line-strong: var(--line-strong);
+  --color-button-line: var(--button-line);
   --color-ink: var(--ink);
   --color-soft: var(--soft);
   --color-muted: var(--muted);
   --color-faint: var(--faint);
-  /* The accent fill is the same amber in both themes, always with dark text on it. */
-  --color-accent: var(--color-amber-400);
-  --color-accent-hover: var(--color-amber-300);
-  --color-accent-soft: rgb(251 191 36 / 0.15);
-  --color-accent-line: rgb(251 191 36 / 0.4);
-  --color-on-accent: var(--color-zinc-950);
-  --color-accent-ink: var(--accent-ink);
-  --color-accent-ink-hover: var(--accent-ink-hover);
+  /* The accent is the seal red, always with light text on it. */
+  --color-accent: #8f1d14;
+  --color-accent-hover: #a3261b;
+  --color-accent-soft: rgb(201 163 82 / 0.2);
+  --color-accent-line: #8a6a2e;
+  --color-on-accent: #f6ecd2;
+  --color-accent-ink: var(--seal-ink);
+  --color-accent-ink-hover: var(--seal-ink-hover);
   --color-pass: var(--pass);
   --color-pass-soft: var(--pass-soft);
+  --color-pass-line: var(--pass-line);
   --color-fail: var(--fail);
   --color-fail-soft: var(--fail-soft);
   --color-fail-line: var(--fail-line);
   --color-warn-ink: var(--warn-ink);
   --color-warn-soft: var(--warn-soft);
   --color-warn-line: var(--warn-line);
-  --color-danger: var(--color-red-600);
-  --color-danger-hover: var(--color-red-500);
+  --color-danger: #8f1d14;
+  --color-danger-hover: #a3261b;
   --color-shade: var(--shade);
+  /* Brass: borders and ornaments, then highlights, then the brightest glow. */
+  --color-brass: #8a6a2e;
+  --color-brass-bright: #c9a352;
+  --color-brass-glow: #f0cf7e;
+  /* Seal red: the primary button and the avatar. */
+  --color-seal: #8f1d14;
+  --color-seal-top: #a3261b;
+  --color-seal-bottom: #84190f;
+  --color-seal-dark: #5e110b;
+  --color-seal-shadow: #4a0d08;
+  --color-on-seal: #f6ecd2;
+  /* Iron: the top bar, toolbars and the phone tab bar. */
+  --color-iron: #15100b;
+  --color-iron-raised: #241b12;
+  --color-iron-line: #5a4422;
+  --color-on-iron: #ecdcb4;
+  --color-on-iron-muted: #cbb994;
+  --color-table-wood: #4a3220;
+  --color-switch-on: var(--switch-on);
+  --color-switch-off: var(--switch-off);
+  --color-switch-knob: var(--switch-knob);
   /* The table the board and terrain previews are drawn on: dark in both themes. */
   --color-mat: var(--color-stone-800);
 }
 
+/* Light-ink text tokens, for anything on leather, iron or wood. */
+@utility on-leather {
+  --ink: var(--l-ink);
+  --soft: var(--l-soft);
+  --muted: var(--l-muted);
+  --faint: var(--l-faint);
+  --line: var(--l-line);
+  --line-strong: var(--l-line-strong);
+  --button-line: var(--l-button-line);
+  --hover: var(--l-hover);
+  --tint: var(--l-tint);
+  --pass: var(--l-pass);
+  --pass-soft: var(--l-pass-soft);
+  --pass-line: var(--l-pass-line);
+  --warn-ink: var(--l-warn-ink);
+  --warn-soft: var(--l-warn-soft);
+  --warn-line: var(--l-warn-line);
+  --fail: var(--l-fail);
+  --fail-soft: var(--l-fail-soft);
+  --fail-line: var(--l-fail-line);
+  --seal-ink: var(--l-seal-ink);
+  --seal-ink-hover: var(--l-seal-ink-hover);
+  --field: var(--l-field);
+  color: var(--ink);
+}
+
+/* A parchment panel or card: the vignetted surface and the text tokens that go on it. */
+@utility parchment {
+  --ink: var(--p-ink);
+  --soft: var(--p-soft);
+  --muted: var(--p-muted);
+  --faint: var(--p-faint);
+  --line: var(--p-line);
+  --line-strong: var(--p-line-strong);
+  --button-line: var(--p-button-line);
+  --hover: var(--p-hover);
+  --tint: var(--p-tint);
+  --pass: var(--p-pass);
+  --pass-soft: var(--p-pass-soft);
+  --pass-line: var(--p-pass-line);
+  --warn-ink: var(--p-warn-ink);
+  --warn-soft: var(--p-warn-soft);
+  --warn-line: var(--p-warn-line);
+  --fail: var(--p-fail);
+  --fail-soft: var(--p-fail-soft);
+  --fail-line: var(--p-fail-line);
+  --seal-ink: var(--p-seal-ink);
+  --seal-ink-hover: var(--p-seal-ink-hover);
+  --field: var(--p-field);
+  color: var(--ink);
+  background-color: var(--surface);
+  background-image: radial-gradient(
+    ellipse at 50% 35%,
+    var(--surface-glow) 0%,
+    var(--surface-mid) 75%,
+    var(--surface-edge) 100%
+  );
+}
+
+/* The double brass frame of a parchment panel, card or dialog, with its drop shadow. */
+@utility frame {
+  box-shadow:
+    inset 0 0 0 1px var(--color-brass),
+    inset 0 0 0 4px var(--surface),
+    inset 0 0 0 5px rgb(138 106 46 / 0.55),
+    0 10px 28px var(--panel-shadow);
+}
+
+/* The same frame in seal red, for anything that deletes. */
+@utility frame-seal {
+  box-shadow:
+    inset 0 0 0 1px var(--color-seal),
+    inset 0 0 0 4px var(--surface),
+    inset 0 0 0 5px rgb(143 29 20 / 0.55),
+    0 10px 28px var(--panel-shadow);
+}
+
+/* The leather background of the page. */
+@utility leather {
+  background-color: var(--canvas);
+  background-image: radial-gradient(ellipse at 50% 40%, var(--canvas-glow) 0%, var(--canvas) 70%);
+}
+
 @layer base {
+  :root {
+    --ink: var(--l-ink);
+    --soft: var(--l-soft);
+    --muted: var(--l-muted);
+    --faint: var(--l-faint);
+    --line: var(--l-line);
+    --line-strong: var(--l-line-strong);
+    --button-line: var(--l-button-line);
+    --hover: var(--l-hover);
+    --tint: var(--l-tint);
+    --pass: var(--l-pass);
+    --pass-soft: var(--l-pass-soft);
+    --pass-line: var(--l-pass-line);
+    --warn-ink: var(--l-warn-ink);
+    --warn-soft: var(--l-warn-soft);
+    --warn-line: var(--l-warn-line);
+    --fail: var(--l-fail);
+    --fail-soft: var(--l-fail-soft);
+    --fail-line: var(--l-fail-line);
+    --seal-ink: var(--l-seal-ink);
+    --seal-ink-hover: var(--l-seal-ink-hover);
+    --field: var(--l-field);
+  }
+
   body {
-    @apply bg-canvas text-ink font-sans antialiased;
+    @apply leather text-ink font-sans antialiased;
+    background-attachment: fixed;
+    font-size: 1rem;
   }
 }

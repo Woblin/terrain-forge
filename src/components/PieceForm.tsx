@@ -113,7 +113,7 @@ export function PieceForm({
       className="flex h-full flex-col"
     >
       <div className="border-line flex shrink-0 items-center justify-between gap-2 border-b py-3 pr-3 pl-5">
-        <h2 id={`${id}-title`} className="text-lg font-semibold">
+        <h2 id={`${id}-title`} className="font-display text-[22px] leading-tight">
           {title}
         </h2>
         <IconButton icon={XIcon} label="Close" onClick={onCancel} disabled={saving} />

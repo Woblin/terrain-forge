@@ -10,13 +10,13 @@ interface MainNavProps {
 export function MainNav({ className = '' }: MainNavProps) {
   const { user } = useAuth();
   return (
-    <nav aria-label="Main" className={`gap-1 text-sm ${className}`}>
+    <nav aria-label="Main" className={`font-display gap-1.5 text-[17px] ${className}`}>
       {navItemsFor(user !== null).map((item) => (
         <NavLink
           key={item.to}
           to={item.to}
           className={({ isActive }) =>
-            `focus-visible:outline-accent-ink rounded-lg px-3 py-1.5 font-medium focus-visible:outline-2 ${isActive ? 'bg-hover text-ink' : 'text-muted hover:text-ink'}`
+            `focus-visible:outline-brass-bright border-b-2 px-3 py-1.5 focus-visible:outline-2 ${isActive ? 'border-brass-bright text-[#f3e6c4]' : 'text-on-iron-muted hover:text-on-iron border-transparent'}`
           }
         >
           {item.label}

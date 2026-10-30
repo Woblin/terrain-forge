@@ -193,11 +193,11 @@ export function PhotoMaskPainter({
           onCancel();
         }
       }}
-      className="bg-surface text-ink shadow-shade roomy:border-line roomy:m-auto roomy:h-fit roomy:w-fit roomy:max-w-[calc(100vw-2rem)] roomy:rounded-2xl roomy:border roomy:pt-0 m-0 h-dvh max-h-none w-full max-w-none p-0 pt-[env(safe-area-inset-top)] shadow-2xl backdrop:bg-black/60 backdrop:backdrop-blur-sm"
+      className="parchment frame roomy:m-auto roomy:h-fit roomy:w-fit roomy:max-w-[calc(100vw-2rem)] roomy:rounded-sm roomy:pt-0 m-0 h-dvh max-h-none w-full max-w-none p-0 pt-[env(safe-area-inset-top)] shadow-2xl backdrop:bg-black/60 backdrop:backdrop-blur-sm"
     >
       <div className="roomy:p-5 flex h-full flex-col gap-4 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
         <div className="space-y-1">
-          <h2 id={titleId} className="text-lg font-semibold">
+          <h2 id={titleId} className="font-display text-[22px] leading-tight">
             Hide parts of {pieceName}
           </h2>
           <p className="text-soft roomy:max-w-md text-sm [@media(max-height:500px)]:hidden">

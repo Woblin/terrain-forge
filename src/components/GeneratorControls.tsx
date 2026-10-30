@@ -8,6 +8,7 @@ import { SparklesIcon } from 'lucide-react';
 import { BUTTON_STYLES } from './buttonStyles';
 import { FIELD_STYLES, LABEL_STYLES } from './fieldStyles';
 import { RuleSwitches } from './RuleSwitches';
+import { SectionHeading } from './SectionHeading';
 
 interface GeneratorControlsProps {
   preset: GameSystemPreset;
@@ -46,9 +47,7 @@ export function GeneratorControls({
   const { width, depth } = preset.defaultBoard;
   return (
     <section aria-labelledby={`${presetId}-heading`} className="space-y-4">
-      <h3 id={`${presetId}-heading`} className="text-sm font-semibold">
-        New board
-      </h3>
+      <SectionHeading id={`${presetId}-heading`}>New board</SectionHeading>
       <div>
         <label htmlFor={presetId} className={LABEL_STYLES}>
           Game system

@@ -16,7 +16,7 @@ const SECTIONS = [
   { id: 'delete-account', title: 'Delete account' },
 ] as const;
 
-const CARD = 'border-line bg-surface scroll-mt-20 space-y-4 rounded-2xl border p-5 shadow-sm';
+const CARD = 'parchment frame scroll-mt-20 space-y-4 rounded-sm p-6';
 const SETTING_ROW =
   'flex flex-col gap-3 py-4 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between';
 
@@ -74,7 +74,7 @@ export function AccountPage() {
           </nav>
           <div className="space-y-6">
             <section id="profile" aria-labelledby="profile-heading" className={CARD}>
-              <h2 id="profile-heading" className="font-semibold">
+              <h2 id="profile-heading" className="font-display text-[22px]">
                 Profile
               </h2>
               <div className="flex items-center gap-4">
@@ -103,7 +103,7 @@ export function AccountPage() {
             </section>
             <section id="preferences" aria-labelledby="preferences-heading" className={CARD}>
               <div>
-                <h2 id="preferences-heading" className="font-semibold">
+                <h2 id="preferences-heading" className="font-display text-[22px]">
                   Preferences
                 </h2>
                 <p className="text-muted text-sm">Kept on this device only.</p>
@@ -135,7 +135,7 @@ export function AccountPage() {
               className={`${CARD} border-fail-line`}
             >
               <div>
-                <h2 id="delete-heading" className="font-semibold">
+                <h2 id="delete-heading" className="font-display text-[22px]">
                   Delete your account
                 </h2>
                 <p className="text-muted text-sm">

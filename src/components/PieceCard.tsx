@@ -55,7 +55,7 @@ export function PieceCard({
   const style = TERRAIN_STYLES[piece.type];
   const photoAction = !hasPhoto ? 'Add photo' : recrop ? 'Re-crop photo' : 'Replace photo';
   return (
-    <li className="border-line bg-surface flex flex-col overflow-hidden rounded-2xl border shadow-sm">
+    <li className="parchment frame flex flex-col overflow-hidden rounded-sm">
       <PieceThumbnail piece={piece} photoUrl={photoUrl} className="aspect-[4/3] w-full" />
       <div className="flex flex-1 flex-col gap-2 p-3">
         <div className="flex items-start gap-1">

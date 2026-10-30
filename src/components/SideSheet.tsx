@@ -34,7 +34,7 @@ export function SideSheet({ label, busy, onCancel, children }: SideSheetProps) {
           onCancel();
         }
       }}
-      className="bg-surface text-ink shadow-shade md:border-line m-0 h-dvh max-h-none w-full max-w-none p-0 pt-[env(safe-area-inset-top)] shadow-2xl transition duration-200 backdrop:bg-black/40 motion-reduce:transition-none md:ml-auto md:w-[420px] md:border-l starting:open:translate-x-8 starting:open:opacity-0"
+      className="parchment frame md:border-line m-0 h-dvh max-h-none w-full max-w-none p-0 pt-[env(safe-area-inset-top)] shadow-2xl transition duration-200 backdrop:bg-black/40 motion-reduce:transition-none md:ml-auto md:w-[420px] md:border-l starting:open:translate-x-8 starting:open:opacity-0"
     >
       {children}
     </dialog>
