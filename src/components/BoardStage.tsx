@@ -1,10 +1,18 @@
 import type { WorkspaceSlots } from './workspaceSlots';
 
-/** The board with its toolbar above and its legend below. */
-export function BoardStage({ notice, toolbar, boardAreaRef, board, footer }: WorkspaceSlots) {
+/** The board with its name and toolbar above and its key below. */
+export function BoardStage({
+  notice,
+  header,
+  toolbar,
+  boardAreaRef,
+  board,
+  footer,
+}: WorkspaceSlots) {
   return (
-    <section aria-label="Board editor" className="flex min-h-0 min-w-0 flex-1 flex-col gap-3">
+    <section aria-label="Board editor" className="flex min-h-0 min-w-0 flex-1 flex-col gap-2.5">
       {notice}
+      {header}
       <div className="flex shrink-0 justify-center">{toolbar}</div>
       <div ref={boardAreaRef} className="flex min-h-0 flex-1 items-center justify-center">
         {board}

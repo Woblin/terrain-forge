@@ -1,9 +1,10 @@
-import { useId } from 'react';
-import { PLAYERS, type DeploymentMap } from '../domain/board';
-import { centroid } from '../domain/geometry';
+import { PLAYERS, type Board, type DeploymentMap, type PlayerId } from '../domain/board';
+import type { Point, Polygon } from '../domain/geometry';
+import { innerEdges } from '../domain/zoneEdges';
 import { PLAYER_STYLES } from './terrainStyles';
 
 interface DeploymentZonesProps {
+  board: Board;
   deployment: DeploymentMap;
   /** The board is drawn turned a quarter turn, so labels turn back to stay readable. */
   upright: boolean;
@@ -11,65 +12,86 @@ interface DeploymentZonesProps {
   labelled: boolean;
 }
 
-/** Both players' deployment zones, hatched in different directions and labelled. */
-export function DeploymentZones({ deployment, upright, labelled }: DeploymentZonesProps) {
-  const id = useId().replace(/[^a-zA-Z0-9_-]/g, '');
+/** Space between a zone's corner and its label, in inches. */
+const LABEL_INSET = 1.2;
+const LABEL_SIZE = 1.6;
+
+/**
+ * Both players' deployment zones: a soft tint, a dashed line along the side that faces the
+ * board, and the player's name in the zone's corner (A top left, B bottom right on screen).
+ */
+export function DeploymentZones({ board, deployment, upright, labelled }: DeploymentZonesProps) {
   return (
     <g aria-hidden="true" pointerEvents="none">
-      <defs>
-        {PLAYERS.map((player) => (
-          <pattern
-            key={player}
-            id={`${id}-hatch-${player}`}
-            width={2}
-            height={2}
-            patternUnits="userSpaceOnUse"
-            patternTransform={`rotate(${player === 'A' ? '45' : '-45'})`}
-          >
-            <line
-              x1={0}
-              y1={0}
-              x2={0}
-              y2={2}
-              className={PLAYER_STYLES[player].hatch}
-              strokeWidth={0.3}
-            />
-          </pattern>
-        ))}
-      </defs>
       {PLAYERS.map((player) => {
         const zone = deployment.zones[player];
+        const style = PLAYER_STYLES[player];
         const points = zone.map(({ x, y }) => `${String(x)},${String(y)}`).join(' ');
-        const middle = centroid(zone);
         return (
           <g key={player}>
-            <polygon points={points} className={PLAYER_STYLES[player].zone} />
-            <polygon points={points} fill={`url(#${id}-hatch-${player})`} />
-            <polygon
-              points={points}
-              className={`fill-none ${PLAYER_STYLES[player].edge}`}
-              strokeOpacity={0.7}
-              strokeWidth={1.5}
-              vectorEffect="non-scaling-stroke"
-            />
-            {labelled && (
-              <text
-                x={middle.x}
-                y={middle.y}
-                textAnchor="middle"
-                dominantBaseline="middle"
-                fontSize={1.6}
-                transform={
-                  upright ? `rotate(90 ${String(middle.x)} ${String(middle.y)})` : undefined
-                }
-                className={`${PLAYER_STYLES[player].text} font-semibold`}
-              >
-                Player {player}
-              </text>
-            )}
+            <polygon points={points} className={style.zone} />
+            {innerEdges(zone, board).map(([a, b]) => (
+              <line
+                key={`${String(a.x)},${String(a.y)}`}
+                x1={a.x}
+                y1={a.y}
+                x2={b.x}
+                y2={b.y}
+                className={style.edge}
+                strokeWidth={1.5}
+                strokeDasharray="6 4"
+                vectorEffect="non-scaling-stroke"
+              />
+            ))}
+            {labelled && <ZoneLabel player={player} zone={zone} board={board} upright={upright} />}
           </g>
         );
       })}
     </g>
   );
+}
+
+interface ZoneLabelProps {
+  player: PlayerId;
+  zone: Polygon;
+  board: Board;
+  upright: boolean;
+}
+
+function ZoneLabel({ player, zone, board, upright }: ZoneLabelProps) {
+  const first = player === 'A';
+  const anchor = labelAnchor(zone, board, upright, first);
+  return (
+    <text
+      x={anchor.x}
+      y={anchor.y}
+      textAnchor={first ? 'start' : 'end'}
+      dominantBaseline={first ? 'hanging' : 'auto'}
+      fontSize={LABEL_SIZE}
+      transform={upright ? `rotate(90 ${String(anchor.x)} ${String(anchor.y)})` : undefined}
+      paintOrder="stroke"
+      strokeWidth={0.25}
+      strokeLinejoin="round"
+      className={`${PLAYER_STYLES[player].text} font-display stroke-black/70`}
+    >
+      Player {player}
+    </text>
+  );
+}
+
+/**
+ * Where a zone's label goes, in board inches: just inside the zone's top-left corner as seen on
+ * screen, or its bottom-right corner. On an upright board, screen x is board y and screen y is
+ * the board's width less board x.
+ */
+function labelAnchor(zone: Polygon, board: Board, upright: boolean, topLeft: boolean): Point {
+  const toScreen = (p: Point): Point => (upright ? { x: p.y, y: board.width - p.x } : p);
+  const toBoard = (p: Point): Point => (upright ? { x: board.width - p.y, y: p.x } : p);
+  const screen = zone.map(toScreen);
+  const xs = screen.map((p) => p.x);
+  const ys = screen.map((p) => p.y);
+  const corner = topLeft
+    ? { x: Math.min(...xs) + LABEL_INSET, y: Math.min(...ys) + LABEL_INSET }
+    : { x: Math.max(...xs) - LABEL_INSET, y: Math.max(...ys) - LABEL_INSET };
+  return toBoard(corner);
 }

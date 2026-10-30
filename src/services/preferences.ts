@@ -137,3 +137,26 @@ function parseOpenPanels(value: unknown): OpenPanels {
     details: typeof details === 'boolean' ? details : true,
   };
 }
+
+const BOARD_TIP_KEY = 'terrain-forge.board-tip-dismissed';
+
+/** Whether the player has put away the editing tip under the board on this device. */
+export function loadBoardTipDismissed(): boolean {
+  try {
+    return localStorage.getItem(BOARD_TIP_KEY) === 'true';
+  } catch (error) {
+    console.warn('Could not read whether the board tip was dismissed; showing it.', error);
+    return false;
+  }
+}
+
+export function saveBoardTipDismissed(): void {
+  try {
+    localStorage.setItem(BOARD_TIP_KEY, 'true');
+  } catch (error) {
+    console.warn(
+      'Could not save that the board tip was dismissed; it shows again next visit.',
+      error,
+    );
+  }
+}

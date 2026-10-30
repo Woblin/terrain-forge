@@ -1,4 +1,4 @@
-import { SaveIcon } from 'lucide-react';
+import { CopyIcon, SaveIcon } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router';
 import { copyName, type OpenedBoard } from '../domain/savedBoard';
@@ -10,179 +10,95 @@ interface SaveBoardControlsProps {
   access: SavedBoardsAccess;
   /** The saved board on the page, or null for a board that is not saved. */
   opened: OpenedBoard | null;
-  unsaved: boolean;
-  /** True while a save has not reached the server yet. */
-  sending: boolean;
+  /** The name the board is saved under. */
+  name: string;
   /** False until there is a board to save. */
   hasBoard: boolean;
-  /** The name a new board gets unless the player changes it. */
-  defaultName: string;
   error: string | null;
-  /** Each returns a message when it did not work, or null. */
+  /** Returns a message when it did not work, or null. */
   onSave: (name: string, asCopy: boolean) => string | null;
-  onRename: (name: string) => void;
 }
 
-type Asking = 'save' | 'copy' | 'rename' | null;
+const BUTTON_SIZE = 'h-[38px] px-3.5 pointer-coarse:h-11';
 
-/** Saving the board to the account: its name, Save, Save as copy and Rename. */
+/** Save board, and Save as copy for a board that is saved already; or a way to sign in. */
 export function SaveBoardControls({
   access,
   opened,
-  unsaved,
-  sending,
+  name,
   hasBoard,
-  defaultName,
   error,
   onSave,
-  onRename,
 }: SaveBoardControlsProps) {
   const location = useLocation();
-  const [asking, setAsking] = useState<Asking>(null);
+  const [copying, setCopying] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
-  if (access !== 'account') {
+  if (access === 'signedOut') {
     return (
-      <section aria-label="Save board" className="space-y-2 text-sm">
-        {access === 'signedOut' ? (
-          <>
-            <Link
-              to="/sign-in"
-              state={{ from: location.pathname }}
-              className={`w-full ${BUTTON_STYLES.secondary} h-10 pointer-coarse:h-11`}
-            >
-              Sign in to save
-            </Link>
-            <p className="text-muted text-xs">This board stays here while you sign in.</p>
-          </>
-        ) : (
-          <p className="text-soft">Verify your email to save boards.</p>
-        )}
-      </section>
+      <Link
+        to="/sign-in"
+        state={{ from: location.pathname }}
+        className={`${BUTTON_STYLES.primary} ${BUTTON_SIZE} text-[17px]`}
+      >
+        <SaveIcon className="size-4" aria-hidden="true" />
+        Sign in to save
+      </Link>
     );
   }
-
-  function saveOver(): void {
-    if (opened !== null) {
-      setMessage(onSave(opened.name, false));
-    }
+  if (access === 'unverified') {
+    return <p className="text-soft text-sm">Verify your email to save boards.</p>;
   }
-
+  const problem = message ?? error;
   return (
-    <section aria-label="Save board" className="space-y-2 text-sm">
+    <>
       {opened !== null && (
-        <div className="flex items-baseline justify-between gap-2">
-          <h2 className="min-w-0 font-semibold break-words">{opened.name}</h2>
-          <button
-            type="button"
-            onClick={() => {
-              setAsking('rename');
-            }}
-            className="text-accent-ink hover:text-accent-ink-hover shrink-0 underline"
-          >
-            Rename
-          </button>
-        </div>
-      )}
-      <div className="flex gap-2">
         <button
           type="button"
           disabled={!hasBoard}
           onClick={() => {
-            if (opened === null) {
-              setAsking('save');
-            } else {
-              saveOver();
-            }
+            setCopying(true);
           }}
-          className={`flex-1 ${BUTTON_STYLES.primary} h-10 pointer-coarse:h-11`}
+          className={`${BUTTON_STYLES.secondary} ${BUTTON_SIZE} bg-iron-raised/70`}
         >
-          <SaveIcon className="size-4" aria-hidden="true" />
-          {opened === null ? 'Save board' : 'Save'}
-          {unsaved && <span aria-hidden="true"> •</span>}
+          <CopyIcon className="size-4" aria-hidden="true" />
+          Save as copy
         </button>
-        {opened !== null && (
-          <button
-            type="button"
-            disabled={!hasBoard}
-            onClick={() => {
-              setAsking('copy');
-            }}
-            className={`flex-1 ${BUTTON_STYLES.secondary} h-10 pointer-coarse:h-11`}
-          >
-            Save as copy
-          </button>
-        )}
-      </div>
-      <p aria-live="polite" className="text-muted text-xs">
-        {statusText(opened, unsaved, sending)}
-      </p>
-      {(message ?? error) !== null && (
-        <p role="alert" className="text-fail">
-          {message ?? error}
+      )}
+      <button
+        type="button"
+        disabled={!hasBoard}
+        onClick={() => {
+          setMessage(onSave(name, false));
+        }}
+        className={`${BUTTON_STYLES.primary} ${BUTTON_SIZE} text-[17px]`}
+      >
+        <SaveIcon className="size-4" aria-hidden="true" />
+        Save board
+      </button>
+      {problem !== null && (
+        <p role="alert" className="text-fail basis-full text-right text-sm">
+          {problem}
         </p>
       )}
-      {asking === 'save' && (
-        <BoardNameDialog
-          title="Save board"
-          initialName={defaultName}
-          confirmLabel="Save"
-          onConfirm={(name) => {
-            const problem = onSave(name, false);
-            if (problem === null) {
-              setAsking(null);
-              setMessage(null);
-            }
-            return problem;
-          }}
-          onCancel={() => {
-            setAsking(null);
-          }}
-        />
-      )}
-      {asking === 'copy' && opened !== null && (
+      {copying && opened !== null && (
         <BoardNameDialog
           title="Save as a copy"
           initialName={copyName(opened.name)}
           confirmLabel="Save copy"
-          onConfirm={(name) => {
-            const problem = onSave(name, true);
-            if (problem === null) {
-              setAsking(null);
+          onConfirm={(copy) => {
+            const failure = onSave(copy, true);
+            if (failure === null) {
+              setCopying(false);
               setMessage(null);
             }
-            return problem;
+            return failure;
           }}
           onCancel={() => {
-            setAsking(null);
+            setCopying(false);
           }}
         />
       )}
-      {asking === 'rename' && opened !== null && (
-        <BoardNameDialog
-          title="Rename board"
-          initialName={opened.name}
-          confirmLabel="Rename"
-          onConfirm={(name) => {
-            onRename(name);
-            setAsking(null);
-            return null;
-          }}
-          onCancel={() => {
-            setAsking(null);
-          }}
-        />
-      )}
-    </section>
+    </>
   );
-}
-
-function statusText(opened: OpenedBoard | null, unsaved: boolean, sending: boolean): string {
-  if (opened === null) {
-    return 'Not saved yet. Saved boards are listed under My boards.';
-  }
-  if (unsaved) {
-    return 'Unsaved changes.';
-  }
-  return sending ? 'Saving…' : 'Saved.';
 }

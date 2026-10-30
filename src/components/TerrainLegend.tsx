@@ -11,7 +11,7 @@ const COVER = { heavy: 'heavy cover', light: 'light cover', none: 'no cover' } a
 /** What each terrain type looks like on the board and what it does in this game system. */
 export function TerrainLegend({ effects }: TerrainLegendProps) {
   return (
-    <ul className="text-soft flex flex-wrap gap-x-4 gap-y-1 text-xs">
+    <ul className="text-soft flex flex-wrap gap-x-5 gap-y-1.5 text-xs">
       {TERRAIN_TYPES.map((type) => {
         const style = TERRAIN_STYLES[type];
         return (
@@ -28,7 +28,8 @@ export function TerrainLegend({ effects }: TerrainLegendProps) {
               />
             </svg>
             <span>
-              {style.name}: {SIGHT[effects[type].los]}, {COVER[effects[type].cover]}
+              <span className="text-ink font-semibold">{style.name}</span>:{' '}
+              {SIGHT[effects[type].los]}, {COVER[effects[type].cover]}
             </span>
           </li>
         );

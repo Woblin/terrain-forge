@@ -1,5 +1,4 @@
 import { useId } from 'react';
-import type { RuleId } from '../domain/fairness';
 import { deploymentsFor } from '../domain/gameSetup';
 import { PRESETS, type GameSystemPreset } from '../domain/presets';
 import { formatLength, type LengthUnit } from '../domain/units';
@@ -7,24 +6,23 @@ import type { GeneratorStatus } from '../hooks/useGenerator';
 import { SparklesIcon } from 'lucide-react';
 import { BUTTON_STYLES } from './buttonStyles';
 import { FIELD_STYLES, LABEL_STYLES } from './fieldStyles';
-import { RuleSwitches } from './RuleSwitches';
 import { SectionHeading } from './SectionHeading';
+import { TextButton } from './TextButton';
 
 interface GeneratorControlsProps {
   preset: GameSystemPreset;
   deploymentId: string;
   status: GeneratorStatus;
   unit: LengthUnit;
-  enabledRules: readonly RuleId[];
+  /** How many balance rules the next board must pass. */
+  ruleCount: number;
   /** Why the player's game settings could not be loaded or saved, if they could not. */
   settingsError: string | null;
   onPresetChange: (presetId: string) => void;
   onDeploymentChange: (deploymentId: string) => void;
-  onRuleChange: (rule: RuleId, enabled: boolean) => void;
-  /** False when the rules and board options are already as they start. */
-  canReset: boolean;
-  onReset: () => void;
   onGenerate: () => void;
+  /** Shows the balance rules, where they are switched on and off. */
+  onChooseRules: () => void;
 }
 
 /** Game system and deployment for the next board, and the button that generates it. */
@@ -33,14 +31,12 @@ export function GeneratorControls({
   deploymentId,
   status,
   unit,
-  enabledRules,
+  ruleCount,
   settingsError,
   onPresetChange,
   onDeploymentChange,
-  onRuleChange,
-  canReset,
-  onReset,
   onGenerate,
+  onChooseRules,
 }: GeneratorControlsProps) {
   const presetId = useId();
   const deploymentSelectId = useId();
@@ -66,7 +62,7 @@ export function GeneratorControls({
             </option>
           ))}
         </select>
-        <p className="text-muted mt-1 text-xs">
+        <p className="text-muted mt-1 text-xs italic">
           Board {formatLength(width, unit)} × {formatLength(depth, unit)}
         </p>
       </div>
@@ -89,17 +85,21 @@ export function GeneratorControls({
           ))}
         </select>
       </div>
-      <RuleSwitches
-        enabledRules={enabledRules}
-        onRuleChange={onRuleChange}
-        canReset={canReset}
-        onReset={onReset}
-      />
       {settingsError !== null && <p className="text-warn-ink text-sm">{settingsError}</p>}
-      <button type="button" onClick={onGenerate} className={`w-full ${BUTTON_STYLES.primary} h-11`}>
-        <SparklesIcon className="size-[18px]" aria-hidden="true" />
-        {status.running ? 'Generating…' : 'Generate board'}
-      </button>
+      <div className="space-y-1.5">
+        <button
+          type="button"
+          onClick={onGenerate}
+          className={`w-full ${BUTTON_STYLES.primary} h-[46px] text-[19px]`}
+        >
+          <SparklesIcon className="size-[18px]" aria-hidden="true" />
+          {status.running ? 'Generating…' : 'Generate board'}
+        </button>
+        <p className="text-muted text-center text-sm">
+          Must pass {ruleCount === 1 ? '1 balance rule' : `${String(ruleCount)} balance rules`}.{' '}
+          <TextButton onClick={onChooseRules}>Choose rules</TextButton>
+        </p>
+      </div>
       <div aria-live="polite" className="text-sm">
         {status.slow && <p className="text-soft">Still working on a fair layout…</p>}
         {status.error !== null && (
