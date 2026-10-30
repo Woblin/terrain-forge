@@ -1,9 +1,14 @@
 import {
   ChevronLeftIcon,
   ChevronRightIcon,
+  Columns2Icon,
+  ImageIcon,
+  LandPlotIcon,
+  MagnetIcon,
   Redo2Icon,
   RotateCcwIcon,
   RotateCwIcon,
+  RulerIcon,
   Trash2Icon,
   Undo2Icon,
 } from 'lucide-react';
@@ -113,21 +118,36 @@ export function BoardToolbar({
         )}
       </div>
       {DIVIDER}
-      <ToolToggle label="Snap" title="Snap to the grid" pressed={snap} onChange={onSnapChange} />
       <ToolToggle
+        icon={MagnetIcon}
+        label="Snap"
+        title="Snap to the grid"
+        pressed={snap}
+        onChange={onSnapChange}
+      />
+      <ToolToggle
+        icon={Columns2Icon}
         label="Pairs"
         title="Move pairs together"
         pressed={movePairs}
         onChange={onMovePairsChange}
       />
       <ToolToggle
+        icon={ImageIcon}
         label="Photos"
         title="Show piece photos"
         pressed={showPhotos}
         onChange={onShowPhotosChange}
       />
-      <ToolToggle label="Mat" title="Show the mat" pressed={showMat} onChange={onShowMatChange} />
       <ToolToggle
+        icon={LandPlotIcon}
+        label="Mat"
+        title="Show the mat"
+        pressed={showMat}
+        onChange={onShowMatChange}
+      />
+      <ToolToggle
+        icon={RulerIcon}
         label="Measure"
         title="Measure distances to the board edges"
         pressed={showDistances}

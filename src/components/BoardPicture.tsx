@@ -6,7 +6,7 @@ import { DeploymentZones } from './DeploymentZones';
 import { FootprintShape } from './FootprintShape';
 import { MatTone } from './MatTone';
 import { matBackground } from './matPictures';
-import { PIECE_HALO, TERRAIN_STYLES } from './terrainStyles';
+import { PIECE_HALO, PIECE_OUTLINE_OPACITY, TERRAIN_STYLES } from './terrainStyles';
 
 interface BoardPictureProps {
   setup: GameSetup;
@@ -69,6 +69,7 @@ export function BoardPicture({
                 footprint={piece.footprint}
                 className={`fill-none ${style.stroke}`}
                 strokeWidth={1.5}
+                strokeOpacity={PIECE_OUTLINE_OPACITY}
                 strokeDasharray={style.dash}
                 vectorEffect="non-scaling-stroke"
               />
