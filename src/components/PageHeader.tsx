@@ -26,7 +26,12 @@ export function PageHeader({ title, id, details, actions }: PageHeaderProps) {
           <p className="text-muted flex flex-wrap items-center gap-x-3 gap-y-1.5">
             {shown.map((detail, i) => (
               <span key={i} className="contents">
-                {i > 0 && <span aria-hidden="true">·</span>}
+                {/* Phones drop the dots, which would dangle at the end of a wrapped line. */}
+                {i > 0 && (
+                  <span aria-hidden="true" className="max-md:hidden">
+                    ·
+                  </span>
+                )}
                 {detail}
               </span>
             ))}
