@@ -23,6 +23,8 @@ interface GeneratorControlsProps {
   onGenerate: () => void;
   /** Shows the balance rules, where they are switched on and off. */
   onChooseRules: () => void;
+  /** False on phones, where Generate sits in the sheet's summary row instead. */
+  showGenerate?: boolean;
 }
 
 /** Game system and deployment for the next board, and the button that generates it. */
@@ -37,6 +39,7 @@ export function GeneratorControls({
   onDeploymentChange,
   onGenerate,
   onChooseRules,
+  showGenerate = true,
 }: GeneratorControlsProps) {
   const presetId = useId();
   const deploymentSelectId = useId();
@@ -87,15 +90,17 @@ export function GeneratorControls({
       </div>
       {settingsError !== null && <p className="text-warn-ink text-sm">{settingsError}</p>}
       <div className="space-y-1.5">
-        <button
-          type="button"
-          onClick={onGenerate}
-          className={`w-full ${BUTTON_STYLES.primary} h-[46px] text-[19px]`}
-        >
-          <SparklesIcon className="size-[18px]" aria-hidden="true" />
-          {status.running ? 'Generating…' : 'Generate board'}
-        </button>
-        <p className="text-muted text-center text-sm">
+        {showGenerate && (
+          <button
+            type="button"
+            onClick={onGenerate}
+            className={`w-full ${BUTTON_STYLES.primary} h-[46px] text-[19px]`}
+          >
+            <SparklesIcon className="size-[18px]" aria-hidden="true" />
+            {status.running ? 'Generating…' : 'Generate board'}
+          </button>
+        )}
+        <p className={`text-muted text-sm ${showGenerate ? 'text-center' : ''}`}>
           Must pass {ruleCount === 1 ? '1 balance rule' : `${String(ruleCount)} balance rules`}.{' '}
           <TextButton onClick={onChooseRules}>Choose rules</TextButton>
         </p>

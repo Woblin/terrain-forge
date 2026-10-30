@@ -1,12 +1,24 @@
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
+import { useHeaderSlot } from '../hooks/headerSlotContext';
 import { BoardToolTabs } from './BoardToolTabs';
 import { BottomSheet, type SheetHeight } from './BottomSheet';
 import type { WorkspaceSlots } from './workspaceSlots';
 
 /** The board filling the screen, with everything else in a sheet pulled up from the bottom. */
 export function PhoneWorkspace(props: WorkspaceSlots) {
-  const { notice, boardAreaRef, board, phoneButtons, selectionBar, measureBar, summary } = props;
+  const { notice, boardAreaRef, board, phoneButtons, boardOptions } = props;
+  const { selectionBar, measureBar, summary, rulesAsked } = props;
+  const headerSlot = useHeaderSlot();
   const [height, setHeight] = useState<SheetHeight>('peek');
+  const [seenRulesAsk, setSeenRulesAsk] = useState(rulesAsked);
+  // Asking for the balance rules, such as from the verdict above the sheet, pulls the sheet up.
+  if (rulesAsked !== seenRulesAsk) {
+    setSeenRulesAsk(rulesAsked);
+    if (height === 'peek') {
+      setHeight('half');
+    }
+  }
   const hasSelection = selectionBar !== null;
   // While measuring, the board makes room for the selection bar so it covers no distances.
   const measuring = measureBar !== null;
@@ -25,7 +37,7 @@ export function PhoneWorkspace(props: WorkspaceSlots) {
         {measureBar !== null && <div className="shrink-0 pt-3 pr-17 pl-3">{measureBar}</div>}
         <div
           ref={boardAreaRef}
-          className={`flex min-h-0 flex-1 items-center justify-center p-3 ${measuring && hasSelection && height === 'peek' ? 'pb-[11.5rem]' : 'pb-[5.5rem]'}`}
+          className={`flex min-h-0 flex-1 items-center justify-center px-11 pt-3 ${measuring && hasSelection && height === 'peek' ? 'pb-[11.5rem]' : 'pb-[5.5rem]'}`}
         >
           {board}
         </div>
@@ -38,6 +50,7 @@ export function PhoneWorkspace(props: WorkspaceSlots) {
       <BottomSheet label="Board tools" height={height} onHeightChange={setHeight} summary={summary}>
         <BoardToolTabs {...props} />
       </BottomSheet>
+      {headerSlot !== null && createPortal(boardOptions, headerSlot)}
     </main>
   );
 }

@@ -6,7 +6,8 @@ import type { WorkspaceSlots } from './workspaceSlots';
  * on the right, since a sheet from the bottom would leave the board no room.
  */
 export function SidewaysWorkspace(props: WorkspaceSlots) {
-  const { notice, boardAreaRef, board, phoneButtons, selectionBar, measureBar, summary } = props;
+  const { notice, boardAreaRef, board, phoneButtons, boardOptions } = props;
+  const { selectionBar, measureBar, summary } = props;
   return (
     <main className="flex min-h-0 flex-1 gap-3 py-2 pr-[max(0.5rem,env(safe-area-inset-right))] pl-[max(0.5rem,env(safe-area-inset-left))]">
       <section aria-label="Board editor" className="relative flex min-h-0 min-w-0 flex-1 gap-2">
@@ -14,7 +15,10 @@ export function SidewaysWorkspace(props: WorkspaceSlots) {
           {board}
         </div>
         {/* Beside the board rather than over it: held sideways, the board fills the height. */}
-        <div className="shrink-0">{phoneButtons}</div>
+        <div className="flex shrink-0 flex-col gap-2">
+          {boardOptions}
+          {phoneButtons}
+        </div>
         {notice !== null && <div className="absolute top-0 right-14 left-0 z-10">{notice}</div>}
       </section>
       <aside

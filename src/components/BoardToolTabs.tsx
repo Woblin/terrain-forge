@@ -32,8 +32,9 @@ export function BoardToolTabs({
       id: 'setup',
       label: SETUP_TITLE,
       content: (
-        <div className="space-y-5">
-          <div className="on-leather bg-iron-raised rounded-sm p-3">{header}</div>
+        <div className="flex flex-col gap-3.5">
+          {header}
+          <div aria-hidden="true" className="bg-brass/50 h-px" />
           {setup}
         </div>
       ),

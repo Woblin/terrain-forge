@@ -21,7 +21,7 @@ import {
   type BoardPiece,
   type PieceUpdate,
 } from '../domain/editor';
-import { evaluateFairness, RULE_IDS, type RuleId } from '../domain/fairness';
+import { evaluateFairness, type RuleId } from '../domain/fairness';
 import { enabledRulesFor, startingPreset, usesDefaultRules } from '../domain/gamePreferences';
 import { resolveGameSetup, type GameSetup } from '../domain/gameSetup';
 import { prepareCollection } from '../domain/generator';
@@ -49,9 +49,10 @@ import {
 import { boardLinkSearch, parseBoardLink, type ParsedBoardLink } from '../domain/shareLink';
 import { normalizeRotation, snapRotation } from '../domain/snapping';
 import type { Placement, TerrainPiece } from '../domain/terrain';
-import { formatLength, type LengthUnit } from '../domain/units';
+import { formatLength } from '../domain/units';
 import { BoardFooter } from '../components/BoardFooter';
 import { BoardHeaderBar, type BoardSaveState } from '../components/BoardHeaderBar';
+import { BoardOptionsButton } from '../components/BoardOptionsButton';
 import { BoardToolbar } from '../components/BoardToolbar';
 import { BoardView } from '../components/BoardView';
 import { BoardWorkspace } from '../components/BoardWorkspace';
@@ -61,7 +62,6 @@ import { EdgeDistanceOverlay, type MeasuredPiece } from '../components/EdgeDista
 import { FairnessAnnouncer } from '../components/FairnessAnnouncer';
 import { FairBadge } from '../components/FairBadge';
 import { FairnessPanel } from '../components/FairnessPanel';
-import { FairnessVerdict } from '../components/FairnessVerdict';
 import { GeneratorControls } from '../components/GeneratorControls';
 import { HiddenAreaOverlay } from '../components/HiddenAreaOverlay';
 import { IconButton } from '../components/IconButton';
@@ -71,6 +71,7 @@ import { MeasureStepper } from '../components/MeasureStepper';
 import { measureDetail } from '../components/measureText';
 import { PiecePalette } from '../components/PiecePalette';
 import { PhoneBoardButtons } from '../components/PhoneBoardButtons';
+import { SheetVerdictButton } from '../components/SheetVerdictButton';
 import { pieceLabel } from '../components/pieceLabel';
 import { RotateHandle } from '../components/RotateHandle';
 import { SaveBoardControls } from '../components/SaveBoardControls';
@@ -299,6 +300,11 @@ export function BoardPage() {
   }, [ownCollection]);
 
   /** The rules the player has on for a game. */
+  /** Shows the balance rules, opening whichever panel or tab holds them. */
+  function askRules(): void {
+    setRulesAsked(rulesAsked + 1);
+  }
+
   function playerRules(next: BoardChoice): RuleId[] {
     const preset = findPreset(next.presetId);
     return preset === undefined ? [] : enabledRulesFor(preset, settings.preferences);
@@ -695,9 +701,8 @@ export function BoardPage() {
         onGenerate={() => {
           requestNew(randomSeed());
         }}
-        onChooseRules={() => {
-          setRulesAsked(rulesAsked + 1);
-        }}
+        onChooseRules={askRules}
+        showGenerate={layout !== 'phone'}
       />
       <MatAccordion
         value={matId}
@@ -714,6 +719,7 @@ export function BoardPage() {
 
   const header = (
     <BoardHeaderBar
+      compact={measuresOnePiece}
       name={boardName()}
       onRename={renameBoard}
       saveState={saveState()}
@@ -800,7 +806,11 @@ export function BoardPage() {
       badge={
         // Phones show the verdict in the sheet below the board, which keeps the corner clear.
         report === null || measuresOnePiece ? undefined : (
-          <FairBadge report={report} enabledRules={fairnessInput?.enabledRules ?? NO_RULES} />
+          <FairBadge
+            report={report}
+            enabledRules={fairnessInput?.enabledRules ?? NO_RULES}
+            onOpen={layout === 'tablet' ? askRules : undefined}
+          />
         )
       }
       onBackgroundPointerDown={() => {
@@ -943,9 +953,14 @@ export function BoardPage() {
           <PhoneBoardButtons
             canUndo={canUndo(editor)}
             canRedo={canRedo(editor)}
-            layers={{ ...session.view, showLane }}
             onUndo={undo}
             onRedo={redo}
+          />
+        }
+        boardOptions={
+          <BoardOptionsButton
+            look={layout === 'sideways' ? 'round' : 'bar'}
+            layers={{ ...session.view, showLane }}
             onLayersChange={setView}
             matDarkness={matDarkness}
             hasMatPicture={findMat(matId).tileWidth !== null}
@@ -958,13 +973,9 @@ export function BoardPage() {
           selectedPiece === undefined ? null : (
             <SelectionBar
               name={selection.name}
-              detail={measured ?? pieceDetail(selectedPiece, shownSelected.placement, unit)}
               problems={selection.problems}
               onTurn={turn}
               onRemove={removeSelected}
-              onDone={() => {
-                dispatch({ type: 'selected', key: null });
-              }}
             />
           )
         }
@@ -982,29 +993,22 @@ export function BoardPage() {
           ) : null
         }
         summary={
-          <div className="flex items-center gap-2">
-            <div className="min-w-0 flex-1 text-sm">
-              {report === null ? (
-                <p className="text-muted">Generate a board to see how fair it is.</p>
-              ) : (
-                <FairnessVerdict
-                  report={report}
-                  edited={present?.edited ?? false}
-                  allRulesOn={(fairnessInput?.enabledRules.length ?? 0) === RULE_IDS.length}
-                  compact
-                />
-              )}
-            </div>
+          <div className="flex items-center gap-2.5">
+            <SheetVerdictButton
+              report={report}
+              enabledRules={fairnessInput?.enabledRules ?? NO_RULES}
+              onOpen={askRules}
+            />
             <button
               type="button"
               disabled={status.running}
               onClick={() => {
                 requestNew(randomSeed());
               }}
-              className={`${BUTTON_STYLES.primary} shrink-0`}
+              className={`${BUTTON_STYLES.primary} h-11 shrink-0 px-3.5`}
             >
               <SparklesIcon className="size-4" aria-hidden="true" />
-              Generate
+              {status.running ? 'Generating…' : 'Generate'}
             </button>
           </div>
         }
@@ -1065,12 +1069,6 @@ function piecesToMeasure(
       },
     ];
   });
-}
-
-/** The selected piece's size and turn, in one short line. */
-function pieceDetail(piece: TerrainPiece, placement: Placement, unit: LengthUnit): string {
-  const { width, depth } = piece.footprint;
-  return `${formatLength(width, unit)} × ${formatLength(depth, unit)}, turned ${String(Math.round(placement.rotation))}°`;
 }
 
 /**

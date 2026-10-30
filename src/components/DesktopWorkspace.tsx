@@ -31,7 +31,6 @@ export function DesktopWorkspace(props: WorkspaceSlots) {
         onOpenChange={(setup) => {
           changePanels({ setup });
         }}
-        overlay={false}
         widthClassName="w-[300px] shrink-0"
       >
         {props.setup}
@@ -45,7 +44,6 @@ export function DesktopWorkspace(props: WorkspaceSlots) {
         onOpenChange={(details) => {
           changePanels({ details });
         }}
-        overlay={false}
         widthClassName="w-[360px] shrink-0 min-[1920px]:w-[400px]"
       >
         <DetailsTabs {...props} showRules={showRules} onRulesShown={rulesShown} />

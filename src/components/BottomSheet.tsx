@@ -18,14 +18,15 @@ interface BottomSheetProps {
   label: string;
   height: SheetHeight;
   onHeightChange: (height: SheetHeight) => void;
-  /** The one line shown while the sheet is pulled down. */
+  /** The row under the handle, shown at every height. */
   summary: ReactNode;
   children: ReactNode;
 }
 
 /**
  * A sheet along the bottom of the screen that is pulled up over the board. Dragging the handle
- * up or down moves it one step; tapping the handle opens it halfway, or closes it.
+ * up or down moves it one step; tapping the handle opens it halfway, or closes it. The content
+ * stays mounted while the sheet is down, so it keeps its tab and scroll.
  */
 export function BottomSheet({
   label,
@@ -47,7 +48,7 @@ export function BottomSheet({
   return (
     <section
       aria-label={label}
-      className={`parchment border-brass absolute inset-x-0 bottom-0 z-20 flex flex-col rounded-t-3xl border-t shadow-[0_-12px_40px_var(--shade)] transition-[height] duration-200 motion-reduce:transition-none ${HEIGHT_CLASSES[height]}`}
+      className={`parchment absolute inset-x-0 bottom-0 z-20 flex flex-col rounded-t-[14px] shadow-[inset_0_1px_0_var(--color-brass-bright),0_-1px_0_var(--color-brass),0_-14px_34px_rgb(0_0_0/0.55)] transition-[height] duration-200 motion-reduce:transition-none ${HEIGHT_CLASSES[height]}`}
     >
       <button
         type="button"
@@ -87,15 +88,14 @@ export function BottomSheet({
             onHeightChange(height === 'peek' ? 'half' : 'peek');
           }
         }}
-        className="focus-visible:outline-accent-ink flex h-6 shrink-0 touch-none items-center justify-center focus-visible:outline-2 focus-visible:-outline-offset-2"
+        className="focus-visible:outline-accent-ink flex h-[22px] shrink-0 touch-none items-center justify-center focus-visible:outline-2 focus-visible:-outline-offset-2"
       >
-        <span className="bg-line-strong h-1 w-10 rounded-full" aria-hidden="true" />
+        <span className="bg-brass/70 h-[5px] w-11 rounded-full" aria-hidden="true" />
       </button>
-      {height === 'peek' ? (
-        <div className="px-4 pb-3">{summary}</div>
-      ) : (
-        <div className="flex min-h-0 flex-1 flex-col gap-3 px-4 pb-3">{children}</div>
-      )}
+      <div className="shrink-0 px-3.5 pb-2.5">{summary}</div>
+      <div hidden={height === 'peek'} className="flex min-h-0 flex-1 flex-col gap-3 px-3.5 pb-3">
+        {children}
+      </div>
     </section>
   );
 }
