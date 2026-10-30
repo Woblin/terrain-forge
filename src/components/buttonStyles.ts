@@ -9,7 +9,7 @@ const SEAL =
 export const BUTTON_STYLES = {
   primary: `${BASE} ${SEAL} px-4 py-2 font-display text-lg leading-tight`,
   /** An outlined button on parchment, or on leather where the border and text turn light. */
-  secondary: `${BASE} border border-button-line px-4 py-2 font-semibold hover:bg-hover`,
+  secondary: `${BASE} border border-button-line bg-button-fill px-4 py-2 font-semibold hover:bg-hover`,
   /** A button that deletes: seal red, labelled in the body font so it never reads as the main action. */
   danger: `${BASE} ${SEAL} px-4 py-2 font-semibold`,
   /** An outlined seal-red button, for a destructive step that opens a confirmation first. */

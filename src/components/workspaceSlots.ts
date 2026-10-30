@@ -24,6 +24,8 @@ export interface WorkspaceSlots {
   footer: ReactNode;
   /** The round buttons over the board on phones, held upright or sideways. */
   phoneButtons: ReactNode;
+  /** What the board shows and how pieces move, in the phone's top bar or beside a sideways board. */
+  boardOptions: ReactNode;
   /** The selected piece's tools on phones, or null while nothing is selected. */
   selectionBar: ReactNode;
   /** Previous and Next piece on phones while measuring, or null. */

@@ -35,10 +35,10 @@ export function BoardNameField({ name, onRename, className = 'text-[22px]' }: Bo
           onClick={() => {
             setDraft(name);
           }}
-          className={`font-display hover:border-line focus-visible:outline-brass-bright -mx-1.5 flex max-w-full cursor-text items-center gap-2 rounded-[3px] border border-transparent px-1.5 text-left leading-snug text-[#f3e6c4] focus-visible:outline-2 ${className}`}
+          className={`font-display hover:border-line focus-visible:outline-brass-bright text-heading -mx-1.5 flex max-w-full cursor-text items-center gap-2 rounded-[3px] border border-transparent px-1.5 text-left leading-snug focus-visible:outline-2 ${className}`}
         >
           <span className="truncate">{name}</span>
-          <PencilIcon className="text-brass-bright size-[15px] shrink-0" aria-hidden="true" />
+          <PencilIcon className="text-brass-ink size-[15px] shrink-0" aria-hidden="true" />
           <span className="sr-only">, rename</span>
         </button>
       </h1>
@@ -71,11 +71,11 @@ export function BoardNameField({ name, onRename, className = 'text-[22px]' }: Bo
             finish(false);
           }
         }}
-        className="font-display border-brass-bright bg-iron-raised h-9 w-[min(420px,60vw)] min-w-0 rounded-[3px] border px-2 text-xl text-[#f3e6c4] shadow-[0_0_0_3px_rgb(201_163_82/0.2)] outline-none"
+        className="font-display border-brass-bright bg-field text-heading h-9 w-[min(420px,60vw)] min-w-0 rounded-[3px] border px-2 text-xl shadow-[0_0_0_3px_rgb(201_163_82/0.2)] outline-none pointer-coarse:h-11"
       />
       <button
         type="submit"
-        className="border-brass-bright text-brass-glow hover:bg-brass-bright/30 focus-visible:outline-brass-bright h-9 shrink-0 rounded-[3px] border bg-[rgb(201_163_82/0.2)] px-3 font-semibold focus-visible:outline-2"
+        className="border-brass-bright text-brass-ink hover:bg-brass-bright/30 focus-visible:outline-brass-bright h-9 shrink-0 rounded-[3px] border bg-[rgb(201_163_82/0.2)] px-3 font-semibold focus-visible:outline-2 pointer-coarse:h-11"
       >
         Rename
       </button>
@@ -84,7 +84,7 @@ export function BoardNameField({ name, onRename, className = 'text-[22px]' }: Bo
         onClick={() => {
           finish(false);
         }}
-        className="text-on-iron-muted hover:text-on-iron h-9 shrink-0 px-2 underline underline-offset-2"
+        className="text-muted hover:text-ink h-9 shrink-0 px-2 underline underline-offset-2 pointer-coarse:h-11"
       >
         Cancel
       </button>

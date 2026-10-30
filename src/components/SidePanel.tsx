@@ -15,8 +15,6 @@ interface SidePanelProps {
   icon: LucideIcon;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  /** True to slide over the board when open, instead of taking room next to it. */
-  overlay: boolean;
   /** Width classes for the open panel. */
   widthClassName: string;
   children: ReactNode;
@@ -29,7 +27,6 @@ export function SidePanel({
   icon,
   open,
   onOpenChange,
-  overlay,
   widthClassName,
   children,
 }: SidePanelProps) {
@@ -37,7 +34,7 @@ export function SidePanel({
   const panel = (
     <section
       aria-label={title}
-      className={`parchment frame flex h-full flex-col overflow-hidden rounded-sm ${overlay ? `absolute inset-y-0 z-20 ${left ? 'left-0' : 'right-0'}` : ''} ${widthClassName}`}
+      className={`parchment frame flex h-full flex-col overflow-hidden rounded-sm ${widthClassName}`}
     >
       <div className="flex shrink-0 items-center justify-between gap-2 pt-3.5 pr-4 pl-5">
         <h2 className="font-display text-2xl">{title}</h2>
@@ -70,13 +67,5 @@ export function SidePanel({
       />
     </div>
   );
-  if (!overlay) {
-    return open ? panel : rail;
-  }
-  return (
-    <div className="relative h-full">
-      {rail}
-      {open && panel}
-    </div>
-  );
+  return open ? panel : rail;
 }

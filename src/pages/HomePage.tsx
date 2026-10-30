@@ -48,7 +48,7 @@ export function HomePage() {
             </Link>
             <Link
               to="/library"
-              className={`${BUTTON_STYLES.secondary} border-brass bg-iron-raised/70 h-[50px] px-5 text-lg`}
+              className={`${BUTTON_STYLES.secondary} border-brass h-[50px] px-5 text-lg`}
             >
               Your terrain
             </Link>

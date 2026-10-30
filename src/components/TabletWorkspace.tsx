@@ -1,52 +1,61 @@
-import { ScaleIcon, SlidersHorizontalIcon } from 'lucide-react';
-import { useState } from 'react';
+import { MountainIcon, ScaleIcon, SlidersHorizontalIcon } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { useRulesRequest } from '../hooks/useRulesRequest';
 import { BoardStage } from './BoardStage';
-import { DetailsTabs } from './DetailsTabs';
-import { SidePanel } from './SidePanel';
-import { DETAILS_TITLE, SETUP_TITLE, type WorkspaceSlots } from './workspaceSlots';
+import { focusRules } from './focusRules';
+import { TabletPanel } from './TabletPanel';
+import { TabletRail, type RailButton } from './TabletRail';
+import { SETUP_TITLE, type WorkspaceSlots } from './workspaceSlots';
 
-type TabletPanel = 'setup' | 'details' | null;
+type TabletPanelId = 'setup' | 'fairness' | 'pieces';
 
-/** The board with both panels as rails; one panel at a time slides over the board. */
+const LEFT: readonly RailButton<TabletPanelId>[] = [
+  { id: 'setup', label: SETUP_TITLE, icon: SlidersHorizontalIcon },
+];
+const RIGHT: readonly RailButton<TabletPanelId>[] = [
+  { id: 'fairness', label: 'Fairness', icon: ScaleIcon },
+  { id: 'pieces', label: 'Pieces', icon: MountainIcon },
+];
+
+/** The board between two labelled rails; one panel at a time slides over the board. */
 export function TabletWorkspace(props: WorkspaceSlots) {
-  const [open, setOpen] = useState<TabletPanel>(null);
+  const [open, setOpen] = useState<TabletPanelId | null>(null);
   const [showRules, rulesShown] = useRulesRequest(props.rulesAsked);
-  if (showRules && open !== 'details') {
-    setOpen('details');
+  if (showRules && open !== 'fairness') {
+    setOpen('fairness');
   }
-  function openPanel(panel: TabletPanel, isOpen: boolean): void {
-    setOpen(isOpen ? panel : null);
+  useEffect(() => {
+    if (showRules && open === 'fairness') {
+      focusRules(props.rulesId);
+      rulesShown();
+    }
+  });
+  function toggle(id: TabletPanelId): void {
+    setOpen(open === id ? null : id);
+  }
+  function close(): void {
+    setOpen(null);
   }
   return (
-    <main className="flex min-h-0 flex-1 gap-3 p-3">
-      <SidePanel
-        side="left"
-        title={SETUP_TITLE}
-        icon={SlidersHorizontalIcon}
-        open={open === 'setup'}
-        onOpenChange={(isOpen) => {
-          openPanel('setup', isOpen);
-        }}
-        overlay
-        widthClassName="w-80"
-      >
-        {props.setup}
-      </SidePanel>
+    <main className="relative flex min-h-0 flex-1 gap-3 p-3">
+      <TabletRail label="Board setup" buttons={LEFT} open={open} onToggle={toggle} />
       <BoardStage {...props} />
-      <SidePanel
-        side="right"
-        title={DETAILS_TITLE}
-        icon={ScaleIcon}
-        open={open === 'details'}
-        onOpenChange={(isOpen) => {
-          openPanel('details', isOpen);
-        }}
-        overlay
-        widthClassName="w-[360px]"
-      >
-        <DetailsTabs {...props} showRules={showRules} onRulesShown={rulesShown} />
-      </SidePanel>
+      <TabletRail label="Fairness and pieces" buttons={RIGHT} open={open} onToggle={toggle} />
+      {open === 'setup' && (
+        <TabletPanel id="setup" title={SETUP_TITLE} side="left" onClose={close}>
+          {props.setup}
+        </TabletPanel>
+      )}
+      {open === 'fairness' && (
+        <TabletPanel id="fairness" title="Fairness" side="right" onClose={close}>
+          {props.fairness}
+        </TabletPanel>
+      )}
+      {open === 'pieces' && (
+        <TabletPanel id="pieces" title="Pieces" side="right" onClose={close}>
+          {props.pieces}
+        </TabletPanel>
+      )}
     </main>
   );
 }

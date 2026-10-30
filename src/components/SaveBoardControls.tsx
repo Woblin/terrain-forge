@@ -59,7 +59,7 @@ export function SaveBoardControls({
           onClick={() => {
             setCopying(true);
           }}
-          className={`${BUTTON_STYLES.secondary} ${BUTTON_SIZE} bg-iron-raised/70`}
+          className={`${BUTTON_STYLES.secondary} ${BUTTON_SIZE}`}
         >
           <CopyIcon className="size-4" aria-hidden="true" />
           Save as copy

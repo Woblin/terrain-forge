@@ -1,4 +1,6 @@
+import { useState } from 'react';
 import { Link, Outlet, useLocation } from 'react-router';
+import { HeaderSlotContext } from '../hooks/headerSlotContext';
 import { AccountMenu } from './AccountMenu';
 import { LogoMark } from './LogoMark';
 import { MainNav } from './MainNav';
@@ -14,6 +16,7 @@ import { VerifyEmailBanner } from './VerifyEmailBanner';
 export function AppShell() {
   const location = useLocation();
   const fixedHeight = fillsWindow(location.pathname);
+  const [headerSlot, setHeaderSlot] = useState<HTMLElement | null>(null);
   return (
     <div className={`flex flex-col ${fixedHeight ? 'h-dvh' : 'min-h-dvh'}`}>
       <header className="border-brass bg-iron text-on-iron sticky top-0 z-30 border-b pt-[env(safe-area-inset-top)] shadow-[0_1px_0_#3a2c1a,0_4px_14px_rgb(0_0_0/0.45)]">
@@ -33,6 +36,7 @@ export function AppShell() {
           </p>
           <MainNav className="hidden md:flex" />
           <div className="ml-auto flex items-center gap-2 md:gap-3.5">
+            <div ref={setHeaderSlot} className="contents md:hidden" />
             <UnitToggle tone="iron" className="hidden lg:flex" />
             <AccountMenu />
           </div>
@@ -42,7 +46,9 @@ export function AppShell() {
       <div
         className={`flex flex-1 flex-col pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0 ${fixedHeight ? 'min-h-0' : ''}`}
       >
-        <Outlet />
+        <HeaderSlotContext.Provider value={headerSlot}>
+          <Outlet />
+        </HeaderSlotContext.Provider>
       </div>
       <TabBar className="md:hidden" />
     </div>

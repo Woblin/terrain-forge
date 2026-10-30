@@ -53,6 +53,9 @@
   --p-fail-line: rgb(143 29 20 / 0.4);
   --p-seal-ink: #8f1d14;
   --p-seal-ink-hover: #5e110b;
+  --p-heading: #2a1d12;
+  --p-brass-ink: #6b4708;
+  --p-button-fill: transparent;
 
   /* Text and lines on leather, iron and wood: the same in both themes. */
   --l-ink: #ecdcb4;
@@ -76,6 +79,11 @@
   --l-seal-ink: #ee8b78;
   --l-seal-ink-hover: #f6b0a2;
   --l-field: #16110c;
+  /* Titles on leather, a touch brighter than body text. */
+  --l-heading: #f3e6c4;
+  --l-brass-ink: #f0cf7e;
+  /* Outlined buttons on leather sit on a little iron. */
+  --l-button-fill: rgb(36 27 18 / 0.7);
 
   /* Switches on parchment. */
   --switch-on: #8f1d14;
@@ -119,6 +127,9 @@
   --p-fail-line: rgb(238 139 120 / 0.45);
   --p-seal-ink: #ee8b78;
   --p-seal-ink-hover: #f6b0a2;
+  --p-heading: #ecdcb4;
+  --p-brass-ink: #f0cf7e;
+  --p-button-fill: transparent;
 
   --switch-on: #b8352a;
   --switch-off: #4a3c2a;
@@ -163,6 +174,10 @@
   --color-on-accent: #f6ecd2;
   --color-accent-ink: var(--seal-ink);
   --color-accent-ink-hover: var(--seal-ink-hover);
+  --color-heading: var(--heading);
+  /* Brass-coloured text: bright on leather, dark gold on light parchment. */
+  --color-brass-ink: var(--brass-ink);
+  --color-button-fill: var(--button-fill);
   --color-pass: var(--pass);
   --color-pass-soft: var(--pass-soft);
   --color-pass-line: var(--pass-line);
@@ -225,6 +240,9 @@
   --seal-ink: var(--l-seal-ink);
   --seal-ink-hover: var(--l-seal-ink-hover);
   --field: var(--l-field);
+  --heading: var(--l-heading);
+  --brass-ink: var(--l-brass-ink);
+  --button-fill: var(--l-button-fill);
   color: var(--ink);
 }
 
@@ -251,6 +269,9 @@
   --seal-ink: var(--p-seal-ink);
   --seal-ink-hover: var(--p-seal-ink-hover);
   --field: var(--p-field);
+  --heading: var(--p-heading);
+  --brass-ink: var(--p-brass-ink);
+  --button-fill: var(--p-button-fill);
   color: var(--ink);
   background-color: var(--surface);
   background-image: radial-gradient(
@@ -315,6 +336,9 @@
     --seal-ink: var(--l-seal-ink);
     --seal-ink-hover: var(--l-seal-ink-hover);
     --field: var(--l-field);
+    --heading: var(--l-heading);
+    --brass-ink: var(--l-brass-ink);
+    --button-fill: var(--l-button-fill);
   }
 
   body {
