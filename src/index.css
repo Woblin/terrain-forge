@@ -36,13 +36,13 @@
   --p-ink: #2a1d12;
   --p-soft: #5c4630;
   --p-muted: #5c4630;
-  --p-faint: #6e5a40;
+  --p-faint: #655239;
   --p-line: rgb(138 106 46 / 0.45);
   --p-line-strong: rgb(138 106 46 / 0.75);
   --p-button-line: rgb(42 29 18 / 0.5);
   --p-hover: rgb(42 29 18 / 0.06);
   --p-tint: rgb(255 250 235 / 0.5);
-  --p-pass: #2f5d2a;
+  --p-pass: #2b5726;
   --p-pass-soft: rgb(47 93 42 / 0.1);
   --p-pass-line: rgb(47 93 42 / 0.4);
   --p-warn-ink: #6b4708;
@@ -110,7 +110,7 @@
   --p-ink: #ecdcb4;
   --p-soft: #bba886;
   --p-muted: #bba886;
-  --p-faint: #9c8a6a;
+  --p-faint: #a89676;
   --p-line: rgb(138 106 46 / 0.55);
   --p-line-strong: rgb(160 126 60 / 0.8);
   --p-button-line: rgb(236 220 180 / 0.45);
