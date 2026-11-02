@@ -6,8 +6,9 @@ import { containsPoint } from './geometry';
 import { pieceById } from './layoutTerrain';
 import { boardViolations, placePiece } from './placement';
 import { PRESETS } from './presets';
+import { ROBIN_COLLECTION } from './robinCollection';
 import { SAMPLE_COLLECTION } from './sampleCollection';
-import type { Placement } from './terrain';
+import type { Placement, TerrainPiece } from './terrain';
 
 const SLOW_TEST_TIMEOUT = 60_000;
 
@@ -99,4 +100,64 @@ describe('game setups', () => {
     expect(resolveGameSetup('one-page-rules', 'nope')).toBeUndefined();
     expect(resolveGameSetup('nope', 'long-edges')).toBeUndefined();
   });
+});
+
+/**
+ * Generates a board and measures it again the way the board page does; both reports must match,
+ * so a board the player has not edited shows the generator's own verdict.
+ */
+function expectSameReport(setup: GameSetup, pieces: readonly TerrainPiece[], seed: number) {
+  const result = generateLayout({
+    board: setup.board,
+    pieces,
+    preset: setup.preset,
+    deployment: setup.deployment,
+    seed,
+    enabledRules: setup.preset.defaultRules,
+  });
+  if (!result.ok) {
+    throw new Error(result.reason);
+  }
+  const prepared = prepareCollection(pieces, setup.board, setup.preset);
+  const input = fairnessInputFor(
+    setup,
+    pieces,
+    result.layout.placements,
+    prepared.balance,
+    setup.preset.defaultRules,
+  );
+  expect(analyseBoard(input).report).toEqual(result.report);
+  return prepared;
+}
+
+describe("the product owner's Warhammer Fantasy terrain", () => {
+  const fantasy = setupFor('warhammer-fantasy').preset;
+
+  it.each(deploymentsFor(fantasy).map((deployment) => deployment.id))(
+    '%s: measures the same when unedited',
+    (deploymentId) => {
+      const setup = resolveGameSetup('warhammer-fantasy', deploymentId);
+      if (setup === undefined) {
+        throw new Error(`Missing setup for ${deploymentId}`);
+      }
+      expectSameReport(setup, ROBIN_COLLECTION, 1);
+    },
+    SLOW_TEST_TIMEOUT,
+  );
+});
+
+describe('a collection too small for the coverage the game asks for', () => {
+  it(
+    'measures the same as the generator, with the lowered coverage minimum',
+    () => {
+      const setup = setupFor('warhammer-40k');
+      const few = SAMPLE_COLLECTION.map((piece) => ({ ...piece, quantity: 1 }));
+      const prepared = expectSameReport(setup, few, 3);
+      expect(prepared.balance.coverage.min).toBeLessThan(setup.preset.balance.coverage.min);
+      expect(prepared.warnings).toEqual([
+        expect.stringMatching(/^Your terrain covers \d+% of this board/),
+      ]);
+    },
+    SLOW_TEST_TIMEOUT,
+  );
 });

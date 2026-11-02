@@ -7,6 +7,7 @@ import { GENERATOR_VERSION, generateLayout, type GenerationRequest } from './gen
 import { boardViolations, placePiece } from './placement';
 import { findPreset, PRESETS, type GameSystemPreset } from './presets';
 import { ROBIN_COLLECTION } from './robinCollection';
+import { SAMPLE_COLLECTION } from './sampleCollection';
 import { placeFootprint, type Placement, type TerrainPiece } from './terrain';
 
 const SLOW_TEST_TIMEOUT = 60_000;
@@ -447,4 +448,171 @@ describe('generateLayout regression', () => {
     },
     SLOW_TEST_TIMEOUT,
   );
+
+  // The cases below reach code the case above does not: diagonal zones, wall chains, the edge
+  // and clear-back rules, regiment clearance, and the sample set signed-out players get. Each
+  // locks the placements and the fairness result. Bump GENERATOR_VERSION if one changes on purpose.
+
+  it(
+    'keeps 40k on opposite corners stable',
+    () => {
+      expect(regressionSummary('warhammer-40k', 'opposite-corners', collection, 2024))
+        .toMatchInlineSnapshot(`
+        {
+          "failedRules": [],
+          "imbalance": "0.000000",
+          "placements": [
+            "building 22.62,22.49 0",
+            "building 37.38,21.51 180",
+            "ruin-large 7.67,17.16 0",
+            "ruin-large 52.33,26.84 180",
+            "ruin-large 24.68,6.58 0",
+            "ruin-large 35.32,37.42 180",
+            "forest 49.25,12.56 210",
+            "forest 10.75,31.44 30",
+            "ruin-small 38.13,9.49 270",
+            "ruin-small 21.87,34.51 90",
+            "ruin-small 50.36,38.01 240",
+            "ruin-small 9.64,5.99 60",
+            "barricade 6.32,38.37 180",
+            "barricade 53.68,5.63 0",
+            "barricade 10.26,24.20 180",
+            "barricade 49.74,19.80 0",
+          ],
+          "version": 3,
+        }
+      `);
+    },
+    SLOW_TEST_TIMEOUT,
+  );
+
+  it(
+    "keeps Warhammer Fantasy on the product owner's terrain stable, long edges",
+    () => {
+      expect(regressionSummary('warhammer-fantasy', 'long-edges', ROBIN_COLLECTION, 2024))
+        .toMatchInlineSnapshot(`
+        {
+          "failedRules": [],
+          "imbalance": "0.143823",
+          "placements": [
+            "building-1 49.53,24.00 105",
+            "ruin-2 6.36,23.60 120",
+            "ruin-1 65.64,24.40 300",
+            "forest 34.87,13.93 240",
+            "forest 37.13,34.07 60",
+            "stone-wall 23.92,21.45 165",
+            "stone-wall 21.90,24.95 75",
+            "stone-wall 11.74,35.85 345",
+            "stone-wall 16.86,35.18 0",
+            "stone-wall 60.26,12.15 165",
+            "stone-wall 55.14,12.82 180",
+            "building-5 60.38,36.92 180",
+            "building-2 11.62,11.08 0",
+          ],
+          "version": 3,
+        }
+      `);
+    },
+    SLOW_TEST_TIMEOUT,
+  );
+
+  it(
+    "keeps Warhammer Fantasy on the product owner's terrain stable, short edges",
+    () => {
+      expect(regressionSummary('warhammer-fantasy', 'short-edges', ROBIN_COLLECTION, 7))
+        .toMatchInlineSnapshot(`
+        {
+          "failedRules": [],
+          "imbalance": "0.189243",
+          "placements": [
+            "ruin-2 36.13,14.38 90",
+            "ruin-1 35.87,33.62 270",
+            "forest 18.14,25.73 225",
+            "forest 53.86,22.27 45",
+            "building-5 19.86,38.73 90",
+            "building-2 52.14,9.27 270",
+          ],
+          "version": 3,
+        }
+      `);
+    },
+    SLOW_TEST_TIMEOUT,
+  );
+
+  it(
+    'keeps One Page Rules on the sample set stable',
+    () => {
+      expect(regressionSummary('one-page-rules', 'long-edges', SAMPLE_COLLECTION, 2024))
+        .toMatchInlineSnapshot(`
+        {
+          "failedRules": [],
+          "imbalance": "0.000000",
+          "placements": [
+            "building 57.28,24.53 270",
+            "crater 65.02,22.83 270",
+            "building 14.72,23.47 90",
+            "crater 6.98,25.17 90",
+            "ruin-large 42.00,38.99 270",
+            "ruin-large 30.00,9.01 90",
+            "ruin-large 11.12,11.12 0",
+            "ruin-large 60.88,36.88 180",
+            "ruin-large 29.60,33.02 90",
+            "ruin-large 42.40,14.98 270",
+            "forest 14.77,36.27 180",
+            "forest 57.23,11.73 0",
+            "ruin-small 5.34,39.57 75",
+            "ruin-small 66.66,8.43 255",
+            "ruin-small 42.87,27.01 0",
+            "ruin-small 29.13,20.99 180",
+            "barricade 25.29,42.98 195",
+            "barricade 46.71,5.02 15",
+            "barricade 48.81,37.63 270",
+            "barricade 23.19,10.37 90",
+          ],
+          "version": 3,
+        }
+      `);
+    },
+    SLOW_TEST_TIMEOUT,
+  );
 });
+
+/**
+ * A board for a game, deployment, terrain and seed, as short lines that show any change: each
+ * placement, then the rules it fails and how even it is.
+ */
+function regressionSummary(
+  presetId: string,
+  deploymentId: string,
+  pieces: readonly TerrainPiece[],
+  seed: number,
+) {
+  const gamePreset = preset(presetId);
+  const presetBoard = gamePreset.defaultBoard;
+  const deployment = standardDeployments(presetBoard, gamePreset.zoneDepth).find(
+    (candidate) => candidate.id === deploymentId,
+  );
+  if (deployment === undefined) {
+    throw new Error(`Missing deployment ${deploymentId}`);
+  }
+  const result = generateLayout({
+    board: presetBoard,
+    pieces,
+    preset: gamePreset,
+    deployment,
+    seed,
+    enabledRules: gamePreset.defaultRules,
+  });
+  if (!result.ok) {
+    throw new Error(result.reason);
+  }
+  return {
+    version: GENERATOR_VERSION,
+    placements: result.layout.placements.map(
+      (p) =>
+        `${p.pieceId} ${p.position.x.toFixed(2)},${p.position.y.toFixed(2)} ${String(p.rotation)}`,
+    ),
+    failedRules: result.report.failedRules,
+    imbalance: result.report.imbalance.toFixed(6),
+  };
+}

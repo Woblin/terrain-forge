@@ -157,3 +157,30 @@ describe('the game settings service', () => {
     expect(await nextStored(db)).toEqual({ kind: 'missing' });
   });
 });
+
+/**
+ * The rules and the app check the same limits. The id length and the number of games with rules
+ * off are not app constants yet, so they are numbers here for now.
+ */
+describe('the limits the app checks', () => {
+  const ID_LENGTH = 40;
+  const GAMES_WITH_RULES_OFF = 20;
+  const id = (length: number) => 'x'.repeat(length);
+  const rulesOff = (games: number) => ({
+    rulesOff: Object.fromEntries(
+      Array.from({ length: games }, (_, i) => [`game-${String(i)}`, ['clearLane']]),
+    ),
+  });
+
+  it.each([
+    ['the longest game id', { defaultPresetId: id(ID_LENGTH) }, true],
+    ['a game id one character too long', { defaultPresetId: id(ID_LENGTH + 1) }, false],
+    ['the longest mat id', { defaultMatId: id(ID_LENGTH) }, true],
+    ['a mat id one character too long', { defaultMatId: id(ID_LENGTH + 1) }, false],
+    ['rules off in the most games', rulesOff(GAMES_WITH_RULES_OFF), true],
+    ['rules off in one game too many', rulesOff(GAMES_WITH_RULES_OFF + 1), false],
+  ])('settings with %s are allowed: %s', async (_, fields, allowed) => {
+    const write = setDoc(doc(asAlice(), path), settings(fields));
+    await (allowed ? assertSucceeds(write) : assertFails(write));
+  });
+});

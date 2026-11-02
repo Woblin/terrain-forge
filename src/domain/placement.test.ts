@@ -14,6 +14,7 @@ import {
   type PlacementUnit,
 } from './placement';
 import { soloGroup } from './pieceGroup';
+import { PRESETS, type GameSystemPreset } from './presets';
 import { createRandom } from './random';
 import { footprintArea, placeFootprint, type TerrainPiece } from './terrain';
 
@@ -238,5 +239,125 @@ describe('boardViolations', () => {
       [{ kind: 'zoneCrowded', player: 'A' }],
       [],
     ]);
+  });
+});
+
+describe('isLegal and boardViolations under each game system', () => {
+  const ruin = piece('ruin', 6, 4, 20);
+  const hill: TerrainPiece = {
+    id: 'hill',
+    name: 'hill',
+    type: 'hill',
+    footprint: { kind: 'ellipse', width: 8, depth: 6 },
+    quantity: 20,
+  };
+  const wall: TerrainPiece = {
+    id: 'wall',
+    name: 'wall',
+    type: 'wall',
+    footprint: { kind: 'rect', width: 5, depth: 0.6 },
+    quantity: 20,
+  };
+  const kinds = [ruin, hill, wall] as const;
+
+  function gameRules(gamePreset: GameSystemPreset): PlacementRules {
+    const gameBoard = gamePreset.defaultBoard;
+    return {
+      board: gameBoard,
+      deployment: longEdgeDeployment(gameBoard, gamePreset.zoneDepth),
+      edgeMargin: gamePreset.edgeMargin,
+      spacing: gamePreset.spacing,
+    };
+  }
+
+  /** The same answer from both, for one new piece on a board that already holds `placed`. */
+  function expectAgreement(
+    candidate: ReturnType<typeof placePiece>,
+    placed: readonly ReturnType<typeof placePiece>[],
+    gameRulesUsed: PlacementRules,
+  ): boolean {
+    const legal = isLegal([[candidate]], placed, gameRulesUsed);
+    const violations = boardViolations([...placed, candidate], gameRulesUsed);
+    expect(violations.at(-1)?.length === 0).toBe(legal);
+    return legal;
+  }
+
+  it.each(PRESETS)(
+    'agree on random pieces with the rules of $name, unless they stand joined',
+    (gamePreset) => {
+      const rulesUsed = gameRules(gamePreset);
+      const { width, depth } = rulesUsed.board;
+      const placed = [
+        placePiece(ruin, {
+          pieceId: 'ruin',
+          position: { x: width * 0.35, y: depth / 2 },
+          rotation: 0,
+        }),
+        placePiece(ruin, {
+          pieceId: 'ruin',
+          position: { x: width * 0.65, y: depth / 2 },
+          rotation: 45,
+        }),
+      ];
+      expect(boardViolations(placed, rulesUsed).flat()).toEqual([]);
+      const random = createRandom(11);
+      let checked = 0;
+      let legal = 0;
+      for (let i = 0; i < 500; i++) {
+        const kind = kinds[Math.floor(random() * kinds.length)] ?? ruin;
+        const candidate = placePiece(kind, {
+          pieceId: kind.id,
+          position: { x: random() * width, y: random() * depth },
+          rotation: Math.floor(random() * 24) * 15,
+        });
+        const nearest = Math.min(
+          ...placed.map((p) => polygonDistance(p.polygon, candidate.polygon)),
+        );
+        if (nearest === 0 || nearest > rulesUsed.spacing.joinGap) {
+          checked++;
+          if (expectAgreement(candidate, placed, rulesUsed)) {
+            legal++;
+          }
+        }
+      }
+      // Enough of both answers that the comparison means something.
+      expect(checked).toBeGreaterThan(400);
+      expect(legal).toBeGreaterThan(50);
+      expect(checked - legal).toBeGreaterThan(50);
+    },
+  );
+
+  const fantasy = PRESETS.find((gamePreset) => gamePreset.id === 'warhammer-fantasy');
+  if (fantasy === undefined) {
+    throw new Error('Missing the Warhammer Fantasy preset');
+  }
+  const fantasyRules = gameRules(fantasy);
+
+  it.each([
+    { gap: 1.9, legal: true },
+    { gap: 2.0, legal: true },
+    { gap: 2.1, legal: false },
+    { gap: 5.9, legal: false },
+    { gap: 6.0, legal: true },
+    { gap: 6.1, legal: true },
+  ])('agree on a piece $gap" from the table edge under the Fantasy edge rule', ({ gap, legal }) => {
+    const candidate = placePiece(ruin, {
+      pieceId: 'ruin',
+      position: { x: gap + 3, y: fantasyRules.board.depth / 2 },
+      rotation: 0,
+    });
+    expect(expectAgreement(candidate, [], fantasyRules)).toBe(legal);
+  });
+
+  it.each([
+    { y: 10.9, legal: false },
+    { y: 11.1, legal: true },
+  ])('agree on a piece at y $y next to the clear back of a Fantasy zone', ({ y, legal }) => {
+    const candidate = placePiece(ruin, {
+      pieceId: 'ruin',
+      position: { x: fantasyRules.board.width / 2, y },
+      rotation: 0,
+    });
+    expect(expectAgreement(candidate, [], fantasyRules)).toBe(legal);
   });
 });
