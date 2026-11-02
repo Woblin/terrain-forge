@@ -1,13 +1,17 @@
 import { boardArea, type Board, type DeploymentMap } from './board';
+import { fairnessInputOf } from './boardAnalysis';
 import { isPassable, regimentClearance } from './clearance';
 import { laneBreakingChoice } from './laneBreaking';
 import { evaluateFairness, inRuleOrder, type FairnessReport, type RuleId } from './fairness';
-import { expandCollection, placeUnits, type PlacedPiece, type PlacementRules } from './placement';
+import { placementRulesFor } from './gameSetup';
+import { placedTerrainOf } from './layoutTerrain';
+import { expandCollection, placeUnits } from './placement';
+import type { PlacedPiece } from './placedPiece';
 import { buildUnits, orderForTarget } from './placementUnits';
 import type { BalanceRules, GameSystemPreset } from './presets';
 import { createRandom, randomBetween, shuffle, type RandomSource } from './random';
 import { spreadChoice } from './spread';
-import { footprintArea, type PlacedTerrain, type Placement, type TerrainPiece } from './terrain';
+import { footprintArea, type Placement, type TerrainPiece } from './terrain';
 
 /** Bump when a change makes the same seed give a different layout. */
 export const GENERATOR_VERSION = 3;
@@ -116,9 +120,9 @@ export function prepareCollection(
   const usable = expandCollection(
     pieces.filter((piece) => fitsOnBoard(piece, board, preset.edgeMargin)),
   );
+  const { balance, warning } = balanceForCollection(preset.balance, usable, board);
   const warnings = tooLargeWarnings(pieces, board, preset.edgeMargin);
-  const balance = balanceForCollection(preset.balance, usable, board, warnings);
-  return { usable, balance, warnings };
+  return { usable, balance, warnings: warning === null ? warnings : [...warnings, warning] };
 }
 
 /** Whether the piece fits inside the edge margin, either way round. */
@@ -142,25 +146,24 @@ export function tooLargeWarnings(
 /**
  * When the whole collection covers less of the board than the preset asks for, the coverage
  * minimum drops to what the collection can cover, less some room for pieces that find no legal
- * spot, and the player is told.
+ * spot, with a warning for the player.
  */
 function balanceForCollection(
   balance: BalanceRules,
   pieces: readonly TerrainPiece[],
   board: Board,
-  warnings: string[],
-): BalanceRules {
+): { readonly balance: BalanceRules; readonly warning: string | null } {
   const available = pieces.reduce((sum, piece) => sum + footprintArea(piece.footprint), 0);
   const coverage = available / boardArea(board);
   if (coverage >= balance.coverage.min) {
-    return balance;
+    return { balance, warning: null };
   }
-  warnings.push(
-    `Your terrain covers ${percent(coverage)} of this board; ${percent(balance.coverage.min)} or more plays better.`,
-  );
   return {
-    ...balance,
-    coverage: { ...balance.coverage, min: coverage * SMALL_COLLECTION_MIN_SHARE },
+    balance: {
+      ...balance,
+      coverage: { ...balance.coverage, min: coverage * SMALL_COLLECTION_MIN_SHARE },
+    },
+    warning: `Your terrain covers ${percent(coverage)} of this board; ${percent(balance.coverage.min)} or more plays better.`,
   };
 }
 
@@ -174,17 +177,12 @@ function buildCandidate(
   balance: BalanceRules,
   random: RandomSource,
 ): Candidate {
-  const { board, preset, deployment, enabledRules } = request;
+  const { board, preset, enabledRules } = request;
   const area = boardArea(board);
   const target = randomBetween(random, balance.coverage.min, balance.coverage.max) * area;
   const built = buildUnits(shuffle(random, pieces), preset.spacing, random);
   const units = orderForTarget(built, target, preset.spacing, random);
-  const rules: PlacementRules = {
-    board,
-    deployment,
-    edgeMargin: preset.edgeMargin,
-    spacing: preset.spacing,
-  };
+  const rules = placementRulesFor(request);
   // Steering pieces into long lanes only pays off while R5 counts.
   const lanes = enabledRules.includes('clearLane')
     ? laneBreakingChoice({
@@ -201,15 +199,10 @@ function buildCandidate(
     random,
     choice,
   );
-  const report = evaluateFairness({
-    board,
-    deployment,
-    terrain: placed.map((piece) => toPlacedTerrain(piece, preset)),
-    reach: preset.reach,
-    edgeMargin: preset.edgeMargin,
-    balance,
-    enabledRules,
-  });
+  const terrain = placed.map((piece) =>
+    placedTerrainOf(piece.piece, piece.polygon, preset.terrainEffects),
+  );
+  const report = evaluateFairness(fairnessInputOf(request, terrain, balance, enabledRules));
   return { pieces: placed, report };
 }
 
@@ -226,14 +219,6 @@ function passable(pieces: readonly PlacedPiece[], request: GenerationRequest): b
     rules: preset.clearance,
   });
   return isPassable(clearance, preset.clearance);
-}
-
-function toPlacedTerrain(piece: PlacedPiece, preset: GameSystemPreset): PlacedTerrain {
-  return {
-    pieceId: piece.piece.id,
-    polygon: piece.polygon,
-    effect: preset.terrainEffects[piece.piece.type],
-  };
 }
 
 /**

@@ -18,6 +18,7 @@ import {
   type PieceDraft,
   type PieceFields,
 } from '../domain/library';
+import { findById } from '../domain/findById';
 import type { EncodedPhoto } from '../domain/imageCrop';
 import { BUTTON_STYLES } from '../components/buttonStyles';
 import { CollectionCheck } from '../components/CollectionCheck';
@@ -61,7 +62,7 @@ export function LibraryPage() {
   const [deleting, setDeleting] = useState<LibraryPiece | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const photoEditor = usePhotoEditor((cropped, photo) => {
-    const piece = library.pieces.find((candidate) => candidate.id === cropped.id);
+    const piece = findById(library.pieces, cropped.id);
     if (piece !== undefined) {
       void run(() => library.setPhoto(piece, photo));
     }
@@ -336,7 +337,7 @@ export function LibraryPage() {
 
 /** The piece as the library has it now, with any photo added or removed while the form was open. */
 function latestVersion(pieces: readonly LibraryPiece[], piece: LibraryPiece): LibraryPiece {
-  return pieces.find((candidate) => candidate.id === piece.id) ?? piece;
+  return findById(pieces, piece.id) ?? piece;
 }
 
 /** The photo a new piece comes with, keyed by its id as the library takes it. */

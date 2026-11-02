@@ -1,6 +1,6 @@
 import type { Board, DeploymentMap } from './board';
 import { containsPoint, distanceToPolygon, type Point } from './geometry';
-import type { PlacedPiece } from './placement';
+import type { PlacedPiece } from './placedPiece';
 import { isOpenTerrain, type SpacingRules } from './spacing';
 
 /** What a ranked unit needs to march across the board. */

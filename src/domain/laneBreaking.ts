@@ -1,7 +1,9 @@
 import { PLAYERS, type Board, type DeploymentMap } from './board';
 import type { Polygon } from './geometry';
 import { clearLanes, sightObstacles } from './lineOfSight';
-import { playableArea, type PlacedPiece, type SpotChoice } from './placement';
+import type { SpotChoice } from './placement';
+import type { PlacedPiece } from './placedPiece';
+import { playableArea } from './placementRules';
 import type { TerrainEffects } from './terrain';
 
 export interface LaneSetup {

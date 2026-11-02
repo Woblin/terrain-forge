@@ -23,13 +23,12 @@ import {
 } from '../domain/editor';
 import { evaluateFairness, type RuleId } from '../domain/fairness';
 import { enabledRulesFor, startingPreset, usesDefaultRules } from '../domain/gamePreferences';
-import { resolveGameSetup, type GameSetup } from '../domain/gameSetup';
+import { placementRulesFor, resolveGameSetup, type GameSetup } from '../domain/gameSetup';
 import { prepareCollection } from '../domain/generator';
+import { findById } from '../domain/findById';
 import { add, type Point } from '../domain/geometry';
-import { pieceById } from '../domain/layoutTerrain';
 import { findMat, type MatId } from '../domain/mats';
 import { findMirrorTwin, withTwin } from '../domain/mirror';
-import type { PlacementRules } from '../domain/placement';
 import { sameTerrain } from '../domain/libraryLink';
 import { placingOrder, stepPiece } from '../domain/placingOrder';
 import { findPreset, showsLaneByDefault } from '../domain/presets';
@@ -209,14 +208,8 @@ export function BoardPage() {
         ? library.photos
         : new Map(
             [...library.photos].filter(([id]) => {
-              const piece = pieceOf(collection, id);
-              return (
-                piece !== undefined &&
-                photoFits(
-                  piece,
-                  library.pieces.find((candidate) => candidate.id === id),
-                )
-              );
+              const piece = findById(collection, id);
+              return piece !== undefined && photoFits(piece, findById(library.pieces, id));
             }),
           ),
     [source.kind, library.photos, library.pieces, collection],
@@ -282,14 +275,14 @@ export function BoardPage() {
       ? null
       : {
           ...opened,
-          name: savedBoards.boards.find((board) => board.id === opened.id)?.name ?? opened.name,
+          name: findById(savedBoards.boards, opened.id)?.name ?? opened.name,
         };
   useLeaveWarning(unsaved);
   const problems = useMemo(
     () =>
       setup === undefined
         ? new Map<string, readonly string[]>()
-        : checkBoard(shownPieces, collection, placementRules(setup), unit),
+        : checkBoard(shownPieces, collection, placementRulesFor(setup), unit),
     [setup, shownPieces, collection, unit],
   );
 
@@ -399,7 +392,7 @@ export function BoardPage() {
 
   /** Opens the saved board the address names, or a new board when it cannot be found. */
   function openEntry(boardId: string): void {
-    const board = savedBoards.boards.find((saved) => saved.id === boardId);
+    const board = findById(savedBoards.boards, boardId);
     if (board !== undefined) {
       openSaved(board);
       return;
@@ -651,9 +644,7 @@ export function BoardPage() {
   });
 
   const selectedPiece =
-    shownSelected === undefined
-      ? undefined
-      : pieceById(collection, shownSelected.placement.pieceId);
+    shownSelected === undefined ? undefined : findById(collection, shownSelected.placement.pieceId);
   const measured =
     showDistances && selectedPiece !== undefined && shownSelected !== undefined
       ? measureDetail(selectedPiece, shownSelected.placement, board, unit, upright)
@@ -832,7 +823,10 @@ export function BoardPage() {
         <HiddenAreaOverlay hidden={analysis.analysis.hidden} />
       )}
       {shownPieces.map((boardPiece) => {
-        const piece = pieceById(collection, boardPiece.placement.pieceId);
+        const piece = findById(collection, boardPiece.placement.pieceId);
+        if (piece === undefined) {
+          return null;
+        }
         const issues = problems.get(boardPiece.key);
         return (
           <TerrainShape
@@ -1059,8 +1053,11 @@ function piecesToMeasure(
     if (selectedOnly && !isSelected) {
       return [];
     }
-    const { footprint } = pieceById(collection, boardPiece.placement.pieceId);
-    const gaps = edgeGaps(footprint, boardPiece.placement, board);
+    const piece = findById(collection, boardPiece.placement.pieceId);
+    if (piece === undefined) {
+      return [];
+    }
+    const gaps = edgeGaps(piece.footprint, boardPiece.placement, board);
     return [
       {
         key: boardPiece.key,
@@ -1190,11 +1187,6 @@ function missingBoardNotice(savedBoards: SavedBoards): string {
   return `This saved board was not found. It may have been deleted. ${instead}`;
 }
 
-/** The piece with this id in the collection, if there is one. */
-function pieceOf(collection: readonly TerrainPiece[], id: string): TerrainPiece | undefined {
-  return collection.find((piece) => piece.id === id);
-}
-
 function linkNotice(link: ParsedBoardLink): string | null {
   if (link.kind === 'invalid') {
     return `${link.reason} Here is a new board instead.`;
@@ -1203,15 +1195,6 @@ function linkNotice(link: ParsedBoardLink): string | null {
     return 'This link was made with a different version of the generator, so the board may not match the one that was shared.';
   }
   return null;
-}
-
-function placementRules(setup: GameSetup): PlacementRules {
-  return {
-    board: setup.board,
-    deployment: setup.deployment,
-    edgeMargin: setup.preset.edgeMargin,
-    spacing: setup.preset.spacing,
-  };
 }
 
 function withPreview(

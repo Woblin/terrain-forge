@@ -1,11 +1,7 @@
 import type { BoardPiece } from './editor';
-import { pieceById } from './layoutTerrain';
-import {
-  boardViolations,
-  placePiece,
-  type PlacementRules,
-  type PlacementViolation,
-} from './placement';
+import { pieceFinder } from './layoutTerrain';
+import { placePiece } from './placedPiece';
+import { boardViolations, type PlacementRules, type PlacementViolation } from './placementRules';
 import type { TerrainPiece } from './terrain';
 import { formatLength, type LengthUnit } from './units';
 
@@ -19,11 +15,10 @@ export function checkBoard(
   rules: PlacementRules,
   unit: LengthUnit,
 ): ReadonlyMap<string, readonly string[]> {
-  const placed = pieces.map(({ placement }) =>
-    placePiece(pieceById(collection, placement.pieceId), placement),
-  );
+  const pieceOf = pieceFinder(collection);
+  const placed = pieces.map(({ placement }) => placePiece(pieceOf(placement.pieceId), placement));
   const violations = boardViolations(placed, rules);
-  const extra = extraCopies(pieces, collection);
+  const extra = extraCopies(pieces, pieceOf);
   return new Map(
     pieces.flatMap((piece, i) => {
       const messages = (violations[i] ?? []).map((violation) =>
@@ -49,14 +44,14 @@ export function checkBoard(
  */
 function extraCopies(
   pieces: readonly BoardPiece[],
-  collection: readonly TerrainPiece[],
+  pieceOf: (id: string) => TerrainPiece,
 ): ReadonlyMap<string, number> {
   const seen = new Map<string, number>();
   const extra = new Map<string, number>();
   for (const { key, placement } of pieces) {
     const count = (seen.get(placement.pieceId) ?? 0) + 1;
     seen.set(placement.pieceId, count);
-    const { quantity } = pieceById(collection, placement.pieceId);
+    const { quantity } = pieceOf(placement.pieceId);
     if (count > quantity) {
       extra.set(key, quantity);
     }

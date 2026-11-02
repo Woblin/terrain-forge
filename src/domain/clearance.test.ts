@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { longEdgeDeployment, type Board } from './board';
 import { isPassable, regimentClearance, type ClearanceRules } from './clearance';
-import { placePiece, type PlacedPiece } from './placement';
+import { placePiece, type PlacedPiece } from './placedPiece';
 import type { SpacingRules } from './spacing';
 import type { TerrainPiece, TerrainType } from './terrain';
 

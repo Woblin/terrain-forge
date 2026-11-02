@@ -1,3 +1,4 @@
+import { findById } from '../domain/findById';
 import { findMat } from '../domain/mats';
 import type { SavedBoard } from '../domain/savedBoard';
 import { FootprintShape } from './FootprintShape';
@@ -23,7 +24,7 @@ export function BoardThumbnail({ board, className = 'w-28 rounded-lg' }: BoardTh
     >
       <MatTone mat={mat} board={board.layout.board} />
       {board.layout.placements.map((placement, index) => {
-        const piece = board.pieces.find((candidate) => candidate.id === placement.pieceId);
+        const piece = findById(board.pieces, placement.pieceId);
         if (piece === undefined) {
           return null;
         }

@@ -2,7 +2,7 @@ import { useRef, useState, type PointerEvent, type RefObject } from 'react';
 import type { Board } from '../domain/board';
 import type { BoardPiece, EditorAction, PieceUpdate } from '../domain/editor';
 import { distance, polygonBounds, type Point } from '../domain/geometry';
-import { pieceById } from '../domain/layoutTerrain';
+import { findById } from '../domain/findById';
 import { findMirrorTwin, withTwin } from '../domain/mirror';
 import {
   gridStep,
@@ -92,14 +92,16 @@ export function useBoardDrag(
   function startMove(key: string, event: PointerEvent): void {
     const piece = begin(event, key);
     const point = toBoardPoint(frame.current, event);
-    if (piece === undefined || point === null) {
+    const terrain =
+      piece === undefined ? undefined : findById(settings.collection, piece.placement.pieceId);
+    if (piece === undefined || point === null || terrain === undefined) {
       return;
     }
     const { position, rotation } = piece.placement;
     gesture.current = {
       kind: 'move',
       key,
-      piece: pieceById(settings.collection, piece.placement.pieceId),
+      piece: terrain,
       pointerId: event.pointerId,
       startClient: { x: event.clientX, y: event.clientY },
       grabOffset: { x: position.x - point.x, y: position.y - point.y },

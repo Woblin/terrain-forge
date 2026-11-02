@@ -1,3 +1,4 @@
+import { findById } from '../domain/findById';
 import type { GameSetup } from '../domain/gameSetup';
 import type { Layout } from '../domain/generator';
 import { findMat, type Mat } from '../domain/mats';
@@ -47,7 +48,7 @@ export function BoardPicture({
       />
       <g>
         {layout?.placements.map((placement, index) => {
-          const piece = pieces.find((candidate) => candidate.id === placement.pieceId);
+          const piece = findById(pieces, placement.pieceId);
           if (piece === undefined) {
             return null;
           }

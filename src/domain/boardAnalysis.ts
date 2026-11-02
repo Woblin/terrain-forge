@@ -3,7 +3,7 @@ import { explainFairness } from './fairness';
 import type { GameSetup } from './gameSetup';
 import { layoutTerrain } from './layoutTerrain';
 import type { BalanceRules } from './presets';
-import type { Placement, TerrainPiece } from './terrain';
+import type { PlacedTerrain, Placement, TerrainPiece } from './terrain';
 
 /** The fairness report for a board, plus what the overlays draw. */
 export type BoardAnalysis = FairnessDetails;
@@ -20,11 +20,22 @@ export function fairnessInputFor(
   balance: BalanceRules,
   enabledRules: readonly RuleId[],
 ): FairnessInput {
+  const terrain = layoutTerrain(placements, collection, setup.preset.terrainEffects);
+  return fairnessInputOf(setup, terrain, balance, enabledRules);
+}
+
+/** What the fairness rules need for terrain on the board of a game setup. */
+export function fairnessInputOf(
+  setup: GameSetup,
+  terrain: readonly PlacedTerrain[],
+  balance: BalanceRules,
+  enabledRules: readonly RuleId[],
+): FairnessInput {
   const { board, preset, deployment } = setup;
   return {
     board,
     deployment,
-    terrain: layoutTerrain(placements, collection, preset.terrainEffects),
+    terrain,
     reach: preset.reach,
     edgeMargin: preset.edgeMargin,
     balance,

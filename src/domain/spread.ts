@@ -1,6 +1,7 @@
 import type { Board } from './board';
 import { distance } from './geometry';
-import type { PlacedPiece, SpotChoice } from './placement';
+import type { SpotChoice } from './placement';
+import type { PlacedPiece } from './placedPiece';
 
 /** Legal spots compared per unit when only the spread counts. */
 const SPREAD_SPOTS = 10;

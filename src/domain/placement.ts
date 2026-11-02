@@ -1,41 +1,10 @@
-import {
-  boardCentre,
-  boardPolygon,
-  mirrorPoint,
-  PLAYERS,
-  zoneBacks,
-  type Board,
-  type DeploymentMap,
-  type PlayerId,
-} from './board';
-import {
-  add,
-  boundsOverlap,
-  centroid,
-  clipLine,
-  containsPolygon,
-  polygonBounds,
-  polygonDistance,
-  polygonsOverlap,
-  rectangle,
-  rotate,
-  scale,
-  subtract,
-  type Bounds,
-  type Point,
-  type Polygon,
-} from './geometry';
+import { boardCentre, boardPolygon, mirrorPoint, type Board, type DeploymentMap } from './board';
+import { add, centroid, clipLine, rotate, scale, subtract, type Point } from './geometry';
 import { groupArea, groupBounds, normalizeDegrees, type PieceGroup } from './pieceGroup';
+import { placePiece, type PlacedGroup, type PlacedPiece } from './placedPiece';
+import { isLegal, type PlacementRules } from './placementRules';
 import { pick, randomBetween, randomInt, type RandomSource } from './random';
-import {
-  edgeGapAllowed,
-  isApart,
-  isJoined,
-  isOpenTerrain,
-  requiredGap,
-  type SpacingRules,
-} from './spacing';
-import { footprintArea, placeFootprint, type Placement, type TerrainPiece } from './terrain';
+import { footprintArea, type TerrainPiece } from './terrain';
 
 /** Two matching pieces, or one piece without a partner. */
 export type PiecePairing =
@@ -52,23 +21,6 @@ export interface PlacementUnit {
   readonly parts: readonly PlacementUnit[];
 }
 
-export interface PlacedPiece {
-  readonly piece: TerrainPiece;
-  readonly placement: Placement;
-  readonly polygon: Polygon;
-  readonly bounds: Bounds;
-}
-
-export interface PlacementRules {
-  readonly board: Board;
-  readonly deployment: DeploymentMap;
-  readonly edgeMargin: number;
-  readonly spacing: SpacingRules;
-}
-
-/** Pieces placed together as one group; inside a group, pieces may stand joined. */
-export type PlacedGroup = readonly PlacedPiece[];
-
 /** Footprint areas that differ by at most this share of the larger one can form a pair. */
 const PAIR_AREA_TOLERANCE = 0.2;
 const ATTEMPTS_PER_UNIT = 150;
@@ -81,8 +33,6 @@ const ROTATION_STEP = 15;
 /** Share of rectangular groups that stand square to the table edge; the rest tilt a little. */
 const SQUARE_CHANCE = 0.6;
 const TILTS = [-30, -15, 15, 30] as const;
-/** At most this many pieces may stand fully inside one deployment zone. */
-const MAX_PIECES_INSIDE_ZONE = 1;
 
 /** One entry per physical piece, sorted by id so the order never depends on the input. */
 export function expandCollection(pieces: readonly TerrainPiece[]): TerrainPiece[] {
@@ -302,217 +252,4 @@ function randomRotation(random: RandomSource, group: PieceGroup): number {
 
 function placed(piece: TerrainPiece, position: Point, rotation: number): PlacedPiece {
   return placePiece(piece, { pieceId: piece.id, position, rotation });
-}
-
-export function placePiece(piece: TerrainPiece, placement: Placement): PlacedPiece {
-  const polygon = placeFootprint(piece.footprint, placement);
-  return { piece, placement, polygon, bounds: polygonBounds(polygon) };
-}
-
-/** Where terrain may stand: the board without the strip along the table edge. */
-export function playableArea(board: Board, edgeMargin: number): Polygon {
-  return rectangle(edgeMargin, edgeMargin, board.width - edgeMargin, board.depth - edgeMargin);
-}
-
-/**
- * Hard rules for new groups: on the board, clear of or hugging the table edge, out of the clear
- * back of each zone, apart from every other group, and not crowding a zone. Pieces inside one group
- * are already spaced by the group.
- */
-export function isLegal(
-  candidate: readonly PlacedGroup[],
-  placed: readonly PlacedPiece[],
-  rules: PlacementRules,
-): boolean {
-  const { board, edgeMargin, spacing } = rules;
-  const playable = playableArea(board, edgeMargin);
-  const backs = clearBacks(rules);
-  const pieces = candidate.flat();
-  return (
-    pieces.every(({ polygon }) => containsPolygon(playable, polygon)) &&
-    pieces.every((piece) => respectsEdge(piece, board, spacing)) &&
-    pieces.every((piece) => clearBacksEntered(piece, backs).length === 0) &&
-    candidate.every((group, i) =>
-      keepsApart(group, [...placed, ...candidate.slice(i + 1).flat()], spacing),
-    ) &&
-    leavesZonesOpen([...placed, ...pieces], rules.deployment)
-  );
-}
-
-function keepsApart(
-  group: PlacedGroup,
-  others: readonly PlacedPiece[],
-  spacing: SpacingRules,
-): boolean {
-  return group.every((piece) =>
-    others.every((other) => {
-      const needed = requiredGap(piece.piece, other.piece, spacing);
-      return (
-        !boundsOverlap(piece.bounds, other.bounds, needed) ||
-        isApart(polygonDistance(piece.polygon, other.polygon), needed)
-      );
-    }),
-  );
-}
-
-/** Each gap to a table edge, in the order left, right, near, far. */
-function edgeGaps(piece: PlacedPiece, board: Board): number[] {
-  const { minX, maxX, minY, maxY } = piece.bounds;
-  return [minX, board.width - maxX, minY, board.depth - maxY];
-}
-
-function respectsEdge(piece: PlacedPiece, board: Board, spacing: SpacingRules): boolean {
-  const { edge } = spacing;
-  return (
-    edge === null ||
-    isOpenTerrain(piece.piece, spacing) ||
-    edgeGaps(piece, board).every((gap) => edgeGapAllowed(gap, edge))
-  );
-}
-
-function leavesZonesOpen(pieces: readonly PlacedPiece[], deployment: DeploymentMap): boolean {
-  return PLAYERS.every(
-    (player) =>
-      pieces.filter(({ polygon }) => containsPolygon(deployment.zones[player], polygon)).length <=
-      MAX_PIECES_INSIDE_ZONE,
-  );
-}
-
-/** The back of each zone that stays clear of terrain, or none when the game has no such rule. */
-function clearBacks(rules: PlacementRules): { player: PlayerId; back: Polygon }[] {
-  const share = rules.spacing.clearZoneBack;
-  if (share === null) {
-    return [];
-  }
-  const backs = zoneBacks(rules.deployment, rules.board, share);
-  return PLAYERS.map((player) => ({ player, back: backs[player] }));
-}
-
-/** The players whose clear zone back the piece stands in. */
-function clearBacksEntered(
-  piece: PlacedPiece,
-  backs: readonly { player: PlayerId; back: Polygon }[],
-): PlayerId[] {
-  return backs
-    .filter(({ back }) => polygonsOverlap(piece.polygon, back))
-    .map(({ player }) => player);
-}
-
-/** A hard placement rule that a piece on the board breaks. */
-export type PlacementViolation =
-  | { readonly kind: 'offBoard' }
-  | { readonly kind: 'edgeGap'; readonly distance: number }
-  | { readonly kind: 'overlaps'; readonly other: number }
-  | {
-      readonly kind: 'tooClose';
-      readonly other: number;
-      readonly distance: number;
-      readonly needed: number;
-    }
-  | { readonly kind: 'zoneCrowded'; readonly player: PlayerId }
-  | { readonly kind: 'zoneBack'; readonly player: PlayerId };
-
-/**
- * The hard rules from `isLegal` checked on a finished board: for each piece, in the same order,
- * every rule it breaks. `other` is the index of the piece it overlaps or stands too close to.
- * Pieces that stand joined, directly or through other pieces, make one feature, like a group
- * from the generator, and only need to keep apart from other features.
- */
-export function boardViolations(
-  pieces: readonly PlacedPiece[],
-  rules: PlacementRules,
-): PlacementViolation[][] {
-  const playable = playableArea(rules.board, rules.edgeMargin);
-  const crowded = crowdedZones(pieces, rules.deployment);
-  const feature = featureNumbers(pieces, rules.spacing);
-  const backs = clearBacks(rules);
-  return pieces.map((piece, i) => {
-    const onBoard = containsPolygon(playable, piece.polygon);
-    const others = pieces.flatMap((other, j) =>
-      j === i ? [] : [{ other, index: j, sameFeature: feature[j] === feature[i] }],
-    );
-    return [
-      ...(onBoard ? edgeViolations(piece, rules) : [{ kind: 'offBoard' as const }]),
-      ...neighbourViolations(piece, others, rules.spacing),
-      ...crowded
-        .filter(({ inside }) => inside.has(i))
-        .map(({ player }) => ({ kind: 'zoneCrowded' as const, player })),
-      ...clearBacksEntered(piece, backs).map((player) => ({ kind: 'zoneBack' as const, player })),
-    ];
-  });
-}
-
-/** The nearest table edge the piece neither hugs nor leaves room along. */
-function edgeViolations(piece: PlacedPiece, rules: PlacementRules): PlacementViolation[] {
-  const { edge } = rules.spacing;
-  if (edge === null || isOpenTerrain(piece.piece, rules.spacing)) {
-    return [];
-  }
-  const wrong = edgeGaps(piece, rules.board).filter((gap) => !edgeGapAllowed(gap, edge));
-  return wrong.length === 0 ? [] : [{ kind: 'edgeGap', distance: Math.min(...wrong) }];
-}
-
-interface Neighbour {
-  readonly other: PlacedPiece;
-  readonly index: number;
-  readonly sameFeature: boolean;
-}
-
-function neighbourViolations(
-  piece: PlacedPiece,
-  neighbours: readonly Neighbour[],
-  spacing: SpacingRules,
-): PlacementViolation[] {
-  return neighbours.flatMap(({ other, index, sameFeature }): PlacementViolation[] => {
-    const needed = requiredGap(piece.piece, other.piece, spacing);
-    if (!boundsOverlap(piece.bounds, other.bounds, needed)) {
-      return [];
-    }
-    if (polygonsOverlap(piece.polygon, other.polygon)) {
-      return [{ kind: 'overlaps', other: index }];
-    }
-    const gap = polygonDistance(piece.polygon, other.polygon);
-    return sameFeature || isApart(gap, needed)
-      ? []
-      : [{ kind: 'tooClose', other: index, distance: gap, needed }];
-  });
-}
-
-/** For each piece, a number it shares with every piece it stands joined to, however indirectly. */
-function featureNumbers(pieces: readonly PlacedPiece[], spacing: SpacingRules): number[] {
-  const feature = pieces.map((_, i) => i);
-  const root = (i: number): number => {
-    let r = i;
-    while (feature[r] !== r) {
-      r = feature[r] ?? r;
-    }
-    return r;
-  };
-  pieces.forEach((piece, i) => {
-    pieces.slice(i + 1).forEach((other, k) => {
-      if (
-        boundsOverlap(piece.bounds, other.bounds, spacing.joinGap) &&
-        !polygonsOverlap(piece.polygon, other.polygon) &&
-        isJoined(polygonDistance(piece.polygon, other.polygon), spacing)
-      ) {
-        feature[root(i + 1 + k)] = root(i);
-      }
-    });
-  });
-  return pieces.map((_, i) => root(i));
-}
-
-/** Zones with more pieces fully inside them than allowed, and which pieces those are. */
-function crowdedZones(
-  pieces: readonly PlacedPiece[],
-  deployment: DeploymentMap,
-): { player: PlayerId; inside: Set<number> }[] {
-  return PLAYERS.flatMap((player) => {
-    const inside = new Set(
-      pieces.flatMap(({ polygon }, i) =>
-        containsPolygon(deployment.zones[player], polygon) ? [i] : [],
-      ),
-    );
-    return inside.size > MAX_PIECES_INSIDE_ZONE ? [{ player, inside }] : [];
-  });
 }
