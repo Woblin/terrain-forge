@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
+import { DEFAULT_DEPLOYMENT_ID } from '../domain/boardSource';
 import { INITIAL_GAME_PREFERENCES, enabledRulesFor } from '../domain/gamePreferences';
 import { resolveGameSetup, type GameSetup } from '../domain/gameSetup';
 import type { FairnessReport } from '../domain/fairness';
 import type { Layout } from '../domain/generator';
 import { DEFAULT_PRESET_ID } from '../domain/presets';
 import { SAMPLE_COLLECTION } from '../domain/sampleCollection';
-import { DEFAULT_DEPLOYMENT_ID } from './boardSessionContext';
 import { useGenerator } from './useGenerator';
 
 /** The same example every visit, so the home page always shows the same board. */

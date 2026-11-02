@@ -2,34 +2,38 @@ import { SparklesIcon, XIcon } from 'lucide-react';
 import { useEffect, useEffectEvent, useId, useMemo, useRef, useState } from 'react';
 import { useLocation, useSearchParams } from 'react-router';
 import { boardCentre } from '../domain/board';
-import {
-  drawsUpright,
-  fitBoard,
-  inchesPerPixel,
-  screenMoveToBoard,
-  type ScreenSize,
-} from '../domain/boardFit';
+import { drawsUpright, fitBoard, inchesPerPixel, screenMoveToBoard } from '../domain/boardFit';
 import { fairnessInputFor } from '../domain/boardAnalysis';
 import { checkBoard } from '../domain/boardChecks';
-import type { Board } from '../domain/board';
-import { edgeGaps, nearestGaps } from '../domain/edgeDistance';
+import { boardEntry, SAVED_PARAM } from '../domain/boardEntry';
+import {
+  boardLinkFor,
+  DEFAULT_DEPLOYMENT_ID,
+  linksToOwn,
+  OWN_SOURCE,
+  sameSource,
+  sourceKind,
+  type BoardChoice,
+  type CollectionSource,
+} from '../domain/boardSource';
+import { piecesToMeasure } from '../domain/edgeDistance';
 import {
   canRedo,
   canUndo,
   countMissingNow,
   currentLayout,
+  withPreview,
   type BoardPiece,
   type PieceUpdate,
 } from '../domain/editor';
 import { evaluateFairness, type RuleId } from '../domain/fairness';
 import { enabledRulesFor, startingPreset, usesDefaultRules } from '../domain/gamePreferences';
-import { placementRulesFor, resolveGameSetup, type GameSetup } from '../domain/gameSetup';
+import { placementRulesFor, resolveGameSetup } from '../domain/gameSetup';
 import { prepareCollection } from '../domain/generator';
 import { findById } from '../domain/findById';
 import { add, type Point } from '../domain/geometry';
 import { findMat, type MatId } from '../domain/mats';
 import { findMirrorTwin, withTwin } from '../domain/mirror';
-import { sameTerrain } from '../domain/libraryLink';
 import { placingOrder, stepPiece } from '../domain/placingOrder';
 import { findPreset, showsLaneByDefault } from '../domain/presets';
 import { seedToCode } from '../domain/random';
@@ -45,10 +49,8 @@ import {
   savedBoardContent,
   type SavedBoard,
 } from '../domain/savedBoard';
-import { boardLinkSearch, parseBoardLink, type ParsedBoardLink } from '../domain/shareLink';
 import { normalizeRotation, snapRotation } from '../domain/snapping';
 import type { Placement, TerrainPiece } from '../domain/terrain';
-import { formatLength } from '../domain/units';
 import { BoardFooter } from '../components/BoardFooter';
 import { BoardHeaderBar, type BoardSaveState } from '../components/BoardHeaderBar';
 import { BoardOptionsButton } from '../components/BoardOptionsButton';
@@ -57,7 +59,15 @@ import { BoardView } from '../components/BoardView';
 import { BoardWorkspace } from '../components/BoardWorkspace';
 import { BUTTON_STYLES } from '../components/buttonStyles';
 import { DeploymentZones } from '../components/DeploymentZones';
-import { EdgeDistanceOverlay, type MeasuredPiece } from '../components/EdgeDistanceOverlay';
+import {
+  boardDescription,
+  collectionSwitchedNotice,
+  linkNotice,
+  missingBoardNotice,
+  removedNotice,
+  terrainChangedNotice,
+} from '../components/boardNotices';
+import { EdgeDistanceOverlay } from '../components/EdgeDistanceOverlay';
 import { FairnessAnnouncer } from '../components/FairnessAnnouncer';
 import { FairBadge } from '../components/FairBadge';
 import { FairnessPanel } from '../components/FairnessPanel';
@@ -78,7 +88,7 @@ import { SelectionBar } from '../components/SelectionBar';
 import { TerrainLegend } from '../components/TerrainLegend';
 import { TerrainChoiceDialog } from '../components/TerrainChoiceDialog';
 import { TerrainShape } from '../components/TerrainShape';
-import { BOARD_TABLE_INSET } from '../components/warTableStyles';
+import { insideTable } from '../components/warTableStyles';
 import { copyText } from '../services/clipboard';
 import { useBoardAnalysis } from '../hooks/useBoardAnalysis';
 import { useBoardDrag } from '../hooks/useBoardDrag';
@@ -89,18 +99,10 @@ import { useElementSize } from '../hooks/useElementSize';
 import { randomSeed, useGenerator } from '../hooks/useGenerator';
 import { useLeaveWarning } from '../hooks/useLeaveWarning';
 import { useMatDarkness } from '../hooks/useMatDarkness';
-import {
-  DEFAULT_DEPLOYMENT_ID,
-  DEFAULT_VIEW_OPTIONS,
-  isDefaultView,
-  useBoardSession,
-  type BoardChoice,
-  type BoardSession,
-  type CollectionSource,
-} from '../hooks/boardSessionContext';
+import { DEFAULT_VIEW_OPTIONS, isDefaultView, useBoardSession } from '../hooks/boardSessionContext';
 import { useGamePreferences } from '../hooks/gamePreferencesContext';
 import { useTerrainLibrary } from '../hooks/libraryContext';
-import { useSavedBoards, type SavedBoards } from '../hooks/savedBoardsContext';
+import { useSavedBoards } from '../hooks/savedBoardsContext';
 import { useUnits } from '../hooks/unitsContext';
 
 const NO_PIECES: readonly BoardPiece[] = [];
@@ -121,11 +123,6 @@ const TOUCH_TARGETS: TargetSizes = { hitOutline: 40, handleRadius: 22, handleGap
 /** Inches per pixel before the board has been measured. */
 const UNMEASURED_PIXEL_SIZE = 0.1;
 
-const OWN: CollectionSource = { kind: 'own' };
-
-/** The address parameter that names a saved board, as in `/board?saved=<id>`. */
-const SAVED_PARAM = 'saved';
-
 /** A name the player gave a board that is not saved, kept for the board it was given to. */
 interface DraftName {
   readonly origin: object;
@@ -137,22 +134,6 @@ interface PendingBoard {
   readonly seed: number;
   readonly choice: BoardChoice;
 }
-
-/** How the page opens: on the board kept from before, or on a new one. */
-type Entry =
-  | { readonly kind: 'keep' }
-  | { readonly kind: 'saved'; readonly id: string }
-  | {
-      readonly kind: 'new';
-      readonly link: ParsedBoardLink;
-      /** Null for the game the player starts on, which is known once their settings load. */
-      readonly choice: BoardChoice | null;
-      readonly source: CollectionSource;
-      /** The rules a shared link was made with; null for the player's own. */
-      readonly enabledRules: readonly RuleId[] | null;
-      /** True when the player picked this game on another page, so it becomes their default. */
-      readonly picked: boolean;
-    };
 
 /** Generate a board, see how fair it is, and edit it by hand. */
 export function BoardPage() {
@@ -183,7 +164,17 @@ export function BoardPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const ownCollection = library.pieces.length > 0 ? library.pieces : SAMPLE_COLLECTION;
   const [entry] = useState(() =>
-    boardEntry(session, ownCollection, searchParams.toString(), location.state),
+    boardEntry(
+      {
+        origin: session.editor.present?.origin ?? null,
+        openedId: session.opened?.id ?? null,
+        source: session.source,
+        mat: session.mat,
+      },
+      ownCollection,
+      searchParams.toString(),
+      location.state,
+    ),
   );
   const [pendingBoard, setPendingBoard] = useState<PendingBoard | null>(null);
   const { status, generate } = useGenerator();
@@ -292,12 +283,12 @@ export function BoardPage() {
     latestOwn.current = ownCollection;
   }, [ownCollection]);
 
-  /** The rules the player has on for a game. */
   /** Shows the balance rules, opening whichever panel or tab holds them. */
   function askRules(): void {
     setRulesAsked(rulesAsked + 1);
   }
 
+  /** The rules the player has on for a game. */
   function playerRules(next: BoardChoice): RuleId[] {
     const preset = findPreset(next.presetId);
     return preset === undefined ? [] : enabledRulesFor(preset, settings.preferences);
@@ -351,7 +342,7 @@ export function BoardPage() {
   function generateNew(seed: number, next: BoardChoice = choice): void {
     setNotice(null);
     setOpened(null);
-    void runGeneration(next, seed, OWN, playerRules(next));
+    void runGeneration(next, seed, OWN_SOURCE, playerRules(next));
   }
 
   /** A new board from the terrain kept with this board, with the player's rules. */
@@ -370,6 +361,11 @@ export function BoardPage() {
     }
   }
 
+  /** A new board on a random seed, which the player asked for. */
+  function requestRandom(): void {
+    requestNew(randomSeed());
+  }
+
   /** Shows a saved board as it was saved, on the library's terrain when it is still the same. */
   function openSaved(board: SavedBoard): void {
     const { layout } = board;
@@ -379,7 +375,7 @@ export function BoardPage() {
     ).length;
     dispatch({ type: 'loaded', layout, edited: board.edited });
     setChoice({ presetId: layout.presetId, deploymentId: layout.deploymentId });
-    setSource(changed === 0 ? OWN : { kind: 'saved', pieces: board.pieces });
+    setSource(changed === 0 ? OWN_SOURCE : { kind: 'saved', pieces: board.pieces });
     setNotice(changed === 0 ? null : terrainChangedNotice(changed));
     setMat(board.matId);
     setOpened({
@@ -467,7 +463,7 @@ export function BoardPage() {
     if (entryOwner.current === library.owner && entry.kind === 'saved') {
       openEntry(entry.id);
     } else if (entryOwner.current === library.owner && entry.kind === 'new') {
-      const from = linksToOwn(entry.source, ownCollection) ? OWN : entry.source;
+      const from = linksToOwn(entry.source, ownCollection) ? OWN_SOURCE : entry.source;
       const next = entry.choice ?? startingChoice();
       dispatch({ type: 'cleared' });
       setChoice(next);
@@ -516,11 +512,7 @@ export function BoardPage() {
       (seen === SAMPLE_COLLECTION) !== (collection === SAMPLE_COLLECTION)
     ) {
       generateNew(randomSeed());
-      setNotice(
-        collection === SAMPLE_COLLECTION
-          ? 'Your library is empty, so this new board uses the sample set.'
-          : 'This new board uses the terrain in your library instead of the sample set.',
-      );
+      setNotice(collectionSwitchedNotice(collection === SAMPLE_COLLECTION));
       return;
     }
     const missing = countMissingNow(editor, knownIds);
@@ -552,7 +544,7 @@ export function BoardPage() {
         ownCollection,
       )
     ) {
-      setSource(OWN);
+      setSource(OWN_SOURCE);
     }
   });
   useEffect(() => {
@@ -567,7 +559,7 @@ export function BoardPage() {
     }
     const search =
       opened === null
-        ? boardLinkSearch({ ...origin, pieces: linkPieces(source, ownCollection), matId })
+        ? boardLinkFor(origin, source, ownCollection, matId)
         : new URLSearchParams([[SAVED_PARAM, opened.id]]).toString();
     if (searchParams.toString() !== search) {
       setSearchParams(search, { replace: true });
@@ -579,11 +571,7 @@ export function BoardPage() {
     if (origin === undefined) {
       return window.location.href;
     }
-    const search = boardLinkSearch({
-      ...origin,
-      pieces: linkPieces(source, ownCollection),
-      matId,
-    });
+    const search = boardLinkFor(origin, source, ownCollection, matId);
     return new URL(`/board?${search}`, window.location.origin).href;
   }
 
@@ -669,6 +657,8 @@ export function BoardPage() {
     }
   }
   const report = analysis.analysis?.report ?? null;
+  const shownRules = fairnessInput?.enabledRules ?? NO_RULES;
+  const playerRuleIds = enabledRulesFor(chosenPreset, settings.preferences);
 
   const legend =
     setup === undefined ? null : <TerrainLegend effects={setup.preset.terrainEffects} />;
@@ -680,7 +670,7 @@ export function BoardPage() {
         deploymentId={choice.deploymentId}
         status={status}
         unit={unit}
-        ruleCount={enabledRulesFor(chosenPreset, settings.preferences).length}
+        ruleCount={playerRuleIds.length}
         settingsError={settings.error}
         onPresetChange={(presetId) => {
           setChoice({ presetId, deploymentId: DEFAULT_DEPLOYMENT_ID });
@@ -689,9 +679,7 @@ export function BoardPage() {
         onDeploymentChange={(deploymentId) => {
           setChoice({ ...choice, deploymentId });
         }}
-        onGenerate={() => {
-          requestNew(randomSeed());
-        }}
+        onGenerate={requestRandom}
         onChooseRules={askRules}
         showGenerate={layout !== 'phone'}
       />
@@ -739,10 +727,10 @@ export function BoardPage() {
       current={analysis.current}
       error={analysis.error}
       balance={fairnessInput?.balance ?? null}
-      enabledRules={fairnessInput?.enabledRules ?? NO_RULES}
+      enabledRules={shownRules}
       rulesId={rulesId}
       rules={{
-        chosen: enabledRulesFor(chosenPreset, settings.preferences),
+        chosen: playerRuleIds,
         onChange: (rule, enabled) => {
           settings.switchRule(chosenPreset, rule, enabled);
         },
@@ -754,9 +742,7 @@ export function BoardPage() {
         },
       }}
       generating={status.running}
-      onGenerate={() => {
-        requestNew(randomSeed());
-      }}
+      onGenerate={requestRandom}
       edited={present?.edited ?? false}
       misplaced={problems.size}
       warnings={prepared?.warnings ?? NO_WARNINGS}
@@ -799,7 +785,7 @@ export function BoardPage() {
         report === null || measuresOnePiece ? undefined : (
           <FairBadge
             report={report}
-            enabledRules={fairnessInput?.enabledRules ?? NO_RULES}
+            enabledRules={shownRules}
             onOpen={layout === 'tablet' ? askRules : undefined}
           />
         )
@@ -988,17 +974,11 @@ export function BoardPage() {
         }
         summary={
           <div className="flex items-center gap-2.5">
-            <SheetVerdictButton
-              report={report}
-              enabledRules={fairnessInput?.enabledRules ?? NO_RULES}
-              onOpen={askRules}
-            />
+            <SheetVerdictButton report={report} enabledRules={shownRules} onOpen={askRules} />
             <button
               type="button"
               disabled={status.running}
-              onClick={() => {
-                requestNew(randomSeed());
-              }}
+              onClick={requestRandom}
               className={`${BUTTON_STYLES.primary} h-11 shrink-0 px-3.5`}
             >
               <SparklesIcon className="size-4" aria-hidden="true" />
@@ -1025,204 +1005,4 @@ export function BoardPage() {
       )}
     </>
   );
-}
-
-/** The room left for the board inside the war table around it. */
-function insideTable(area: ScreenSize): ScreenSize {
-  const edge = 2 * BOARD_TABLE_INSET;
-  return { width: Math.max(0, area.width - edge), height: Math.max(0, area.height - edge) };
-}
-
-/**
- * The gaps to draw while measuring: every piece's two nearest edges and all four for the
- * selected piece, which the others fade behind; or only the selected piece's.
- */
-function piecesToMeasure(
-  pieces: readonly BoardPiece[],
-  collection: readonly TerrainPiece[],
-  board: Board,
-  selected: string | null,
-  selectedOnly: boolean,
-): MeasuredPiece[] {
-  // The selected piece comes last, so that its lines and labels are drawn on top.
-  const ordered = [...pieces].sort(
-    (a, b) => Number(a.key === selected) - Number(b.key === selected),
-  );
-  return ordered.flatMap((boardPiece) => {
-    const isSelected = boardPiece.key === selected;
-    if (selectedOnly && !isSelected) {
-      return [];
-    }
-    const piece = findById(collection, boardPiece.placement.pieceId);
-    if (piece === undefined) {
-      return [];
-    }
-    const gaps = edgeGaps(piece.footprint, boardPiece.placement, board);
-    return [
-      {
-        key: boardPiece.key,
-        gaps: isSelected ? gaps : nearestGaps(gaps, board),
-        faded: selected !== null && !isSelected,
-      },
-    ];
-  });
-}
-
-/**
- * The page keeps the board from before, unless a different shared link is opened, a page asked
- * for a new board, or there is no board yet.
- */
-function boardEntry(
-  session: BoardSession,
-  own: readonly TerrainPiece[],
-  search: string,
-  routeState: unknown,
-): Entry {
-  const { present } = session.editor;
-  const asked = requestedBoard(routeState);
-  const savedId = new URLSearchParams(search).get(SAVED_PARAM);
-  if (savedId !== null && asked === null) {
-    return present !== null && session.opened?.id === savedId
-      ? { kind: 'keep' }
-      : { kind: 'saved', id: savedId };
-  }
-  const keptSearch =
-    present === null
-      ? null
-      : boardLinkSearch({
-          ...present.origin,
-          pieces: linkPieces(session.source, own),
-          matId: session.mat,
-        });
-  if (present !== null && asked === null && (search === '' || search === keptSearch)) {
-    return { kind: 'keep' };
-  }
-  const link = parseBoardLink(search);
-  if (link.kind === 'valid') {
-    const { presetId, deploymentId, pieces, enabledRules } = link.link;
-    return {
-      kind: 'new',
-      link,
-      choice: { presetId, deploymentId },
-      source: { kind: 'link', pieces: pieces ?? SAMPLE_COLLECTION },
-      enabledRules: enabledRules ?? findPreset(presetId)?.defaultRules ?? null,
-      picked: false,
-    };
-  }
-  const presetId = asked?.presetId;
-  return {
-    kind: 'new',
-    link,
-    choice: presetId === undefined ? null : { presetId, deploymentId: DEFAULT_DEPLOYMENT_ID },
-    source: OWN,
-    enabledRules: null,
-    picked: presetId !== undefined,
-  };
-}
-
-/** Another page can ask for a new board, for a game system or for the one picked before. */
-function requestedBoard(routeState: unknown): { presetId?: string } | null {
-  if (typeof routeState !== 'object' || routeState === null) {
-    return null;
-  }
-  if ('presetId' in routeState) {
-    const { presetId } = routeState;
-    return typeof presetId === 'string' && findPreset(presetId) !== undefined ? { presetId } : {};
-  }
-  return 'newBoard' in routeState && routeState.newBoard === true ? {} : null;
-}
-
-/** The pieces a board's link carries; none stands for the sample set. */
-function linkPieces(
-  source: CollectionSource,
-  own: readonly TerrainPiece[],
-): readonly TerrainPiece[] | null {
-  const pieces = source.kind === 'own' ? own : source.pieces;
-  return pieces === SAMPLE_COLLECTION ? null : pieces;
-}
-
-/** Two sources give the same terrain: both the player's own, or the very same link. */
-function sameSource(a: CollectionSource, b: CollectionSource): boolean {
-  return a === b || (a.kind === 'own' && b.kind === 'own');
-}
-
-/** A link to the player's own terrain, such as their own board reopened, shows their pieces. */
-function linksToOwn(source: CollectionSource, own: readonly TerrainPiece[]): boolean {
-  return source.kind === 'link' && sameTerrain(source.pieces, own);
-}
-
-function sourceKind(
-  source: CollectionSource,
-  collection: readonly TerrainPiece[],
-): 'link' | 'saved' | 'sample' | 'library' {
-  if (source.kind !== 'own') {
-    return source.kind;
-  }
-  return collection === SAMPLE_COLLECTION ? 'sample' : 'library';
-}
-
-function removedNotice(count: number): string {
-  return count === 1
-    ? 'A piece was taken off the board because it is no longer in your library.'
-    : `${String(count)} pieces were taken off the board because they are no longer in your library.`;
-}
-
-function terrainChangedNotice(count: number): string {
-  return count === 1
-    ? 'This board shows its terrain as it was saved: one of its pieces has changed or left your library since.'
-    : `This board shows its terrain as it was saved: ${String(count)} of its pieces have changed or left your library since.`;
-}
-
-function missingBoardNotice(savedBoards: SavedBoards): string {
-  const instead = 'Here is a new board instead.';
-  if (savedBoards.access === 'signedOut') {
-    return `Sign in to open your saved boards. ${instead}`;
-  }
-  if (savedBoards.access === 'unverified') {
-    return `Verify your email to open your saved boards. ${instead}`;
-  }
-  if (savedBoards.loadError !== null) {
-    return `${savedBoards.loadError} ${instead}`;
-  }
-  return `This saved board was not found. It may have been deleted. ${instead}`;
-}
-
-function linkNotice(link: ParsedBoardLink): string | null {
-  if (link.kind === 'invalid') {
-    return `${link.reason} Here is a new board instead.`;
-  }
-  if (link.kind === 'valid' && link.versionMismatch) {
-    return 'This link was made with a different version of the generator, so the board may not match the one that was shared.';
-  }
-  return null;
-}
-
-function withPreview(
-  pieces: readonly BoardPiece[],
-  preview: ReadonlyMap<string, PieceUpdate>,
-): readonly BoardPiece[] {
-  if (preview.size === 0) {
-    return pieces;
-  }
-  return pieces.map((piece) => {
-    const update = preview.get(piece.key);
-    return update === undefined
-      ? piece
-      : {
-          key: piece.key,
-          placement: { ...piece.placement, position: update.position, rotation: update.rotation },
-        };
-  });
-}
-
-function boardDescription(
-  setup: GameSetup | undefined,
-  pieceCount: number,
-  unit: Parameters<typeof formatLength>[1],
-): string {
-  if (setup === undefined) {
-    return 'No board yet.';
-  }
-  const { preset, board, deployment } = setup;
-  return `${preset.name}, ${formatLength(board.width, unit)} by ${formatLength(board.depth, unit)}, ${deployment.name} deployment, ${String(pieceCount)} terrain pieces. Tab to a piece to select it.`;
 }

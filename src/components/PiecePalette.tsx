@@ -1,5 +1,6 @@
 import { PlusIcon } from 'lucide-react';
 import { Link } from 'react-router';
+import type { SourceKind } from '../domain/boardSource';
 import type { BoardPiece } from '../domain/editor';
 import { remainingCount } from '../domain/editor';
 import type { TerrainPiece } from '../domain/terrain';
@@ -11,7 +12,7 @@ import { PieceThumbnail } from './PieceThumbnail';
 interface PiecePaletteProps {
   collection: readonly TerrainPiece[];
   /** Where the pieces come from. */
-  source: 'library' | 'sample' | 'link' | 'saved';
+  source: SourceKind;
   pieces: readonly BoardPiece[];
   photos: ReadonlyMap<string, StoredPhoto>;
   unit: LengthUnit;
@@ -19,7 +20,7 @@ interface PiecePaletteProps {
   onAdd: (piece: TerrainPiece) => void;
 }
 
-const SOURCES: Readonly<Record<PiecePaletteProps['source'], string>> = {
+const SOURCES: Readonly<Record<SourceKind, string>> = {
   library: 'Your terrain library.',
   sample: 'The built-in sample set, until you add your own terrain.',
   link: 'The terrain from the shared link. A new board uses your own terrain.',
