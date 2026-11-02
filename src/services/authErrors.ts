@@ -64,3 +64,21 @@ function errorCode(error: unknown): string | null {
   }
   return typeof error.code === 'string' ? error.code : null;
 }
+
+/**
+ * What to tell the player when deleting their account stopped at `failed`, after the parts in
+ * `done` were deleted. The account itself is kept. Each part is named in the plural, such as
+ * "saved boards".
+ */
+export function deletionFailedMessage(done: readonly string[], failed: string): string {
+  const stopped =
+    done.length === 0
+      ? `Your ${failed} could not be deleted`
+      : `Your ${joinWithAnd(done)} were deleted, but your ${failed} could not be`;
+  return `${stopped}, so the account was kept. Check your connection and try again.`;
+}
+
+function joinWithAnd(parts: readonly string[]): string {
+  const last = parts[parts.length - 1] ?? '';
+  return parts.length <= 1 ? last : `${parts.slice(0, -1).join(', ')} and ${last}`;
+}

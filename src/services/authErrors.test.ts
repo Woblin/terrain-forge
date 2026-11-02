@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { authErrorMessage } from './authErrors';
+import { authErrorMessage, deletionFailedMessage } from './authErrors';
 
 function failure(code: string): Error {
   return Object.assign(new Error(`Firebase: Error (${code}).`), { code });
@@ -47,5 +47,27 @@ describe('authErrorMessage', () => {
     expect(authErrorMessage(failure('auth/internal-error'))).toBe(general);
     expect(authErrorMessage(new Error('boom'))).toBe(general);
     expect(authErrorMessage('boom')).toBe(general);
+  });
+});
+
+describe('deletionFailedMessage', () => {
+  it('says what was deleted, what was not, and that the account was kept', () => {
+    expect(deletionFailedMessage(['saved boards'], 'terrain pieces with their photos')).toBe(
+      'Your saved boards were deleted, but your terrain pieces with their photos could not be, so the account was kept. Check your connection and try again.',
+    );
+  });
+
+  it('names every part already deleted', () => {
+    expect(
+      deletionFailedMessage(['saved boards', 'terrain pieces with their photos'], 'game settings'),
+    ).toBe(
+      'Your saved boards and terrain pieces with their photos were deleted, but your game settings could not be, so the account was kept. Check your connection and try again.',
+    );
+  });
+
+  it('says nothing was deleted when the first step failed', () => {
+    expect(deletionFailedMessage([], 'saved boards')).toBe(
+      'Your saved boards could not be deleted, so the account was kept. Check your connection and try again.',
+    );
   });
 });
