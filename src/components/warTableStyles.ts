@@ -1,3 +1,5 @@
+import type { ScreenSize } from '../domain/boardFit';
+
 /**
  * Tailwind classes for the wooden war table a board picture sits on: wood with a faint grain,
  * a dark inner edge, a brass outer edge and a deep shadow. Add the padding for its size.
@@ -7,6 +9,12 @@ export const WAR_TABLE =
 
 /** The pixels the board's war table adds on each side: its 12px padding. */
 export const BOARD_TABLE_INSET = 12;
+
+/** The room left for the board inside the war table around it. */
+export function insideTable(area: ScreenSize): ScreenSize {
+  const edge = 2 * BOARD_TABLE_INSET;
+  return { width: Math.max(0, area.width - edge), height: Math.max(0, area.height - edge) };
+}
 
 /** A small war table for a board thumbnail on a card: plain wood with the same two edges. */
 export const SMALL_WAR_TABLE =

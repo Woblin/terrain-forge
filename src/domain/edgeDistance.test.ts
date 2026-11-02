@@ -4,11 +4,13 @@ import {
   farthestPoint,
   isLongEdge,
   nearestGaps,
+  piecesToMeasure,
   turnFromLongEdge,
   type BoardEdge,
   type EdgeGap,
 } from './edgeDistance';
-import type { Footprint, Placement } from './terrain';
+import type { BoardPiece } from './editor';
+import type { Footprint, Placement, TerrainPiece } from './terrain';
 
 const board = { width: 60, depth: 44 };
 const ruin: Footprint = { kind: 'rect', width: 6, depth: 4 };
@@ -143,5 +145,39 @@ describe('turnFromLongEdge', () => {
 
   it('rounds to whole degrees', () => {
     expect(turnFromLongEdge(oval, 12.6, board)).toBe(13);
+  });
+});
+
+describe('piecesToMeasure', () => {
+  const collection: readonly TerrainPiece[] = [
+    { id: 'ruin', name: 'Ruin', type: 'ruin', footprint: ruin, quantity: 3 },
+  ];
+  const pieces: readonly BoardPiece[] = [
+    { key: 'a', placement: { pieceId: 'ruin', position: { x: 10, y: 8 }, rotation: 0 } },
+    { key: 'b', placement: { pieceId: 'ruin', position: { x: 30, y: 20 }, rotation: 0 } },
+    { key: 'c', placement: { pieceId: 'ruin', position: { x: 50, y: 36 }, rotation: 0 } },
+    { key: 'gone', placement: { pieceId: 'missing', position: { x: 5, y: 5 }, rotation: 0 } },
+  ];
+
+  it('gives every piece its two nearest edges when none is selected', () => {
+    const measured = piecesToMeasure(pieces, collection, board, null, false);
+    expect(measured.map((piece) => piece.key)).toEqual(['a', 'b', 'c']);
+    expect(measured.every((piece) => piece.gaps.length === 2 && !piece.faded)).toBe(true);
+  });
+
+  it('draws the selected piece last, with all four edges, and fades the rest', () => {
+    const measured = piecesToMeasure(pieces, collection, board, 'a', false);
+    expect(measured.map((piece) => [piece.key, piece.gaps.length, piece.faded])).toEqual([
+      ['b', 2, true],
+      ['c', 2, true],
+      ['a', 4, false],
+    ]);
+  });
+
+  it('measures only the selected piece when asked to', () => {
+    expect(piecesToMeasure(pieces, collection, board, 'b', true).map((piece) => piece.key)).toEqual(
+      ['b'],
+    );
+    expect(piecesToMeasure(pieces, collection, board, null, true)).toEqual([]);
   });
 });

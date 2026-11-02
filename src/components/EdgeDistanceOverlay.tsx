@@ -1,13 +1,6 @@
 import type { Board } from '../domain/board';
-import type { EdgeGap } from '../domain/edgeDistance';
+import type { EdgeGap, MeasuredPiece } from '../domain/edgeDistance';
 import { formatTableLength, type LengthUnit } from '../domain/units';
-
-/** The gaps drawn for one piece; a faded piece steps back while another is selected. */
-export interface MeasuredPiece {
-  readonly key: string;
-  readonly gaps: readonly EdgeGap[];
-  readonly faded: boolean;
-}
 
 interface EdgeDistanceOverlayProps {
   pieces: readonly MeasuredPiece[];

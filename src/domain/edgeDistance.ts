@@ -1,6 +1,8 @@
 import type { Board } from './board';
+import type { BoardPiece } from './editor';
+import { findById } from './findById';
 import { add, dot, rotate, type Point } from './geometry';
-import { footprintPolygon, type Footprint, type Placement } from './terrain';
+import { footprintPolygon, type Footprint, type Placement, type TerrainPiece } from './terrain';
 
 /**
  * A side of the board as drawn on a wide screen: x runs from the left edge to the right edge and
@@ -102,6 +104,48 @@ function closest(gaps: readonly EdgeGap[]): EdgeGap {
     throw new Error('There are no gaps to choose from.');
   }
   return rest.reduce((best, gap) => (gap.inches < best.inches ? gap : best), first);
+}
+
+/** The gaps drawn for one piece; a faded piece steps back while another is selected. */
+export interface MeasuredPiece {
+  readonly key: string;
+  readonly gaps: readonly EdgeGap[];
+  readonly faded: boolean;
+}
+
+/**
+ * The gaps to draw while measuring: every piece's two nearest edges and all four for the
+ * selected piece, which the others fade behind; or only the selected piece's.
+ */
+export function piecesToMeasure(
+  pieces: readonly BoardPiece[],
+  collection: readonly TerrainPiece[],
+  board: Board,
+  selected: string | null,
+  selectedOnly: boolean,
+): MeasuredPiece[] {
+  // The selected piece comes last, so that its lines and labels are drawn on top.
+  const ordered = [...pieces].sort(
+    (a, b) => Number(a.key === selected) - Number(b.key === selected),
+  );
+  return ordered.flatMap((boardPiece) => {
+    const isSelected = boardPiece.key === selected;
+    if (selectedOnly && !isSelected) {
+      return [];
+    }
+    const piece = findById(collection, boardPiece.placement.pieceId);
+    if (piece === undefined) {
+      return [];
+    }
+    const gaps = edgeGaps(piece.footprint, boardPiece.placement, board);
+    return [
+      {
+        key: boardPiece.key,
+        gaps: isSelected ? gaps : nearestGaps(gaps, board),
+        faded: selected !== null && !isSelected,
+      },
+    ];
+  });
 }
 
 /**

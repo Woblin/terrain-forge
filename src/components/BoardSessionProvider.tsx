@@ -1,15 +1,17 @@
 import { useMemo, useState, type ReactNode } from 'react';
+import {
+  DEFAULT_DEPLOYMENT_ID,
+  type BoardChoice,
+  type CollectionSource,
+} from '../domain/boardSource';
 import { DEFAULT_MAT_ID, type MatId } from '../domain/mats';
 import { DEFAULT_PRESET_ID } from '../domain/presets';
 import type { OpenedBoard } from '../domain/savedBoard';
 import type { TerrainPiece } from '../domain/terrain';
 import {
   BoardSessionContext,
-  DEFAULT_DEPLOYMENT_ID,
   DEFAULT_VIEW_OPTIONS,
-  type BoardChoice,
   type BoardViewOptions,
-  type CollectionSource,
 } from '../hooks/boardSessionContext';
 import { GUEST_OWNER, useTerrainLibrary } from '../hooks/libraryContext';
 import { useLayoutEditor } from '../hooks/useLayoutEditor';

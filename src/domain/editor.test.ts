@@ -8,6 +8,8 @@ import {
   HISTORY_LIMIT,
   INITIAL_EDITOR_STATE,
   remainingCount,
+  withPreview,
+  type BoardPiece,
   type EditorAction,
   type EditorState,
 } from './editor';
@@ -236,5 +238,28 @@ describe('editorReducer', () => {
       'piece-6',
     ]);
     expect(canUndo(opened)).toBe(false);
+  });
+});
+
+describe('withPreview', () => {
+  const pieces: readonly BoardPiece[] = [
+    { key: 'a', placement: { pieceId: 'ruin', position: { x: 1, y: 2 }, rotation: 0 } },
+    { key: 'b', placement: { pieceId: 'forest', position: { x: 5, y: 6 }, rotation: 90 } },
+  ];
+
+  it('gives back the same pieces when nothing is being dragged', () => {
+    expect(withPreview(pieces, new Map())).toBe(pieces);
+  });
+
+  it('moves and turns only the piece with the dragged key', () => {
+    const shown = withPreview(
+      pieces,
+      new Map([['b', { key: 'b', position: { x: 9, y: 9 }, rotation: 45 }]]),
+    );
+    expect(shown[0]).toBe(pieces[0]);
+    expect(shown[1]).toEqual({
+      key: 'b',
+      placement: { pieceId: 'forest', position: { x: 9, y: 9 }, rotation: 45 },
+    });
   });
 });

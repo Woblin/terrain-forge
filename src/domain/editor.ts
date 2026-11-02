@@ -221,6 +221,25 @@ function missingAnywhere(state: EditorState, pieceIds: ReadonlySet<string>): num
   );
 }
 
+/** The pieces with the moves and turns a drag shows before it is dropped. */
+export function withPreview(
+  pieces: readonly BoardPiece[],
+  preview: ReadonlyMap<string, PieceUpdate>,
+): readonly BoardPiece[] {
+  if (preview.size === 0) {
+    return pieces;
+  }
+  return pieces.map((piece) => {
+    const update = preview.get(piece.key);
+    return update === undefined
+      ? piece
+      : {
+          key: piece.key,
+          placement: { ...piece.placement, position: update.position, rotation: update.rotation },
+        };
+  });
+}
+
 /** How many pieces on the board now are not in the collection. */
 export function countMissingNow(state: EditorState, pieceIds: ReadonlySet<string>): number {
   return (

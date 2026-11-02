@@ -1,25 +1,9 @@
 import { createContext, useContext, type ActionDispatch } from 'react';
+import type { BoardChoice, CollectionSource } from '../domain/boardSource';
 import type { EditorAction, EditorState } from '../domain/editor';
 import type { MatId } from '../domain/mats';
 import type { OpenedBoard } from '../domain/savedBoard';
 import type { TerrainPiece } from '../domain/terrain';
-
-export const DEFAULT_DEPLOYMENT_ID = 'long-edges';
-
-/** The game system and deployment picked for the next board. */
-export interface BoardChoice {
-  readonly presetId: string;
-  readonly deploymentId: string;
-}
-
-/**
- * Where the board's pieces come from: the player's own terrain, a shared link, or terrain kept
- * with the board, such as a saved board whose pieces have changed in the library since.
- */
-export type CollectionSource =
-  | { readonly kind: 'own' }
-  | { readonly kind: 'link'; readonly pieces: readonly TerrainPiece[] }
-  | { readonly kind: 'saved'; readonly pieces: readonly TerrainPiece[] };
 
 /** How the board is shown and edited. */
 export interface BoardViewOptions {
