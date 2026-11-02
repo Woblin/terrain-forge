@@ -22,6 +22,9 @@ export const TERRAIN_TYPE_NAMES: Readonly<Record<TerrainType, string>> = {
   crater: 'Crater',
 };
 
+/** The shapes a footprint can have. */
+export const FOOTPRINT_KINDS = ['rect', 'ellipse'] as const;
+
 /** Size of a piece in inches, centred on the piece's own origin before rotation. */
 export type Footprint =
   | { readonly kind: 'rect'; readonly width: number; readonly depth: number }

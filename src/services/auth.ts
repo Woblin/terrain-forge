@@ -18,7 +18,7 @@ import {
 import type { Firestore } from 'firebase/firestore';
 import type { AppUser, SignInMethod } from '../domain/account';
 import { deleteAccountPreferences } from './accountPreferences';
-import { authErrorMessage } from './authErrors';
+import { authErrorMessage, deletionFailedMessage } from './authErrors';
 import { deleteSavedBoards } from './savedBoards';
 import { deleteLibrary } from './terrainLibrary';
 
@@ -120,8 +120,10 @@ export function signOutPlayer(auth: Auth): Promise<string | null> {
 }
 
 /**
- * Deletes the player's terrain, photos, boards and settings, then their account. The player confirms it is them
- * first, so that deleting the account cannot fail halfway for an old sign-in.
+ * Deletes the player's boards, then their terrain and photos, then their settings, and last their
+ * account. The player confirms it is them first, so that deleting the account cannot fail halfway
+ * for an old sign-in. When a step fails, the account is kept and the player is told what was
+ * already deleted.
  */
 export function deleteAccount(
   auth: Auth,
@@ -131,17 +133,19 @@ export function deleteAccount(
   return attempt('Deleting the account', async () => {
     const user = signedIn(auth);
     await reauthenticate(user, proof);
-    try {
-      await Promise.all([
-        deleteLibrary(db, user.uid),
-        deleteSavedBoards(db, user.uid),
-        deleteAccountPreferences(db, user.uid),
-      ]);
-    } catch (error) {
-      throw new PlayerError(
-        'Could not delete your terrain, boards and settings, so the account was kept. Check your connection and try again.',
-        { cause: error },
-      );
+    const steps = [
+      { what: 'saved boards', run: () => deleteSavedBoards(db, user.uid) },
+      { what: 'terrain pieces with their photos', run: () => deleteLibrary(db, user.uid) },
+      { what: 'game settings', run: () => deleteAccountPreferences(db, user.uid) },
+    ];
+    const done: string[] = [];
+    for (const step of steps) {
+      try {
+        await step.run();
+      } catch (error) {
+        throw new PlayerError(deletionFailedMessage(done, step.what), { cause: error });
+      }
+      done.push(step.what);
     }
     await deleteUser(user);
   });

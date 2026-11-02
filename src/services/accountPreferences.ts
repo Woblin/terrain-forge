@@ -1,14 +1,13 @@
 import {
   deleteDoc,
-  doc,
   onSnapshot,
   serverTimestamp,
   setDoc,
-  type DocumentReference,
   type Firestore,
   type Unsubscribe,
 } from 'firebase/firestore';
 import type { GamePreferences } from '../domain/gamePreferences';
+import { preferencesDoc } from './firestorePaths';
 import { parsePreferencesDocument, preferencesDocument } from './gamePreferencesSchema';
 
 /** What the account has saved: nothing yet, settings, or settings that could not be read. */
@@ -22,10 +21,6 @@ export interface AccountPreferencesHandlers {
   readonly onError: (message: string) => void;
 }
 
-function preferencesRef(db: Firestore, uid: string): DocumentReference {
-  return doc(db, 'users', uid, 'settings', 'preferences');
-}
-
 /** Follows a player's game settings in `users/{uid}/settings/preferences`. */
 export function watchAccountPreferences(
   db: Firestore,
@@ -33,7 +28,7 @@ export function watchAccountPreferences(
   { onChange, onError }: AccountPreferencesHandlers,
 ): Unsubscribe {
   return onSnapshot(
-    preferencesRef(db, uid),
+    preferencesDoc(db, uid),
     (snapshot) => {
       if (!snapshot.exists()) {
         onChange({ kind: 'missing' });
@@ -59,7 +54,7 @@ export async function saveAccountPreferences(
   preferences: GamePreferences,
 ): Promise<void> {
   try {
-    await setDoc(preferencesRef(db, uid), {
+    await setDoc(preferencesDoc(db, uid), {
       ...preferencesDocument(preferences),
       updatedAt: serverTimestamp(),
     });
@@ -74,5 +69,5 @@ export async function saveAccountPreferences(
 
 /** Deletes a player's game settings, for when they delete their account. */
 export function deleteAccountPreferences(db: Firestore, uid: string): Promise<void> {
-  return deleteDoc(preferencesRef(db, uid));
+  return deleteDoc(preferencesDoc(db, uid));
 }

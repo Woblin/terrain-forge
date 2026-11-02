@@ -16,7 +16,8 @@ import {
   type Firestore,
 } from 'firebase/firestore';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import type { GamePreferences } from '../../src/domain/gamePreferences';
+import { PREFERENCES_LIMITS, type GamePreferences } from '../../src/domain/gamePreferences';
+import { STORED_ID_LENGTH } from '../../src/domain/storageLimits';
 import {
   deleteAccountPreferences,
   saveAccountPreferences,
@@ -158,13 +159,10 @@ describe('the game settings service', () => {
   });
 });
 
-/**
- * The rules and the app check the same limits. The id length and the number of games with rules
- * off are not app constants yet, so they are numbers here for now.
- */
+/** The rules and the app check the same limits. */
 describe('the limits the app checks', () => {
-  const ID_LENGTH = 40;
-  const GAMES_WITH_RULES_OFF = 20;
+  const ID_LENGTH = STORED_ID_LENGTH;
+  const GAMES_WITH_RULES_OFF = PREFERENCES_LIMITS.gamesWithRulesOff;
   const id = (length: number) => 'x'.repeat(length);
   const rulesOff = (games: number) => ({
     rulesOff: Object.fromEntries(

@@ -1,6 +1,8 @@
 import { z } from 'zod';
 import { LIBRARY_LIMITS, type LibraryPiece } from '../domain/library';
-import { TERRAIN_TYPES } from '../domain/terrain';
+import { FOOTPRINT_KINDS, TERRAIN_TYPES } from '../domain/terrain';
+import type { Parsed } from './firestoreStore';
+import { NEWER_VERSION_PROBLEM, schemaFor } from './schemaVersion';
 
 /** Bump when the shape of a saved piece changes, and teach the reader the old shape. */
 export const PIECE_SCHEMA_VERSION = 1;
@@ -12,7 +14,7 @@ const side = z.number().min(LIBRARY_LIMITS.minSide).max(LIBRARY_LIMITS.maxSide);
 export const pieceFieldsSchema = z.object({
   name: z.string().trim().min(1).max(LIBRARY_LIMITS.nameLength),
   type: z.enum(TERRAIN_TYPES),
-  footprint: z.object({ kind: z.enum(['rect', 'ellipse']), width: side, depth: side }),
+  footprint: z.object({ kind: z.enum(FOOTPRINT_KINDS), width: side, depth: side }),
   quantity: z.int().min(LIBRARY_LIMITS.minQuantity).max(LIBRARY_LIMITS.maxQuantity),
 });
 
@@ -23,13 +25,16 @@ const pieceDocumentSchema = pieceFieldsSchema.extend({
 
 export type PieceDocument = z.infer<typeof pieceDocumentSchema>;
 
-export type ParsedPiece =
-  | { readonly ok: true; readonly piece: LibraryPiece }
-  | { readonly ok: false; readonly problem: string };
+/** The schema for each version a piece has been saved with. */
+const readers = { [PIECE_SCHEMA_VERSION]: pieceDocumentSchema };
 
 /** Checks a stored piece before it reaches the app. */
-export function parsePieceDocument(id: string, data: unknown): ParsedPiece {
-  const result = pieceDocumentSchema.safeParse(data);
+export function parsePieceDocument(id: string, data: unknown): Parsed<LibraryPiece> {
+  const reader = schemaFor(data, readers, PIECE_SCHEMA_VERSION);
+  if (reader.newer) {
+    return { ok: false, problem: `A saved piece (${id}) ${NEWER_VERSION_PROBLEM}` };
+  }
+  const result = reader.schema.safeParse(data);
   if (!result.success) {
     const fields = [...new Set(result.error.issues.map((issue) => issue.path.join('.')))];
     return {
@@ -38,7 +43,7 @@ export function parsePieceDocument(id: string, data: unknown): ParsedPiece {
     };
   }
   const { name, type, footprint, quantity, image } = result.data;
-  return { ok: true, piece: { id, name, type, footprint, quantity, image } };
+  return { ok: true, value: { id, name, type, footprint, quantity, image } };
 }
 
 /** The fields written for a piece, without its id (the document id) or timestamps. */

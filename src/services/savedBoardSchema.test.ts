@@ -2,7 +2,7 @@ import { Timestamp } from 'firebase/firestore';
 import { describe, expect, it } from 'vitest';
 import type { SavedBoardContent } from '../domain/savedBoard';
 import { readBoards } from './savedBoards';
-import { boardDocument, parseBoardDocument } from './savedBoardSchema';
+import { BOARD_SCHEMA_VERSION, boardDocument, parseBoardDocument } from './savedBoardSchema';
 
 const content: SavedBoardContent = {
   name: 'Game night',
@@ -36,7 +36,7 @@ describe('saved board documents', () => {
   it('read back what was written', () => {
     expect(parseBoardDocument('b1', boardDocument(content), 99)).toEqual({
       ok: true,
-      board: { id: 'b1', savedAt: 99, ...content },
+      value: { id: 'b1', savedAt: 99, ...content },
     });
   });
 
@@ -45,7 +45,7 @@ describe('saved board documents', () => {
     delete withoutMat.matId;
     for (const stored of [withoutMat, { ...withoutMat, matId: 'moon-dust' }]) {
       const result = parseBoardDocument('b1', stored, 0);
-      expect(result.ok && result.board.matId).toBe('plain');
+      expect(result.ok && result.value.matId).toBe('plain');
     }
   });
 
@@ -53,12 +53,23 @@ describe('saved board documents', () => {
     ['an empty name', { name: ' ' }],
     ['an unknown rule', { enabledRules: ['luck'] }],
     ['a piece of an unknown type', { pieces: [{ ...content.pieces[0], type: 'swamp' }] }],
-    ['another schema version', { schemaVersion: 2 }],
+    ['a schema version this app never wrote', { schemaVersion: 0 }],
     ['a negative seed', { seed: -1 }],
     ['a mat id that is not a short text', { matId: 7 }],
   ])('leave out a board with %s', (_, fields) => {
     const result = parseBoardDocument('b1', { ...boardDocument(content), ...fields }, 0);
     expect(result.ok).toBe(false);
+  });
+
+  it('say to reload for a board saved by a newer version', () => {
+    const result = parseBoardDocument(
+      'b1',
+      { ...boardDocument(content), schemaVersion: BOARD_SCHEMA_VERSION + 1 },
+      0,
+    );
+    expect(!result.ok && result.problem).toBe(
+      'A saved board (b1) was saved by a newer version of Terrain Forge. Reload the page to see it.',
+    );
   });
 
   it('leave out a board that places a piece it has no copy of', () => {

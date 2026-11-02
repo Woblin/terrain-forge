@@ -1,5 +1,6 @@
 import type { LibraryPiece } from '../domain/library';
 import type { EncodedPhoto } from '../domain/imageCrop';
+import type { StoreListeners } from './firestoreStore';
 
 /** What a store reports each time the library changes. */
 export interface LibrarySnapshot {
@@ -8,14 +9,6 @@ export interface LibrarySnapshot {
   readonly problems: readonly string[];
   /** True while changes are kept on this device and not yet saved, for example when offline. */
   readonly saving: boolean;
-}
-
-export interface LibraryListeners {
-  readonly onChange: (snapshot: LibrarySnapshot) => void;
-  /** The library could not be loaded at all. */
-  readonly onError: (message: string) => void;
-  /** A change the page already shows was refused later, and has been undone. */
-  readonly onWriteFailed: (message: string) => void;
 }
 
 /**
@@ -31,7 +24,7 @@ export interface LibraryStore {
    * Calls `onChange` with the whole library now or soon, and again after every change.
    * Returns a function that stops listening.
    */
-  subscribe(listeners: LibraryListeners): () => void;
+  subscribe(listeners: StoreListeners<LibrarySnapshot>): () => void;
   /** A fresh id for a piece that has not been saved yet. */
   newId(): string;
   /** Adds new pieces, all or none, with any photos they come with, keyed by piece id. */

@@ -14,6 +14,11 @@ export interface GamePreferences {
   readonly defaultMatId: MatId;
 }
 
+export const PREFERENCES_LIMITS = {
+  /** Games that can have rules switched off; the Firestore rules allow no more. */
+  gamesWithRulesOff: 20,
+} as const;
+
 export const INITIAL_GAME_PREFERENCES: GamePreferences = {
   defaultPresetId: DEFAULT_PRESET_ID,
   rulesOff: {},

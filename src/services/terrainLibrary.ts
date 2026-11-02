@@ -1,9 +1,7 @@
 import {
-  collection,
   doc,
   getDoc,
   getDocs,
-  onSnapshot,
   serverTimestamp,
   writeBatch,
   type Firestore,
@@ -11,13 +9,17 @@ import {
 } from 'firebase/firestore';
 import type { LibraryPiece } from '../domain/library';
 import type { EncodedPhoto } from '../domain/imageCrop';
+import { imagesCollection, piecesCollection } from './firestorePaths';
+import {
+  createWriteReporter,
+  deleteAll,
+  followCollection,
+  partitionParsed,
+  type StoredEntries,
+} from './firestoreStore';
 import type { LibrarySnapshot, LibraryStore } from './libraryStore';
 import { imageDocument, parseImageDocument } from './terrainImageSchema';
 import { parsePieceDocument, pieceDocument } from './terrainLibrarySchema';
-
-const PIECES = 'terrainPieces';
-/** Photos live beside the pieces, one document per piece, as the photo plan sets out. */
-const IMAGES = 'terrainImages';
 
 /**
  * A player's library in Firestore, under `users/{uid}/terrainPieces`. Writes show at once and are
@@ -25,18 +27,12 @@ const IMAGES = 'terrainImages';
  * connection is back, and a refusal from the server reaches `onWriteFailed`.
  */
 export function createFirestoreLibrary(db: Firestore, uid: string): LibraryStore {
-  const pieces = collection(db, 'users', uid, PIECES);
-  const images = collection(db, 'users', uid, IMAGES);
-  const writeFailed = new Set<(message: string) => void>();
+  const pieces = piecesCollection(db, uid);
+  const images = imagesCollection(db, uid);
+  const writes = createWriteReporter();
 
-  /** Sends a batch without waiting for the server, and reports a later refusal. */
   function send(batch: WriteBatch, failure: string): void {
-    batch.commit().catch((error: unknown) => {
-      console.error(failure, error);
-      for (const listener of writeFailed) {
-        listener(failure);
-      }
-    });
+    writes.send(batch.commit(), failure);
   }
 
   function setPiece(batch: WriteBatch, piece: LibraryPiece): void {
@@ -58,27 +54,16 @@ export function createFirestoreLibrary(db: Firestore, uid: string): LibraryStore
   return {
     persistent: true,
     subscribe({ onChange, onError, onWriteFailed }) {
-      writeFailed.add(onWriteFailed);
-      const stop = onSnapshot(
+      const stopListening = writes.listen(onWriteFailed);
+      const stop = followCollection(
         pieces,
-        { includeMetadataChanges: true },
-        (snapshot) => {
-          onChange(
-            readSnapshot(
-              snapshot.docs.map((entry) => [entry.id, entry.data()] as const),
-              snapshot.metadata.hasPendingWrites,
-            ),
-          );
-        },
-        (error) => {
-          console.error('Reading the terrain library failed.', error);
-          onError(
-            'Could not load your terrain library. Check your connection and reload the page.',
-          );
-        },
+        onChange,
+        onError,
+        readSnapshot,
+        'Could not load your terrain library. Check your connection and reload the page.',
       );
       return () => {
-        writeFailed.delete(onWriteFailed);
+        stopListening();
         stop();
       };
     },
@@ -137,26 +122,21 @@ export function createFirestoreLibrary(db: Firestore, uid: string): LibraryStore
 
 /** Deletes every piece and photo of a player, for when they delete their account. */
 export async function deleteLibrary(db: Firestore, uid: string): Promise<void> {
-  const user = doc(db, 'users', uid);
-  const stored = await Promise.all([PIECES, IMAGES].map((name) => getDocs(collection(user, name))));
-  const batch = writeBatch(db);
-  for (const entry of stored.flatMap((snapshot) => snapshot.docs)) {
-    batch.delete(entry.ref);
-  }
-  await batch.commit();
+  const stored = await Promise.all(
+    [piecesCollection(db, uid), imagesCollection(db, uid)].map((ref) => getDocs(ref)),
+  );
+  await deleteAll(
+    db,
+    stored.flatMap((snapshot) => snapshot.docs.map((entry) => entry.ref)),
+  );
 }
 
 /** Keeps the pieces that pass validation and names the ones that do not. */
-export function readSnapshot(
-  entries: readonly (readonly [string, unknown])[],
-  saving = false,
-): LibrarySnapshot {
-  const parsed = entries.map(([id, data]) => parsePieceDocument(id, data));
-  return {
-    pieces: parsed.flatMap((result) => (result.ok ? [result.piece] : [])),
-    problems: parsed.flatMap((result) => (result.ok ? [] : [result.problem])),
-    saving,
-  };
+export function readSnapshot(entries: StoredEntries, saving = false): LibrarySnapshot {
+  const { values, problems } = partitionParsed(
+    entries.map(([id, data]) => parsePieceDocument(id, data)),
+  );
+  return { pieces: values, problems, saving };
 }
 
 function saveFailure(pieces: readonly LibraryPiece[]): string {
