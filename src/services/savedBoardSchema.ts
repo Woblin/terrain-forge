@@ -1,23 +1,24 @@
 import { z } from 'zod';
 import { RULE_IDS } from '../domain/fairness';
+import { LIBRARY_LIMITS } from '../domain/library';
 import { matIdOf } from '../domain/mats';
 import { SAVED_BOARD_LIMITS, type SavedBoard, type SavedBoardContent } from '../domain/savedBoard';
+import { STORED_ID_LENGTH } from '../domain/storageLimits';
+import type { Parsed } from './firestoreStore';
+import { NEWER_VERSION_PROBLEM, schemaFor } from './schemaVersion';
 import { pieceFieldsSchema } from './terrainLibrarySchema';
 
 /** Bump when the shape of a saved board changes, and teach the reader the old shape. */
 export const BOARD_SCHEMA_VERSION = 1;
 
-/** Longest game or deployment id; the Firestore rules use the same limit. */
-const MAX_ID_LENGTH = 40;
-/** Largest board side in inches; the Firestore rules use the same limit. */
-const MAX_BOARD_SIDE = 240;
+const id = z.string().min(1).max(STORED_ID_LENGTH);
+const pieceId = z.string().min(1).max(LIBRARY_LIMITS.idLength);
+const side = z.number().positive().max(SAVED_BOARD_LIMITS.maxSide);
 
-const id = z.string().min(1).max(MAX_ID_LENGTH);
-
-const pieceSchema = pieceFieldsSchema.extend({ id: z.string().min(1).max(100) });
+const pieceSchema = pieceFieldsSchema.extend({ id: pieceId });
 
 const placementSchema = z.object({
-  pieceId: z.string().min(1).max(100),
+  pieceId,
   x: z.number(),
   y: z.number(),
   rotation: z.number(),
@@ -28,10 +29,7 @@ const boardDocumentSchema = z.object({
   name: z.string().trim().min(1).max(SAVED_BOARD_LIMITS.nameLength),
   presetId: id,
   deploymentId: id,
-  board: z.object({
-    width: z.number().positive().max(MAX_BOARD_SIDE),
-    depth: z.number().positive().max(MAX_BOARD_SIDE),
-  }),
+  board: z.object({ width: side, depth: side }),
   seed: z.int().min(0),
   generatorVersion: z.int().min(1),
   enabledRules: z.array(z.enum(RULE_IDS)).max(RULE_IDS.length),
@@ -46,13 +44,20 @@ const boardDocumentSchema = z.object({
 
 export type BoardDocument = z.infer<typeof boardDocumentSchema>;
 
-export type ParsedBoard =
-  | { readonly ok: true; readonly board: SavedBoard }
-  | { readonly ok: false; readonly problem: string };
+/** The schema for each version a board has been saved with. */
+const readers = { [BOARD_SCHEMA_VERSION]: boardDocumentSchema };
 
 /** Checks a stored board before it reaches the app. */
-export function parseBoardDocument(boardId: string, data: unknown, savedAt: number): ParsedBoard {
-  const result = boardDocumentSchema.safeParse(data);
+export function parseBoardDocument(
+  boardId: string,
+  data: unknown,
+  savedAt: number,
+): Parsed<SavedBoard> {
+  const reader = schemaFor(data, readers, BOARD_SCHEMA_VERSION);
+  if (reader.newer) {
+    return { ok: false, problem: `A saved board (${boardId}) ${NEWER_VERSION_PROBLEM}` };
+  }
+  const result = reader.schema.safeParse(data);
   if (!result.success) {
     const fields = [...new Set(result.error.issues.map((issue) => issue.path.join('.')))];
     return {
@@ -68,7 +73,7 @@ export function parseBoardDocument(boardId: string, data: unknown, savedAt: numb
       problem: `A saved board (${boardId}) places terrain it has no copy of and was left out.`,
     };
   }
-  return { ok: true, board: { id: boardId, savedAt, ...contentOf(stored) } };
+  return { ok: true, value: { id: boardId, savedAt, ...contentOf(stored) } };
 }
 
 function contentOf(stored: BoardDocument): SavedBoardContent {

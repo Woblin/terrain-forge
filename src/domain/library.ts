@@ -25,6 +25,8 @@ export const LIBRARY_LIMITS = {
   maxKinds: 50,
   /** Physical pieces in one library, counting every copy. */
   maxPieces: 100,
+  /** Longest piece id a saved board's copy of the terrain accepts. */
+  idLength: 100,
 } as const;
 
 export type FootprintKind = Footprint['kind'];

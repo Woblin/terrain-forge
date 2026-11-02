@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { GamePreferences } from '../domain/gamePreferences';
+import { PREFERENCES_LIMITS, type GamePreferences } from '../domain/gamePreferences';
 import { parsePreferencesDocument, preferencesDocument } from './gamePreferencesSchema';
 
 const preferences: GamePreferences = {
@@ -25,6 +25,18 @@ describe('game settings documents', () => {
     expect(parsePreferencesDocument({ ...withoutMat, defaultMatId: 'moon' })?.defaultMatId).toBe(
       'plain',
     );
+  });
+
+  it('accept rules off in as many games as the account may keep, and no more', () => {
+    const offIn = (games: number) => ({
+      ...preferencesDocument(preferences),
+      rulesOff: Object.fromEntries(
+        Array.from({ length: games }, (_, i) => [`game-${String(i)}`, ['clearLane']]),
+      ),
+    });
+    const { gamesWithRulesOff } = PREFERENCES_LIMITS;
+    expect(parsePreferencesDocument(offIn(gamesWithRulesOff))).not.toBeNull();
+    expect(parsePreferencesDocument(offIn(gamesWithRulesOff + 1))).toBeNull();
   });
 
   it.each([

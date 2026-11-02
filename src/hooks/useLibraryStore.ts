@@ -1,23 +1,11 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo } from 'react';
 import { withoutPhoto, withPhoto, type LibraryPiece } from '../domain/library';
 import type { CroppedPhoto, EncodedPhoto } from '../domain/imageCrop';
-import type { LibrarySnapshot, LibraryStore } from '../services/libraryStore';
+import type { LibraryStore } from '../services/libraryStore';
 import type { TerrainLibrary } from './libraryContext';
 import { useLibraryPhotos } from './useLibraryPhotos';
+import { useStoreReport } from './useStoreReport';
 
-type LoadState =
-  | { readonly status: 'loading' }
-  | { readonly status: 'ready'; readonly snapshot: LibrarySnapshot }
-  | { readonly status: 'failed'; readonly message: string };
-
-/** What the store last reported, and which store reported it. */
-interface Report {
-  readonly store: LibraryStore;
-  readonly load: LoadState;
-  readonly writeError: string | null;
-}
-
-const LOADING: LoadState = { status: 'loading' };
 const NO_PIECES: readonly LibraryPiece[] = [];
 const NO_PROBLEMS: readonly string[] = [];
 
@@ -26,43 +14,10 @@ const NO_PROBLEMS: readonly string[] = [];
  * it is, so pages can tell when it is swapped for another one.
  */
 export function useLibraryStore(store: LibraryStore, owner: string): TerrainLibrary {
-  const [report, setReport] = useState<Report>({ store, load: LOADING, writeError: null });
-  // A report from the store used before is not about this one.
-  const current = report.store === store ? report : { store, load: LOADING, writeError: null };
-  const { load, writeError } = current;
+  const { load, writeError, clearWriteError } = useStoreReport(store);
   const snapshot = load.status === 'ready' ? load.snapshot : null;
   const pieces = snapshot?.pieces ?? NO_PIECES;
   const images = useLibraryPhotos(store, pieces);
-
-  useEffect(
-    () =>
-      store.subscribe({
-        onChange: (next) => {
-          setReport((previous) => ({
-            store,
-            load: { status: 'ready', snapshot: next },
-            writeError: previous.store === store ? previous.writeError : null,
-          }));
-        },
-        onError: (message) => {
-          setReport({ store, load: { status: 'failed', message }, writeError: null });
-        },
-        onWriteFailed: (message) => {
-          setReport((previous) => ({
-            store,
-            load: previous.store === store ? previous.load : LOADING,
-            writeError: message,
-          }));
-        },
-      }),
-    [store],
-  );
-
-  const clearWriteError = useCallback(() => {
-    setReport((previous) =>
-      previous.writeError === null ? previous : { ...previous, writeError: null },
-    );
-  }, []);
 
   /** Runs a write and turns a failure into the message the store gave. */
   const attempt = useCallback(

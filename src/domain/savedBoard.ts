@@ -13,6 +13,8 @@ export const SAVED_BOARD_LIMITS = {
   maxKinds: LIBRARY_LIMITS.maxKinds,
   /** Pieces standing on a board, as many as a library can hold. */
   maxPlacements: LIBRARY_LIMITS.maxPieces,
+  /** Longest board side in inches. */
+  maxSide: 240,
 } as const;
 
 /**

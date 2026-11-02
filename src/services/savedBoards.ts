@@ -1,20 +1,24 @@
 import {
-  collection,
   deleteDoc,
   doc,
   getDocs,
-  onSnapshot,
   serverTimestamp,
   setDoc,
   Timestamp,
   updateDoc,
-  writeBatch,
   type Firestore,
 } from 'firebase/firestore';
 import type { SavedBoard, SavedBoardContent } from '../domain/savedBoard';
+import { boardsCollection } from './firestorePaths';
+import {
+  createWriteReporter,
+  deleteAll,
+  followCollection,
+  partitionParsed,
+  type StoreListeners,
+  type StoredEntries,
+} from './firestoreStore';
 import { boardDocument, parseBoardDocument } from './savedBoardSchema';
-
-const BOARDS = 'boards';
 
 /** What the account's boards look like now. */
 export interface SavedBoardsSnapshot {
@@ -26,14 +30,6 @@ export interface SavedBoardsSnapshot {
   readonly saving: boolean;
 }
 
-export interface SavedBoardsListeners {
-  readonly onChange: (snapshot: SavedBoardsSnapshot) => void;
-  /** The boards could not be loaded at all. */
-  readonly onError: (message: string) => void;
-  /** A change the page already shows was refused later, and has been undone. */
-  readonly onWriteFailed: (message: string) => void;
-}
-
 /**
  * A player's boards in Firestore, under `users/{uid}/boards`. Writes show at once and are sent in
  * the background, so the page keeps working offline; a refusal from the server reaches
@@ -41,7 +37,7 @@ export interface SavedBoardsListeners {
  */
 export interface SavedBoardStore {
   /** Calls `onChange` with every board now or soon, and again after each change. */
-  subscribe(listeners: SavedBoardsListeners): () => void;
+  subscribe(listeners: StoreListeners<SavedBoardsSnapshot>): () => void;
   /** A fresh id for a board that has not been saved yet. */
   newId(): string;
   /** Saves a new board under `boardId`. */
@@ -53,42 +49,22 @@ export interface SavedBoardStore {
 }
 
 export function createSavedBoardStore(db: Firestore, uid: string): SavedBoardStore {
-  const boards = collection(db, 'users', uid, BOARDS);
-  const writeFailed = new Set<(message: string) => void>();
-
-  /** Sends a write without waiting for the server, and reports a later refusal. */
-  function send(write: Promise<void>, failure: string): void {
-    write.catch((error: unknown) => {
-      console.error(failure, error);
-      for (const listener of writeFailed) {
-        listener(failure);
-      }
-    });
-  }
+  const boards = boardsCollection(db, uid);
+  const { listen, send } = createWriteReporter();
 
   return {
     subscribe({ onChange, onError, onWriteFailed }) {
-      writeFailed.add(onWriteFailed);
-      const stop = onSnapshot(
+      const stopListening = listen(onWriteFailed);
+      const stop = followCollection(
         boards,
-        { includeMetadataChanges: true },
-        (snapshot) => {
-          onChange(
-            readBoards(
-              snapshot.docs.map(
-                (entry) => [entry.id, entry.data({ serverTimestamps: 'estimate' })] as const,
-              ),
-              snapshot.metadata.hasPendingWrites,
-            ),
-          );
-        },
-        (error) => {
-          console.error('Reading the saved boards failed.', error);
-          onError('Could not load your saved boards. Check your connection and reload the page.');
-        },
+        onChange,
+        onError,
+        readBoards,
+        'Could not load your saved boards. Check your connection and reload the page.',
+        { serverTimestamps: 'estimate' },
       );
       return () => {
-        writeFailed.delete(onWriteFailed);
+        stopListening();
         stop();
       };
     },
@@ -128,29 +104,19 @@ export function createSavedBoardStore(db: Firestore, uid: string): SavedBoardSto
 
 /** Deletes every saved board of a player, for when they delete their account. */
 export async function deleteSavedBoards(db: Firestore, uid: string): Promise<void> {
-  const stored = await getDocs(collection(db, 'users', uid, BOARDS));
-  const batch = writeBatch(db);
-  for (const entry of stored.docs) {
-    batch.delete(entry.ref);
-  }
-  await batch.commit();
+  const stored = await getDocs(boardsCollection(db, uid));
+  await deleteAll(
+    db,
+    stored.docs.map((entry) => entry.ref),
+  );
 }
 
 /** Keeps the boards that pass validation, newest first, and names the ones that do not. */
-export function readBoards(
-  entries: readonly (readonly [string, Record<string, unknown>])[],
-  saving = false,
-): SavedBoardsSnapshot {
-  const parsed = entries.map(([boardId, data]) =>
-    parseBoardDocument(boardId, data, savedAtOf(data.updatedAt)),
+export function readBoards(entries: StoredEntries, saving = false): SavedBoardsSnapshot {
+  const { values, problems } = partitionParsed(
+    entries.map(([boardId, data]) => parseBoardDocument(boardId, data, savedAtOf(data.updatedAt))),
   );
-  return {
-    boards: parsed
-      .flatMap((result) => (result.ok ? [result.board] : []))
-      .sort((a, b) => b.savedAt - a.savedAt),
-    problems: parsed.flatMap((result) => (result.ok ? [] : [result.problem])),
-    saving,
-  };
+  return { boards: values.sort((a, b) => b.savedAt - a.savedAt), problems, saving };
 }
 
 function savedAtOf(value: unknown): number {

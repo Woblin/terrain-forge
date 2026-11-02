@@ -19,6 +19,7 @@ import {
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { RULE_IDS } from '../../src/domain/fairness';
 import { SAVED_BOARD_LIMITS, type SavedBoardContent } from '../../src/domain/savedBoard';
+import { STORED_ID_LENGTH } from '../../src/domain/storageLimits';
 import {
   createSavedBoardStore,
   deleteSavedBoards,
@@ -215,14 +216,10 @@ describe('the saved board store', () => {
   });
 });
 
-/**
- * The rules and the app check the same limits. The id length and board side are not app
- * constants yet, so they are numbers here for now.
- */
+/** The rules and the app check the same limits. */
 describe('the limits the app checks', () => {
-  const ID_LENGTH = 40;
-  const MAX_BOARD_SIDE = 240;
-  const { nameLength, maxKinds, maxPlacements } = SAVED_BOARD_LIMITS;
+  const ID_LENGTH = STORED_ID_LENGTH;
+  const { nameLength, maxKinds, maxPlacements, maxSide: MAX_BOARD_SIDE } = SAVED_BOARD_LIMITS;
   const [piece] = boardDocument(content).pieces;
   const [placement] = boardDocument(content).placements;
   const id = (length: number) => 'x'.repeat(length);

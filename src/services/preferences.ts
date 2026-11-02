@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import { matDarknessOf, MAT_DARKNESS_RANGE } from '../domain/mats';
 import { INITIAL_GAME_PREFERENCES, type GamePreferences } from '../domain/gamePreferences';
 import { parseThemeChoice, type ThemeChoice } from '../domain/theme';
@@ -7,91 +8,101 @@ import { parsePreferencesDocument, preferencesDocument } from './gamePreferences
 const UNIT_KEY = 'terrain-forge.length-unit';
 const GAME_KEY = 'terrain-forge.game-preferences';
 /** Also read by the script in index.html that sets the theme before the page draws. */
-const THEME_KEY = 'terrain-forge.theme';
+export const THEME_KEY = 'terrain-forge.theme';
 
 /**
- * The unit the player picked last time on this device. Storage can be switched off or full;
- * the unit is only a convenience, so the default is used and the problem is logged.
+ * What is stored under `key` on this device, read with `parse`. Storage can be switched off or
+ * full, and these settings are only a convenience, so a failure gives `fallback` and is logged.
  */
-export function loadLengthUnit(): LengthUnit {
+function readLocal<T>(
+  key: string,
+  parse: (stored: string | null) => T,
+  fallback: T,
+  failure: string,
+): T {
   try {
-    return localStorage.getItem(UNIT_KEY) === 'cm' ? 'cm' : 'in';
+    return parse(localStorage.getItem(key));
   } catch (error) {
-    console.warn('Could not read the saved length unit; using inches.', error);
-    return 'in';
+    console.warn(failure, error);
+    return fallback;
   }
+}
+
+/** Stores `value` under `key` on this device; a failure is logged, since it only costs a convenience. */
+function writeLocal(key: string, value: string, failure: string): void {
+  try {
+    localStorage.setItem(key, value);
+  } catch (error) {
+    console.warn(failure, error);
+  }
+}
+
+/** The unit the player picked last time on this device. */
+export function loadLengthUnit(): LengthUnit {
+  return readLocal(
+    UNIT_KEY,
+    (stored) => (stored === 'cm' ? 'cm' : 'in'),
+    'in',
+    'Could not read the saved length unit; using inches.',
+  );
 }
 
 export function saveLengthUnit(unit: LengthUnit): void {
-  try {
-    localStorage.setItem(UNIT_KEY, unit);
-  } catch (error) {
-    console.warn('Could not save the length unit; it resets on the next visit.', error);
-  }
+  writeLocal(UNIT_KEY, unit, 'Could not save the length unit; it resets on the next visit.');
 }
 
-/**
- * The game and balance rules the player picked last time on this device. Like the unit, these
- * are a convenience: when storage fails or holds something unreadable, the defaults are used.
- */
+/** The game and balance rules the player picked last time on this device; unreadable gives the defaults. */
 export function loadGamePreferences(): GamePreferences {
-  try {
-    const stored = localStorage.getItem(GAME_KEY);
-    return (
+  return readLocal(
+    GAME_KEY,
+    (stored) =>
       (stored === null ? null : parsePreferencesDocument(JSON.parse(stored))) ??
-      INITIAL_GAME_PREFERENCES
-    );
-  } catch (error) {
-    console.warn('Could not read the saved game settings; using the defaults.', error);
-    return INITIAL_GAME_PREFERENCES;
-  }
+      INITIAL_GAME_PREFERENCES,
+    INITIAL_GAME_PREFERENCES,
+    'Could not read the saved game settings; using the defaults.',
+  );
 }
 
 export function saveGamePreferences(preferences: GamePreferences): void {
-  try {
-    localStorage.setItem(GAME_KEY, JSON.stringify(preferencesDocument(preferences)));
-  } catch (error) {
-    console.warn('Could not save the game settings; they reset on the next visit.', error);
-  }
+  writeLocal(
+    GAME_KEY,
+    JSON.stringify(preferencesDocument(preferences)),
+    'Could not save the game settings; they reset on the next visit.',
+  );
 }
 
-/** The theme the player picked on this device. Like the unit, a failure falls back to the default. */
+/** The theme the player picked on this device. */
 export function loadThemeChoice(): ThemeChoice {
-  try {
-    return parseThemeChoice(localStorage.getItem(THEME_KEY));
-  } catch (error) {
-    console.warn('Could not read the saved theme; following the device.', error);
-    return 'system';
-  }
+  return readLocal(
+    THEME_KEY,
+    parseThemeChoice,
+    'system',
+    'Could not read the saved theme; following the device.',
+  );
 }
 
 export function saveThemeChoice(choice: ThemeChoice): void {
-  try {
-    localStorage.setItem(THEME_KEY, choice);
-  } catch (error) {
-    console.warn('Could not save the theme; it resets on the next visit.', error);
-  }
+  writeLocal(THEME_KEY, choice, 'Could not save the theme; it resets on the next visit.');
 }
 
 const MAT_DARKNESS_KEY = 'terrain-forge.mat-darkness';
 
-/** How dark the player wants the mats on this device. Like the unit, a failure uses the default. */
+/** How dark the player wants the mats on this device. */
 export function loadMatDarkness(): number {
-  try {
-    const stored = localStorage.getItem(MAT_DARKNESS_KEY);
-    return stored === null ? MAT_DARKNESS_RANGE.standard : matDarknessOf(Number(stored));
-  } catch (error) {
-    console.warn('Could not read the saved mat darkness; using the standard.', error);
-    return MAT_DARKNESS_RANGE.standard;
-  }
+  return readLocal(
+    MAT_DARKNESS_KEY,
+    (stored) => (stored === null ? MAT_DARKNESS_RANGE.standard : matDarknessOf(Number(stored))),
+    MAT_DARKNESS_RANGE.standard,
+    'Could not read the saved mat darkness; using the standard.',
+  );
 }
 
 export function saveMatDarkness(darkness: number): void {
-  try {
-    localStorage.setItem(MAT_DARKNESS_KEY, String(darkness));
-  } catch (error) {
-    console.warn('Could not save the mat darkness; it resets on the next visit.', error);
-  }
+  writeLocal(
+    MAT_DARKNESS_KEY,
+    String(darkness),
+    'Could not save the mat darkness; it resets on the next visit.',
+  );
 }
 
 const PANELS_KEY = 'terrain-forge.board-panels';
@@ -106,57 +117,47 @@ const ALL_PANELS_OPEN: OpenPanels = { setup: true, details: true };
 
 /** The side panels as the player left them on this device; both open when unknown. */
 export function loadOpenPanels(): OpenPanels {
-  try {
-    const stored = localStorage.getItem(PANELS_KEY);
-    return stored === null ? ALL_PANELS_OPEN : parseOpenPanels(JSON.parse(stored));
-  } catch (error) {
-    console.warn('Could not read which board panels were open; opening both.', error);
-    return ALL_PANELS_OPEN;
-  }
+  return readLocal(
+    PANELS_KEY,
+    (stored) => (stored === null ? ALL_PANELS_OPEN : parseOpenPanels(JSON.parse(stored))),
+    ALL_PANELS_OPEN,
+    'Could not read which board panels were open; opening both.',
+  );
 }
 
 export function saveOpenPanels(panels: OpenPanels): void {
-  try {
-    localStorage.setItem(PANELS_KEY, JSON.stringify(panels));
-  } catch (error) {
-    console.warn(
-      'Could not save which board panels are open; they reset on the next visit.',
-      error,
-    );
-  }
+  writeLocal(
+    PANELS_KEY,
+    JSON.stringify(panels),
+    'Could not save which board panels are open; they reset on the next visit.',
+  );
 }
 
-function parseOpenPanels(value: unknown): OpenPanels {
-  if (typeof value !== 'object' || value === null) {
-    return ALL_PANELS_OPEN;
-  }
-  const setup = 'setup' in value ? value.setup : undefined;
-  const details = 'details' in value ? value.details : undefined;
-  return {
-    setup: typeof setup === 'boolean' ? setup : true,
-    details: typeof details === 'boolean' ? details : true,
-  };
+const openPanelsSchema = z
+  .object({ setup: z.boolean().catch(true), details: z.boolean().catch(true) })
+  .catch(ALL_PANELS_OPEN);
+
+/** Stored panels, with any panel that cannot be read open. Exported for the test. */
+export function parseOpenPanels(value: unknown): OpenPanels {
+  return openPanelsSchema.parse(value);
 }
 
 const BOARD_TIP_KEY = 'terrain-forge.board-tip-dismissed';
 
 /** Whether the player has put away the editing tip under the board on this device. */
 export function loadBoardTipDismissed(): boolean {
-  try {
-    return localStorage.getItem(BOARD_TIP_KEY) === 'true';
-  } catch (error) {
-    console.warn('Could not read whether the board tip was dismissed; showing it.', error);
-    return false;
-  }
+  return readLocal(
+    BOARD_TIP_KEY,
+    (stored) => stored === 'true',
+    false,
+    'Could not read whether the board tip was dismissed; showing it.',
+  );
 }
 
 export function saveBoardTipDismissed(): void {
-  try {
-    localStorage.setItem(BOARD_TIP_KEY, 'true');
-  } catch (error) {
-    console.warn(
-      'Could not save that the board tip was dismissed; it shows again next visit.',
-      error,
-    );
-  }
+  writeLocal(
+    BOARD_TIP_KEY,
+    'true',
+    'Could not save that the board tip was dismissed; it shows again next visit.',
+  );
 }
