@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { analyseBoard, fairnessInputFor } from './boardAnalysis';
-import { deploymentsFor, resolveGameSetup, type GameSetup } from './gameSetup';
+import { deploymentsFor, placementRulesFor, resolveGameSetup, type GameSetup } from './gameSetup';
 import { generateLayout, prepareCollection } from './generator';
 import { containsPoint } from './geometry';
 import { pieceById } from './layoutTerrain';
-import { boardViolations, placePiece } from './placement';
+import { placePiece } from './placedPiece';
+import { boardViolations } from './placementRules';
 import { PRESETS } from './presets';
 import { ROBIN_COLLECTION } from './robinCollection';
 import { SAMPLE_COLLECTION } from './sampleCollection';
@@ -45,12 +46,7 @@ describe('the sample collection on every game system', () => {
       const placed = placements.map((placement) =>
         placePiece(pieceById(SAMPLE_COLLECTION, placement.pieceId), placement),
       );
-      const rules = {
-        ...setup,
-        edgeMargin: setup.preset.edgeMargin,
-        spacing: setup.preset.spacing,
-      };
-      expect(boardViolations(placed, rules).flat()).toEqual([]);
+      expect(boardViolations(placed, placementRulesFor(setup)).flat()).toEqual([]);
       const analysis = analyseBoard(sampleInput(setup, placements));
       expect(analysis.report).toEqual(result.report);
       expect(analysis.lane?.length).toBeCloseTo(result.report.longestClearLane);

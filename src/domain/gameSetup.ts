@@ -1,4 +1,5 @@
 import { standardDeployments, type Board, type DeploymentMap } from './board';
+import type { PlacementRules } from './placementRules';
 import { findPreset, type GameSystemPreset } from './presets';
 
 /** The game system, board and deployment a layout is generated for. */
@@ -23,4 +24,10 @@ export function resolveGameSetup(presetId: string, deploymentId: string): GameSe
     return undefined;
   }
   return { preset, board: preset.defaultBoard, deployment };
+}
+
+/** The hard placement rules of the game system, on this board and deployment. */
+export function placementRulesFor(setup: GameSetup): PlacementRules {
+  const { board, deployment, preset } = setup;
+  return { board, deployment, edgeMargin: preset.edgeMargin, spacing: preset.spacing };
 }

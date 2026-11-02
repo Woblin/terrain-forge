@@ -3,8 +3,10 @@ import { longEdgeDeployment, standardDeployments, type DeploymentMap } from './b
 import { isPassable, regimentClearance } from './clearance';
 import { polygonDistance } from './geometry';
 import { RULE_IDS } from './fairness';
+import { placementRulesFor } from './gameSetup';
 import { GENERATOR_VERSION, generateLayout, type GenerationRequest } from './generator';
-import { boardViolations, placePiece } from './placement';
+import { placePiece } from './placedPiece';
+import { boardViolations } from './placementRules';
 import { findPreset, PRESETS, type GameSystemPreset } from './presets';
 import { ROBIN_COLLECTION } from './robinCollection';
 import { SAMPLE_COLLECTION } from './sampleCollection';
@@ -146,12 +148,7 @@ function expectLegalPlacements(
   for (const piece of collection) {
     expect(used.get(piece.id) ?? 0).toBeLessThanOrEqual(piece.quantity);
   }
-  const placementRules = {
-    board,
-    deployment,
-    edgeMargin: rules.edgeMargin,
-    spacing: rules.spacing,
-  };
+  const placementRules = placementRulesFor({ preset: rules, board, deployment });
   expect(boardViolations(placed, placementRules).flat()).toEqual([]);
 }
 
@@ -358,7 +355,7 @@ describe("generateLayout on the product owner's Warhammer Fantasy terrain", () =
       // Fantasy tables stay open for wheeling and flanking.
       expect(result.report.coverage).toBeGreaterThanOrEqual(0.05);
       expect(result.report.coverage).toBeLessThanOrEqual(0.1);
-      const rules = { board: fantasyBoard, deployment, edgeMargin: 1, spacing: fantasy.spacing };
+      const rules = placementRulesFor({ preset: fantasy, board: fantasyBoard, deployment });
       expect(boardViolations(placed, rules).flat()).toEqual([]);
       const clearance = fantasy.clearance;
       if (clearance === null) {

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
+import { findById } from '../domain/findById';
 import { hasUnsavedChanges, type SavedBoard } from '../domain/savedBoard';
 import { useBoardSession } from './boardSessionContext';
 import { useSavedBoards } from './savedBoardsContext';
@@ -35,8 +36,7 @@ export function useBoardOpener(): BoardOpener {
     void navigate(`/board?saved=${encodeURIComponent(board.id)}`);
   }
 
-  const openedName =
-    opened === null ? null : (boards.find((board) => board.id === opened.id)?.name ?? opened.name);
+  const openedName = opened === null ? null : (findById(boards, opened.id)?.name ?? opened.name);
   const current =
     openedName === null
       ? 'The board on the board page is not saved'

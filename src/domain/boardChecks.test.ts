@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { longEdgeDeployment } from './board';
 import { checkBoard } from './boardChecks';
 import type { BoardPiece } from './editor';
-import type { PlacementRules } from './placement';
+import type { PlacementRules } from './placementRules';
 import { findPreset } from './presets';
 import { SAMPLE_COLLECTION } from './sampleCollection';
 

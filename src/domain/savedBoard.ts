@@ -1,4 +1,5 @@
 import { currentLayout, type EditorSnapshot } from './editor';
+import { findById } from './findById';
 import type { Layout } from './generator';
 import { LIBRARY_LIMITS } from './library';
 import type { MatId } from './mats';
@@ -133,7 +134,7 @@ export function changedPieces(
   library: readonly TerrainPiece[],
 ): TerrainPiece[] {
   return saved.filter((piece) => {
-    const current = library.find((candidate) => candidate.id === piece.id);
+    const current = findById(library, piece.id);
     return current === undefined || !samePiece(piece, current);
   });
 }

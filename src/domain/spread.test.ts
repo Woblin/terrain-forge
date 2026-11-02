@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Board } from './board';
-import { placePiece, type PlacedPiece } from './placement';
+import { placePiece, type PlacedPiece } from './placedPiece';
 import { spreadChoice, spreadRank } from './spread';
 import type { TerrainPiece } from './terrain';
 

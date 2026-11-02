@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { longEdgeDeployment, type Board } from './board';
 import { polygonBounds } from './geometry';
 import { laneArea, laneBreakingChoice, laneExcess, type LaneSetup } from './laneBreaking';
-import type { PlacedPiece } from './placement';
+import type { PlacedPiece } from './placedPiece';
 import { findPreset } from './presets';
 import { placeFootprint, type TerrainPiece } from './terrain';
 
