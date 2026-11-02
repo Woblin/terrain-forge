@@ -4,11 +4,13 @@ import {
   longEdgeDeployment,
   mirrorPoint,
   oppositeCornersDeployment,
+  PLAYERS,
   shortEdgeDeployment,
   standardDeployments,
   zoneBacks,
 } from './board';
 import { containsPoint, polygonArea, polygonBounds, signedArea, type Polygon } from './geometry';
+import { PRESETS } from './presets';
 
 const board = { width: 60, depth: 44 };
 
@@ -80,5 +82,36 @@ describe('zoneBacks', () => {
     expectBounds(backs.A, 0, 0, 15, 11);
     expectBounds(backs.B, 45, 33, 60, 44);
     expect(polygonArea(backs.A)).toBeCloseTo(polygonArea(deployment.zones.A) / 4);
+  });
+});
+
+describe('deployment zones on every game system', () => {
+  // The fairness rules tell a zone side on a table edge apart by exact comparison, so a corner
+  // near an edge must lie on it exactly.
+  const cases = PRESETS.flatMap((gamePreset) =>
+    standardDeployments(gamePreset.defaultBoard, gamePreset.zoneDepth).map((deployment) => ({
+      name: `${gamePreset.id} ${deployment.id}`,
+      board: gamePreset.defaultBoard,
+      deployment,
+    })),
+  );
+
+  it.each(cases)('$name: corners near a table edge lie exactly on it', ({ board, deployment }) => {
+    const corners = PLAYERS.flatMap((player) => deployment.zones[player]);
+    const values = corners.flatMap((corner) => [
+      { value: corner.x, edges: [0, board.width] },
+      { value: corner.y, edges: [0, board.depth] },
+    ]);
+    let onEdge = 0;
+    for (const { value, edges } of values) {
+      for (const edge of edges) {
+        if (Math.abs(value - edge) < 1e-6) {
+          expect(value).toBe(edge);
+          onEdge++;
+        }
+      }
+    }
+    // Every zone lies along a table edge, so the check above always has corners to look at.
+    expect(onEdge).toBeGreaterThanOrEqual(4);
   });
 });

@@ -18,8 +18,13 @@ import {
   type Firestore,
 } from 'firebase/firestore';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import type { EncodedPhoto } from '../../src/domain/imageCrop';
-import type { LibraryPiece } from '../../src/domain/library';
+import {
+  PHOTO_LONG_SIDE,
+  PHOTO_MASK_MAX_BYTES,
+  PHOTO_MAX_BYTES,
+  type EncodedPhoto,
+} from '../../src/domain/imageCrop';
+import { LIBRARY_LIMITS, type LibraryPiece } from '../../src/domain/library';
 import { TERRAIN_TYPES } from '../../src/domain/terrain';
 import { createFirestoreLibrary, deleteLibrary } from '../../src/services/terrainLibrary';
 import type { LibrarySnapshot } from '../../src/services/libraryStore';
@@ -316,5 +321,48 @@ describe('the Firestore library service', () => {
     for (const path of ['terrainPieces/a', 'terrainPieces/b', 'terrainImages/a']) {
       expect((await getDoc(doc(db, `users/alice/${path}`))).exists()).toBe(false);
     }
+  });
+});
+
+/**
+ * The rules and the app check the same limits; the values come from the app, so changing a limit
+ * on one side only fails here.
+ */
+describe('the limits the app checks', () => {
+  const { nameLength, minSide, maxSide, minQuantity, maxQuantity } = LIBRARY_LIMITS;
+  const side = (width: number) => ({ footprint: { kind: 'rect', width, depth: 6 } });
+
+  it.each([
+    ['the longest name', { name: 'x'.repeat(nameLength) }, true],
+    ['a name one character too long', { name: 'x'.repeat(nameLength + 1) }, false],
+    ['the shortest side', side(minSide), true],
+    ['a side just under the shortest', side(minSide - 0.01), false],
+    ['the longest side', side(maxSide), true],
+    ['a side just over the longest', side(maxSide + 0.01), false],
+    ['the fewest copies', { quantity: minQuantity }, true],
+    ['one copy fewer', { quantity: minQuantity - 1 }, false],
+    ['the most copies', { quantity: maxQuantity }, true],
+    ['one copy more', { quantity: maxQuantity + 1 }, false],
+    ['a rectangle', { footprint: { kind: 'rect', width: 6, depth: 4 } }, true],
+    ['an oval', { footprint: { kind: 'ellipse', width: 6, depth: 4 } }, true],
+  ])('a piece with %s is allowed: %s', async (_, fields, allowed) => {
+    const write = setDoc(doc(asAlice(), 'users/alice/terrainPieces/limit'), newPiece(fields));
+    await (allowed ? assertSucceeds(write) : assertFails(write));
+  });
+
+  const bytes = (size: number) => Bytes.fromUint8Array(new Uint8Array(size));
+
+  it.each([
+    ['the largest photo', { data: bytes(PHOTO_MAX_BYTES) }, true],
+    ['a photo one byte too large', { data: bytes(PHOTO_MAX_BYTES + 1) }, false],
+    ['the widest photo', { width: PHOTO_LONG_SIDE }, true],
+    ['a photo one pixel too wide', { width: PHOTO_LONG_SIDE + 1 }, false],
+    ['the tallest photo', { height: PHOTO_LONG_SIDE }, true],
+    ['a photo one pixel too tall', { height: PHOTO_LONG_SIDE + 1 }, false],
+    ['the largest mask', { mask: bytes(PHOTO_MASK_MAX_BYTES) }, true],
+    ['a mask one byte too large', { mask: bytes(PHOTO_MASK_MAX_BYTES + 1) }, false],
+  ])('a photo with %s is allowed: %s', async (_, fields, allowed) => {
+    const write = setDoc(doc(asAlice(), 'users/alice/terrainImages/limit'), image(fields));
+    await (allowed ? assertSucceeds(write) : assertFails(write));
   });
 });

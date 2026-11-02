@@ -17,7 +17,8 @@ import {
   type Firestore,
 } from 'firebase/firestore';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import type { SavedBoardContent } from '../../src/domain/savedBoard';
+import { RULE_IDS } from '../../src/domain/fairness';
+import { SAVED_BOARD_LIMITS, type SavedBoardContent } from '../../src/domain/savedBoard';
 import {
   createSavedBoardStore,
   deleteSavedBoards,
@@ -211,5 +212,53 @@ describe('the saved board store', () => {
     await setDoc(doc(db, 'users/alice/boards/other'), newBoard());
     await deleteSavedBoards(db, 'alice');
     expect(await boardsWhen(db, 0)).toMatchObject({ boards: [] });
+  });
+});
+
+/**
+ * The rules and the app check the same limits. The id length and board side are not app
+ * constants yet, so they are numbers here for now.
+ */
+describe('the limits the app checks', () => {
+  const ID_LENGTH = 40;
+  const MAX_BOARD_SIDE = 240;
+  const { nameLength, maxKinds, maxPlacements } = SAVED_BOARD_LIMITS;
+  const [piece] = boardDocument(content).pieces;
+  const [placement] = boardDocument(content).placements;
+  const id = (length: number) => 'x'.repeat(length);
+  const size = (width: number) => ({ board: { width, depth: 48 } });
+
+  it.each([
+    ['the longest name', { name: id(nameLength) }, true],
+    ['a name one character too long', { name: id(nameLength + 1) }, false],
+    ['the longest game id', { presetId: id(ID_LENGTH) }, true],
+    ['a game id one character too long', { presetId: id(ID_LENGTH + 1) }, false],
+    ['the longest deployment id', { deploymentId: id(ID_LENGTH) }, true],
+    ['a deployment id one character too long', { deploymentId: id(ID_LENGTH + 1) }, false],
+    ['the longest mat id', { matId: id(ID_LENGTH) }, true],
+    ['a mat id one character too long', { matId: id(ID_LENGTH + 1) }, false],
+    ['the widest board', size(MAX_BOARD_SIDE), true],
+    ['a board just too wide', size(MAX_BOARD_SIDE + 0.01), false],
+    ['every balance rule', { enabledRules: [...RULE_IDS] }, true],
+    ['more balance rules than there are', { enabledRules: [...RULE_IDS, 'coverage'] }, false],
+    ['the most kinds of piece', { pieces: Array.from({ length: maxKinds }, () => piece) }, true],
+    [
+      'one kind of piece too many',
+      { pieces: Array.from({ length: maxKinds + 1 }, () => piece) },
+      false,
+    ],
+    [
+      'the most pieces on the board',
+      { placements: Array.from({ length: maxPlacements }, () => placement) },
+      true,
+    ],
+    [
+      'one piece too many on the board',
+      { placements: Array.from({ length: maxPlacements + 1 }, () => placement) },
+      false,
+    ],
+  ])('a board with %s is allowed: %s', async (_, fields, allowed) => {
+    const write = setDoc(doc(asAlice(), path), newBoard(fields));
+    await (allowed ? assertSucceeds(write) : assertFails(write));
   });
 });
