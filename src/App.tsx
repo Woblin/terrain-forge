@@ -13,6 +13,7 @@ import { AccountPage } from './pages/AccountPage';
 import { BoardPage } from './pages/BoardPage';
 import { HomePage } from './pages/HomePage';
 import { LibraryPage } from './pages/LibraryPage';
+import { NotFoundPage } from './pages/NotFoundPage';
 import { SavedBoardsPage } from './pages/SavedBoardsPage';
 import { SignInPage } from './pages/SignInPage';
 import type { FirebaseServices } from './services/firebase';
@@ -40,6 +41,7 @@ export function App({ firebase }: AppProps) {
                           <Route path="/library" element={<LibraryPage />} />
                           <Route path="/sign-in" element={<SignInPage />} />
                           <Route path="/account" element={<AccountPage />} />
+                          <Route path="*" element={<NotFoundPage />} />
                         </Route>
                       </Routes>
                       <UnsavedPiecesPrompt />

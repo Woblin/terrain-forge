@@ -13,9 +13,36 @@ import { createRandom, randomBetween, shuffle, type RandomSource } from './rando
 import { spreadChoice } from './spread';
 import { footprintArea, type Placement, type TerrainPiece } from './terrain';
 
+/*
+ * How a board is made (`generateLayout`):
+ *
+ * 1. `prepareCollection` drops pieces too large for the board, makes one entry per physical
+ *    piece, and lowers the coverage minimum when the whole collection cannot reach it.
+ * 2. `buildCandidate` runs CANDIDATE_COUNT times, each time drawing from the same random stream:
+ *    a. a coverage target between the preset's minimum and maximum (presets.ts),
+ *    b. units: matching pairs, single pieces, wall chains and features with companions
+ *       (placement.ts, placementUnits.ts, wallChains.ts, features.ts),
+ *    c. the order units are placed in, so the target is met without going over (placementUnits.ts),
+ *    d. where to try each unit: spread over the board, and when R5 is on, steered into long
+ *       firing lanes (spread.ts, laneBreaking.ts),
+ *    e. placing each unit at a legal spot, mirrored for the other player where it can be
+ *       (placement.ts, placementRules.ts),
+ *    f. measuring the result against the balance rules R1 to R6 (fairness.ts).
+ * 3. `closest` picks the candidate that fails the fewest rules, then the most even one, and skips
+ *    boards the widest regiment cannot cross while another board lets it (clearance.ts).
+ *
+ * Every call to `random` moves the stream on, so a new draw anywhere above, or a change in the
+ * order of the steps, changes every board after it for the same seed. Such a change needs a new
+ * GENERATOR_VERSION, and the snapshot tests in generator.test.ts show it.
+ */
+
 /** Bump when a change makes the same seed give a different layout. */
 export const GENERATOR_VERSION = 3;
 
+/**
+ * Boards built per generation. More candidates give fairer boards but a longer wait (each one is
+ * measured against every rule), and changing the number changes the board for every seed.
+ */
 const CANDIDATE_COUNT = 16;
 /** With a small collection, at least this share of it must make it onto the board. */
 const SMALL_COLLECTION_MIN_SHARE = 0.8;
@@ -171,6 +198,10 @@ function percent(share: number): string {
   return `${String(Math.round(share * 100))}%`;
 }
 
+/**
+ * One candidate board: steps 2a to 2f in the overview at the top of this file. `random` is shared
+ * with the other candidates, so the candidates must be built in the same order every time.
+ */
 function buildCandidate(
   pieces: readonly TerrainPiece[],
   request: GenerationRequest,

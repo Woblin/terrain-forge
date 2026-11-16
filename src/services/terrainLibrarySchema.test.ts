@@ -32,10 +32,12 @@ describe('piece documents', () => {
     ['an empty name', { name: '   ' }],
     ['a schema version this app never wrote', { schemaVersion: 0 }],
     ['a missing photo field', { image: undefined }],
-  ])('rejects %s and says which field', (_, change) => {
+  ])('rejects %s without showing the player its id', (_, change) => {
     const result = parsePieceDocument('bad', { ...pieceDocument(piece), ...change });
     expect(result).toMatchObject({ ok: false });
-    expect(!result.ok && result.problem).toContain('A saved piece (bad) could not be read');
+    expect(!result.ok && result.problem).toMatch(
+      /^(A saved piece|The saved piece ".+") could not be read and was left out\.$/,
+    );
   });
 
   it('says to reload for a piece saved by a newer version', () => {
@@ -45,8 +47,7 @@ describe('piece documents', () => {
     });
     expect(result).toEqual({
       ok: false,
-      problem:
-        'A saved piece (new) was saved by a newer version of Terrain Forge. Reload the page to see it.',
+      problem: `The saved piece "${piece.name}" was saved by a newer version of Terrain Forge. Reload the page to see it.`,
     });
   });
 
@@ -63,6 +64,8 @@ describe('readSnapshot', () => {
     ]);
     expect(snapshot.pieces).toEqual([piece]);
     expect(snapshot.problems).toHaveLength(1);
-    expect(snapshot.problems[0]).toContain('(bad)');
+    expect(snapshot.problems[0]).toBe(
+      'The saved piece "Broken" could not be read and was left out.',
+    );
   });
 });

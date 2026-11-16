@@ -4,6 +4,7 @@ import {
   EMPTY_ACCOUNT_DRAFT,
   hasErrors,
   missingPasswordRules,
+  signOutLossMessage,
   validateAccountDraft,
   type AppUser,
 } from './account';
@@ -94,5 +95,23 @@ describe('missingPasswordRules', () => {
   it('only counts plain letters as lowercase and uppercase', () => {
     expect(missing('ÅÄÖABCD1!')).toEqual(['lowercase']);
     expect(missing('åäöabcd1!')).toEqual(['uppercase']);
+  });
+});
+
+describe('signOutLossMessage', () => {
+  it('is null when nothing would be lost', () => {
+    expect(signOutLossMessage(0, false)).toBeNull();
+  });
+
+  it('names the pieces and the board that would be lost', () => {
+    expect(signOutLossMessage(1, false)).toBe(
+      'Not saved yet: 1 terrain piece. Signing out now loses this work.',
+    );
+    expect(signOutLossMessage(3, true)).toBe(
+      'Not saved yet: 3 terrain pieces and changes to the board. Signing out now loses this work.',
+    );
+    expect(signOutLossMessage(0, true)).toBe(
+      'Not saved yet: changes to the board. Signing out now loses this work.',
+    );
   });
 });

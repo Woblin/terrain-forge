@@ -23,5 +23,5 @@ function statusText(saving: boolean, online: boolean): string {
   }
   return online
     ? 'Saving…'
-    : 'Not saved yet: you are offline. Changes are saved when you are back online.';
+    : 'Not saved yet: you are offline. Keep this tab open; changes are saved when you are back online.';
 }

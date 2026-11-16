@@ -1,9 +1,14 @@
 import { LogOutIcon, SettingsIcon, UserRoundIcon } from 'lucide-react';
 import { useId, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router';
+import { signOutLossMessage } from '../domain/account';
+import { boardWorkAtRisk } from '../domain/savedBoard';
 import { useAuth } from '../hooks/authContext';
+import { useBoardSession } from '../hooks/boardSessionContext';
+import { useTerrainLibrary } from '../hooks/libraryContext';
 import { Avatar } from './Avatar';
 import { BUTTON_STYLES } from './buttonStyles';
+import { ConfirmDialog } from './ConfirmDialog';
 import { MENU_ROW } from './menuStyles';
 import { ThemeSwitch } from './ThemeSwitch';
 import { UnitToggle } from './UnitToggle';
@@ -19,6 +24,13 @@ export function AccountMenu() {
   const menuId = useId();
   const menu = useRef<HTMLDivElement>(null);
   const [error, setError] = useState<string | null>(null);
+  const [confirming, setConfirming] = useState(false);
+  const library = useTerrainLibrary();
+  const session = useBoardSession();
+  const lossMessage = signOutLossMessage(
+    library.persistent ? 0 : library.pieces.length,
+    boardWorkAtRisk(session.opened, session.editor.present, session.mat),
+  );
 
   if (auth.state.status === 'checking') {
     return null;
@@ -29,7 +41,18 @@ export function AccountMenu() {
     menu.current?.hidePopover();
   }
 
+  /** Signs out at once, or first asks when that would lose work kept only in this tab. */
+  function requestSignOut(): void {
+    if (lossMessage === null) {
+      void signOut();
+    } else {
+      closeMenu();
+      setConfirming(true);
+    }
+  }
+
   async function signOut(): Promise<void> {
+    setConfirming(false);
     setError(null);
     const failure = await auth.signOut();
     if (failure === null) {
@@ -37,6 +60,10 @@ export function AccountMenu() {
       await navigate('/');
     } else {
       setError(failure);
+      // After the question the menu is closed; open it again so the message is seen.
+      if (menu.current?.matches(':popover-open') === false) {
+        menu.current.showPopover();
+      }
     }
   }
 
@@ -104,13 +131,7 @@ export function AccountMenu() {
               Sign in
             </Link>
           ) : (
-            <button
-              type="button"
-              onClick={() => {
-                void signOut();
-              }}
-              className={MENU_ROW}
-            >
+            <button type="button" onClick={requestSignOut} className={MENU_ROW}>
               <LogOutIcon className="text-muted size-4" aria-hidden="true" />
               Sign out
             </button>
@@ -122,6 +143,21 @@ export function AccountMenu() {
           )}
         </div>
       </div>
+      {confirming && lossMessage !== null && (
+        <ConfirmDialog
+          title="Sign out without saving?"
+          message={lossMessage}
+          confirmLabel="Sign out"
+          busy={false}
+          error={null}
+          onConfirm={() => {
+            void signOut();
+          }}
+          onCancel={() => {
+            setConfirming(false);
+          }}
+        />
+      )}
     </>
   );
 }

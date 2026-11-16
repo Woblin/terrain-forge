@@ -24,7 +24,8 @@ import { parsePieceDocument, pieceDocument } from './terrainLibrarySchema';
 /**
  * A player's library in Firestore, under `users/{uid}/terrainPieces`. Writes show at once and are
  * sent in the background, so the page keeps working offline; Firestore sends them once the
- * connection is back, and a refusal from the server reaches `onWriteFailed`.
+ * connection is back, and a refusal from the server reaches `onWriteFailed`. Unsent writes live
+ * only in this tab until then, which is why the app warns before the tab closes while saving.
  */
 export function createFirestoreLibrary(db: Firestore, uid: string): LibraryStore {
   const pieces = piecesCollection(db, uid);

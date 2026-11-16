@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { describe, expect, it } from 'vitest';
-import { schemaFor, storedVersion } from './schemaVersion';
+import { schemaFor, storedName, storedVersion } from './schemaVersion';
 
 describe('storedVersion', () => {
   it.each([
@@ -31,5 +31,17 @@ describe('schemaFor', () => {
   it('reads a document without a known version with the current schema', () => {
     expect(schemaFor({ schemaVersion: 0 }, readers, 1)).toEqual({ newer: false, schema: v1 });
     expect(schemaFor({}, readers, 1)).toEqual({ newer: false, schema: v1 });
+  });
+});
+
+describe('storedName', () => {
+  it.each([
+    [{ name: 'Old tower' }, 'The saved piece "Old tower"'],
+    [{ name: '  ' }, 'A saved piece'],
+    [{ name: 7 }, 'A saved piece'],
+    [{ name: 'x'.repeat(61) }, 'A saved piece'],
+    [null, 'A saved piece'],
+  ])('names %j as %j', (data, name) => {
+    expect(storedName('piece', data)).toBe(name);
   });
 });

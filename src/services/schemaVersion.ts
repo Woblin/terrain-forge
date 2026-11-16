@@ -4,6 +4,23 @@ import type { z } from 'zod';
 export const NEWER_VERSION_PROBLEM =
   'was saved by a newer version of Terrain Forge. Reload the page to see it.';
 
+/** Longest stored name put into a message for the player. */
+const NAME_IN_MESSAGE_LENGTH = 60;
+
+/**
+ * How a message names a stored piece or board: by the name it was saved with when that can be
+ * read, never by its document id, which means nothing to the player.
+ */
+export function storedName(kind: 'piece' | 'board', data: unknown): string {
+  const name =
+    typeof data === 'object' && data !== null && 'name' in data && typeof data.name === 'string'
+      ? data.name.trim()
+      : '';
+  return name === '' || name.length > NAME_IN_MESSAGE_LENGTH
+    ? `A saved ${kind}`
+    : `The saved ${kind} "${name}"`;
+}
+
 /** The `schemaVersion` a stored document says it has, or null when it has none that can be read. */
 export function storedVersion(data: unknown): number | null {
   if (typeof data !== 'object' || data === null || !('schemaVersion' in data)) {

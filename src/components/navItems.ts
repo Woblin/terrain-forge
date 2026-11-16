@@ -33,6 +33,8 @@ export function navItemsFor(signedIn: boolean): readonly NavItem[] {
   return NAV_ITEMS.filter((item) => signedIn || !item.signedInOnly);
 }
 
+const APP_NAME = 'Terrain Forge';
+
 /** The heading the phone top bar shows for a page. */
 export function pageTitle(pathname: string): string {
   const item = NAV_ITEMS.find((candidate) => candidate.to === pathname);
@@ -45,7 +47,13 @@ export function pageTitle(pathname: string): string {
   if (pathname === '/account') {
     return 'Account';
   }
-  return 'Terrain Forge';
+  return APP_NAME;
+}
+
+/** The browser tab's title for a page, so tabs and screen readers can tell the pages apart. */
+export function documentTitle(pathname: string): string {
+  const title = pageTitle(pathname);
+  return title === APP_NAME ? APP_NAME : `${title} · ${APP_NAME}`;
 }
 
 /** Pages laid out to fill the window exactly, scrolling inside their own panels. */
