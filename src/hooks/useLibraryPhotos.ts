@@ -93,6 +93,10 @@ export function useLibraryPhotos(
       store
         .readPhoto(piece.id)
         .then((photo) => (photo === null ? undefined : keep(store, piece.id, version, photo)))
+        .then(() => {
+          // A photo that loads shows the store is reachable again, so an older failure is over.
+          setError(null);
+        })
         .catch((failure: unknown) => {
           loading.current.delete(key);
           setError(failure instanceof Error ? failure.message : 'Could not load a photo.');

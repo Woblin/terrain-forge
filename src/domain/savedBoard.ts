@@ -130,6 +130,20 @@ export function hasUnsavedChanges(
   );
 }
 
+/**
+ * True when replacing the board on the page would lose work: changes to a saved board, or hand
+ * edits to a board that was never saved.
+ */
+export function boardWorkAtRisk(
+  opened: OpenedBoard | null,
+  snapshot: EditorSnapshot | null,
+  matId: MatId,
+): boolean {
+  return (
+    hasUnsavedChanges(opened, snapshot, matId) || (opened === null && snapshot?.edited === true)
+  );
+}
+
 /** The pieces of the saved terrain that the library no longer has exactly as they were. */
 export function changedPieces(
   saved: readonly TerrainPiece[],

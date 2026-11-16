@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { findById } from '../domain/findById';
-import { hasUnsavedChanges, type SavedBoard } from '../domain/savedBoard';
+import { boardWorkAtRisk, hasUnsavedChanges, type SavedBoard } from '../domain/savedBoard';
 import { useBoardSession } from './boardSessionContext';
 import { useSavedBoards } from './savedBoardsContext';
 
@@ -30,7 +30,7 @@ export function useBoardOpener(): BoardOpener {
   const { opened } = session;
   const { present } = session.editor;
   const unsaved = hasUnsavedChanges(opened, present, session.mat);
-  const atRisk = unsaved || (opened === null && present?.edited === true);
+  const atRisk = boardWorkAtRisk(opened, present, session.mat);
 
   function open(board: SavedBoard): void {
     void navigate(`/board?saved=${encodeURIComponent(board.id)}`);

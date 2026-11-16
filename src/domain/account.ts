@@ -115,3 +115,20 @@ function newPasswordError(password: string): string | undefined {
     ? undefined
     : `The password still needs: ${missing.map((rule) => rule.label.toLowerCase()).join(', ')}.`;
 }
+
+/**
+ * What the player is asked before signing out when that would lose work: pieces kept only in this
+ * tab, and a board with changes that are not saved. Null when nothing would be lost.
+ */
+export function signOutLossMessage(unsavedPieces: number, boardAtRisk: boolean): string | null {
+  const losses = [
+    ...(unsavedPieces === 0
+      ? []
+      : [unsavedPieces === 1 ? '1 terrain piece' : `${String(unsavedPieces)} terrain pieces`]),
+    ...(boardAtRisk ? ['changes to the board'] : []),
+  ];
+  if (losses.length === 0) {
+    return null;
+  }
+  return `Not saved yet: ${losses.join(' and ')}. Signing out now loses this work.`;
+}

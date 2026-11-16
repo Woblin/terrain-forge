@@ -4,6 +4,7 @@ import type { Layout } from './generator';
 import type { LibraryPiece } from './library';
 import {
   boardLimitError,
+  boardWorkAtRisk,
   boardNameError,
   changedPieces,
   copyName,
@@ -137,6 +138,12 @@ describe('unsaved changes', () => {
 
   it('never apply to a board that is not saved', () => {
     expect(hasUnsavedChanges(null, snapshotOf(true), 'plain')).toBe(false);
+  });
+
+  it('put a hand-edited board that was never saved at risk, but not a generated one', () => {
+    expect(boardWorkAtRisk(null, snapshotOf(true), 'plain')).toBe(true);
+    expect(boardWorkAtRisk(null, snapshotOf(false), 'plain')).toBe(false);
+    expect(boardWorkAtRisk(null, null, 'plain')).toBe(false);
   });
 
   it('include switched rules and another seed', () => {

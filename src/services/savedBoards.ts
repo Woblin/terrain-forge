@@ -33,7 +33,7 @@ export interface SavedBoardsSnapshot {
 /**
  * A player's boards in Firestore, under `users/{uid}/boards`. Writes show at once and are sent in
  * the background, so the page keeps working offline; a refusal from the server reaches
- * `onWriteFailed`.
+ * `onWriteFailed`. Unsent writes live only in this tab until the connection is back.
  */
 export interface SavedBoardStore {
   /** Calls `onChange` with every board now or soon, and again after each change. */
@@ -78,7 +78,7 @@ export function createSavedBoardStore(db: Firestore, uid: string): SavedBoardSto
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
         }),
-        `Could not save "${content.name}". Check your connection and save again.`,
+        `Could not save "${content.name}".`,
       );
     },
     replace(boardId, content) {
@@ -87,7 +87,7 @@ export function createSavedBoardStore(db: Firestore, uid: string): SavedBoardSto
           ...boardDocument(content),
           updatedAt: serverTimestamp(),
         }),
-        `Could not save "${content.name}". Check your connection and save again.`,
+        `Could not save "${content.name}".`,
       );
     },
     rename(boardId, name) {
