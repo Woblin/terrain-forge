@@ -31,7 +31,8 @@ export function parseImageDocument(pieceId: string, data: unknown): EncodedPhoto
     result.data.data.toUint8Array().byteLength > PHOTO_MAX_BYTES ||
     (result.data.mask?.toUint8Array().byteLength ?? 0) > PHOTO_MASK_MAX_BYTES
   ) {
-    throw new Error(`The photo of a saved piece (${pieceId}) could not be read.`);
+    console.warn(`The photo of saved piece ${pieceId} could not be read.`);
+    throw new Error('A saved photo could not be read, so its piece shows the drawing instead.');
   }
   const { data: photo, mimeType, width, height, mask } = result.data;
   return {

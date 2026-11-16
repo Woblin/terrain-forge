@@ -1,10 +1,13 @@
 import { useState } from 'react';
 import { Link, Outlet, useLocation } from 'react-router';
 import { HeaderSlotContext } from '../hooks/headerSlotContext';
+import { useTerrainLibrary } from '../hooks/libraryContext';
+import { useSavedBoards } from '../hooks/savedBoardsContext';
+import { useLeaveWarning } from '../hooks/useLeaveWarning';
 import { AccountMenu } from './AccountMenu';
 import { LogoMark } from './LogoMark';
 import { MainNav } from './MainNav';
-import { fillsWindow, pageTitle } from './navItems';
+import { documentTitle, fillsWindow, pageTitle } from './navItems';
 import { TabBar } from './TabBar';
 import { UnitToggle } from './UnitToggle';
 import { VerifyEmailBanner } from './VerifyEmailBanner';
@@ -17,8 +20,13 @@ export function AppShell() {
   const location = useLocation();
   const fixedHeight = fillsWindow(location.pathname);
   const [headerSlot, setHeaderSlot] = useState<HTMLElement | null>(null);
+  const library = useTerrainLibrary();
+  const savedBoards = useSavedBoards();
+  // Changes not yet sent to the server live only in this tab, so closing it would lose them.
+  useLeaveWarning(library.saving || savedBoards.saving);
   return (
     <div className={`flex flex-col ${fixedHeight ? 'h-dvh' : 'min-h-dvh'}`}>
+      <title>{documentTitle(location.pathname)}</title>
       <header className="border-brass bg-iron text-on-iron sticky top-0 z-30 border-b pt-[env(safe-area-inset-top)] shadow-[0_1px_0_#3a2c1a,0_4px_14px_rgb(0_0_0/0.45)]">
         <div className="flex h-13 items-center gap-3 px-3 md:h-15 md:gap-7 md:px-[18px]">
           <Link

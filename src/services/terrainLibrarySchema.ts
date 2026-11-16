@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { LIBRARY_LIMITS, type LibraryPiece } from '../domain/library';
 import { FOOTPRINT_KINDS, TERRAIN_TYPES } from '../domain/terrain';
 import type { Parsed } from './firestoreStore';
-import { NEWER_VERSION_PROBLEM, schemaFor } from './schemaVersion';
+import { NEWER_VERSION_PROBLEM, schemaFor, storedName } from './schemaVersion';
 
 /** Bump when the shape of a saved piece changes, and teach the reader the old shape. */
 export const PIECE_SCHEMA_VERSION = 1;
@@ -32,14 +32,14 @@ const readers = { [PIECE_SCHEMA_VERSION]: pieceDocumentSchema };
 export function parsePieceDocument(id: string, data: unknown): Parsed<LibraryPiece> {
   const reader = schemaFor(data, readers, PIECE_SCHEMA_VERSION);
   if (reader.newer) {
-    return { ok: false, problem: `A saved piece (${id}) ${NEWER_VERSION_PROBLEM}` };
+    return { ok: false, problem: `${storedName('piece', data)} ${NEWER_VERSION_PROBLEM}` };
   }
   const result = reader.schema.safeParse(data);
   if (!result.success) {
-    const fields = [...new Set(result.error.issues.map((issue) => issue.path.join('.')))];
+    console.warn(`Saved piece ${id} could not be read.`, result.error.issues);
     return {
       ok: false,
-      problem: `A saved piece (${id}) could not be read and was left out. Check: ${fields.join(', ')}.`,
+      problem: `${storedName('piece', data)} could not be read and was left out.`,
     };
   }
   const { name, type, footprint, quantity, image } = result.data;

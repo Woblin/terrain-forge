@@ -302,7 +302,8 @@ describe('the Firestore library service', () => {
       await unverified.library.add([ruin]);
       await waitUntil(() => unverified.refused.length > 0);
       expect(unverified.refused).toEqual([
-        'Could not save "Large ruin". It was taken out of your library again.',
+        'Could not save "Large ruin". It was taken out of your library again. ' +
+          'Your sign-in may have run out. Sign out, sign in again and try once more.',
       ]);
       await waitUntil(() => unverified.seen.at(-1)?.pieces.length === 0);
       expect(unverified.seen.some((snapshot) => snapshot.pieces.length === 1)).toBe(true);

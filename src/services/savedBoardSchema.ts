@@ -5,7 +5,7 @@ import { matIdOf } from '../domain/mats';
 import { SAVED_BOARD_LIMITS, type SavedBoard, type SavedBoardContent } from '../domain/savedBoard';
 import { STORED_ID_LENGTH } from '../domain/storageLimits';
 import type { Parsed } from './firestoreStore';
-import { NEWER_VERSION_PROBLEM, schemaFor } from './schemaVersion';
+import { NEWER_VERSION_PROBLEM, schemaFor, storedName } from './schemaVersion';
 import { pieceFieldsSchema } from './terrainLibrarySchema';
 
 /** Bump when the shape of a saved board changes, and teach the reader the old shape. */
@@ -55,14 +55,14 @@ export function parseBoardDocument(
 ): Parsed<SavedBoard> {
   const reader = schemaFor(data, readers, BOARD_SCHEMA_VERSION);
   if (reader.newer) {
-    return { ok: false, problem: `A saved board (${boardId}) ${NEWER_VERSION_PROBLEM}` };
+    return { ok: false, problem: `${storedName('board', data)} ${NEWER_VERSION_PROBLEM}` };
   }
   const result = reader.schema.safeParse(data);
   if (!result.success) {
-    const fields = [...new Set(result.error.issues.map((issue) => issue.path.join('.')))];
+    console.warn(`Saved board ${boardId} could not be read.`, result.error.issues);
     return {
       ok: false,
-      problem: `A saved board (${boardId}) could not be read and was left out. Check: ${fields.join(', ')}.`,
+      problem: `${storedName('board', data)} could not be read and was left out.`,
     };
   }
   const stored = result.data;
@@ -70,7 +70,7 @@ export function parseBoardDocument(
   if (!stored.placements.every((placement) => pieceIds.has(placement.pieceId))) {
     return {
       ok: false,
-      problem: `A saved board (${boardId}) places terrain it has no copy of and was left out.`,
+      problem: `${storedName('board', data)} places terrain it has no copy of and was left out.`,
     };
   }
   return { ok: true, value: { id: boardId, savedAt, ...contentOf(stored) } };

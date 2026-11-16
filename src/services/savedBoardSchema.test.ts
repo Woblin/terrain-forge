@@ -68,7 +68,7 @@ describe('saved board documents', () => {
       0,
     );
     expect(!result.ok && result.problem).toBe(
-      'A saved board (b1) was saved by a newer version of Terrain Forge. Reload the page to see it.',
+      `The saved board "${content.name}" was saved by a newer version of Terrain Forge. Reload the page to see it.`,
     );
   });
 
@@ -81,7 +81,7 @@ describe('saved board documents', () => {
     );
     expect(result).toEqual({
       ok: false,
-      problem: 'A saved board (b1) places terrain it has no copy of and was left out.',
+      problem: `The saved board "${content.name}" places terrain it has no copy of and was left out.`,
     });
   });
 

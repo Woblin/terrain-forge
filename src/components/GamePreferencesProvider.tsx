@@ -64,9 +64,14 @@ export function GamePreferencesProvider({ children }: { children: ReactNode }) {
           fail('Your saved game settings could not be read, so the ones in this browser are used.');
         } else if (seeded.current !== savingUid) {
           seeded.current = savingUid;
-          saveAccountPreferences(db, savingUid, latestLocal.current).catch((cause: unknown) => {
-            fail(messageOf(cause));
-          });
+          saveAccountPreferences(db, savingUid, latestLocal.current).then(
+            () => {
+              setError(null);
+            },
+            (cause: unknown) => {
+              fail(messageOf(cause));
+            },
+          );
         }
       },
       onError: (message) => {
@@ -88,9 +93,15 @@ export function GamePreferencesProvider({ children }: { children: ReactNode }) {
         return;
       }
       setAccount({ uid: savingUid, preferences: next });
-      saveAccountPreferences(db, savingUid, next).catch((cause: unknown) => {
-        setError({ uid: savingUid, message: messageOf(cause) });
-      });
+      // A save that works shows the account is reachable again, so an older failure is over.
+      saveAccountPreferences(db, savingUid, next).then(
+        () => {
+          setError(null);
+        },
+        (cause: unknown) => {
+          setError({ uid: savingUid, message: messageOf(cause) });
+        },
+      );
     };
     return {
       ready,
@@ -117,5 +128,7 @@ export function GamePreferencesProvider({ children }: { children: ReactNode }) {
 }
 
 function messageOf(cause: unknown): string {
-  return cause instanceof Error ? cause.message : String(cause);
+  return cause instanceof Error
+    ? cause.message
+    : 'Could not save your game settings to your account. They are kept in this browser.';
 }

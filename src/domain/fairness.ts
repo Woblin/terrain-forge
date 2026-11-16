@@ -104,10 +104,26 @@ export interface FairnessDetails {
   readonly hidden: Readonly<Record<PlayerId, readonly Point[]>>;
 }
 
+/**
+ * Measures a board against the balance rules. The limits come from the game's `BalanceRules`:
+ *
+ * | Rule | Measures                                         | Fails when                                    |
+ * | ---- | ------------------------------------------------ | --------------------------------------------- |
+ * | R1   | share of each zone hidden from the enemy zone    | absolute difference > max, or either < minimum |
+ * | R2   | cover area within reach of each zone (weighted)  | difference relative to the larger > max       |
+ * | R3   | average distance from front edge to cover (in)   | absolute difference > max                     |
+ * | R4   | terrain area in each player's half (sq in)       | difference relative to the larger > max       |
+ * | R5   | longest clear line through midfield (in)         | length > max                                  |
+ * | R6   | share of the board covered                       | outside the min to max range                  |
+ *
+ * Rules that are off are still measured but never fail the board. `imbalance` adds up the R1 to
+ * R4 differences, each divided by its limit, so 1 means one rule is right at its limit.
+ */
 export function evaluateFairness(input: FairnessInput): FairnessReport {
   return explainFairness(input).report;
 }
 
+/** The same measures as `evaluateFairness`, with what R1 and R5 found, so the board can draw them. */
 export function explainFairness(input: FairnessInput): FairnessDetails {
   const { board, deployment, terrain, reach, edgeMargin, balance, enabledRules } = input;
   const obstacles = sightObstacles(terrain);
@@ -135,6 +151,7 @@ export function explainFairness(input: FairnessInput): FairnessDetails {
 
 type Measures = Omit<FairnessReport, 'failedRules' | 'imbalance'>;
 
+/** Every rule the measures break, switched on or not; see the table on `evaluateFairness`. */
 function failedRules(measures: Measures, balance: BalanceRules): RuleId[] {
   const { hiddenDeployment, coverInReach, nearestCover, halfBoard } = measures;
   const broken: Record<RuleId, boolean> = {

@@ -6,6 +6,7 @@ import {
   type Firestore,
   type SnapshotOptions,
 } from 'firebase/firestore';
+import { writeFailureReason } from './firestoreErrors';
 
 /** What a store tells the page that follows it. */
 export interface StoreListeners<Snapshot> {
@@ -28,7 +29,7 @@ const BATCH_LIMIT = 500;
 
 /**
  * Sends writes without waiting for the server, so the page keeps working offline, and tells every
- * listener about a later refusal.
+ * listener about a later refusal: `failure` says what was lost, followed by why.
  */
 export function createWriteReporter(): {
   readonly listen: (onWriteFailed: (message: string) => void) => () => void;
@@ -45,8 +46,9 @@ export function createWriteReporter(): {
     send: (write, failure) => {
       write.catch((error: unknown) => {
         console.error(failure, error);
+        const message = `${failure} ${writeFailureReason(error)}`;
         for (const listener of listeners) {
-          listener(failure);
+          listener(message);
         }
       });
     },

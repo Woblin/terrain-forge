@@ -22,6 +22,12 @@ import { authErrorMessage, deletionFailedMessage } from './authErrors';
 import { deleteSavedBoards } from './savedBoards';
 import { deleteLibrary } from './terrainLibrary';
 
+/**
+ * How long one step of deleting an account may wait for the server. Offline, a Firestore write
+ * waits for the connection forever, which would leave the player looking at "Deleting…".
+ */
+const DELETE_STEP_TIMEOUT_MS = 30_000;
+
 /** How the player confirms it is them before deleting their account. */
 export type Reauthentication =
   { readonly kind: 'google' } | { readonly kind: 'password'; readonly password: string };
@@ -131,6 +137,9 @@ export function deleteAccount(
   proof: Reauthentication,
 ): Promise<string | null> {
   return attempt('Deleting the account', async () => {
+    if (!navigator.onLine) {
+      throw new PlayerError('You are offline. Connect to the internet, then delete the account.');
+    }
     const user = signedIn(auth);
     await reauthenticate(user, proof);
     const steps = [
@@ -141,13 +150,30 @@ export function deleteAccount(
     const done: string[] = [];
     for (const step of steps) {
       try {
-        await step.run();
+        await withTimeout(step.run(), DELETE_STEP_TIMEOUT_MS);
       } catch (error) {
         throw new PlayerError(deletionFailedMessage(done, step.what), { cause: error });
       }
       done.push(step.what);
     }
-    await deleteUser(user);
+    try {
+      await withTimeout(deleteUser(user), DELETE_STEP_TIMEOUT_MS);
+    } catch (error) {
+      throw new PlayerError(deletionFailedMessage(done, 'account'), { cause: error });
+    }
+  });
+}
+
+/** Settles like `work`, or rejects once `ms` have passed without an answer. */
+function withTimeout<T>(work: Promise<T>, ms: number): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => {
+      reject(new Error(`No answer from the server after ${String(ms / 1000)} seconds.`));
+    }, ms);
+  });
+  return Promise.race([work, timeout]).finally(() => {
+    clearTimeout(timer);
   });
 }
 
