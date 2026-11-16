@@ -7,13 +7,13 @@ runs:
     # The first setup-node puts the right Node on PATH so that Corepack can provide Yarn 4.
     # The second one can then use Yarn to find and restore the Yarn cache.
     # Automatic caching is off in the first one because it would call Yarn before Corepack is enabled.
-    - uses: actions/setup-node@v5
+    - uses: actions/setup-node@v7
       with:
         node-version-file: .nvmrc
         package-manager-cache: false
     - run: corepack enable
       shell: bash
-    - uses: actions/setup-node@v5
+    - uses: actions/setup-node@v7
       with:
         node-version-file: .nvmrc
         cache: yarn
