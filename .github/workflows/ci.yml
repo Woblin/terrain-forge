@@ -5,49 +5,77 @@ on:
   push:
     branches: [main]
 
+# The default token can only read the repository. No job needs to write to GitHub.
+permissions:
+  contents: read
+
+# A new push to a pull request cancels the older run of the same PR.
+# Runs on main are never cancelled, so a deploy is never cut off halfway.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  # Pinned so that a new Firebase CLI release cannot change CI or the deploy without a PR.
+  FIREBASE_TOOLS_VERSION: 15.36.0
+
 jobs:
+  # Type check, lint, format check, unit tests and a production build.
   check:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version-file: .nvmrc
-      - run: corepack enable
-      - uses: actions/setup-node@v4
-        with:
-          node-version-file: .nvmrc
-          cache: yarn
-      - run: yarn install --immutable
-      - run: yarn validate
+      - uses: ./.github/actions/setup-yarn
+      - run: yarn typecheck
+      - run: yarn lint
+      - run: yarn format:check
+      - run: yarn test
       - run: yarn build
-      # The Firestore rules tests run against the emulator, which needs Java and the Firebase CLI.
+
+  # Firestore security rules tests. They run against the emulator, which needs Java and the Firebase CLI.
+  rules:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-yarn
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 21
-      - run: npm install --global firebase-tools
+      # Yarn 4 has no global installs, so the Firebase CLI is installed with npm (pinned version above).
+      - run: npm install --global "firebase-tools@$FIREBASE_TOOLS_VERSION"
       - run: yarn test:rules
+
+  # Reports known vulnerabilities in the packages the app ships. It does not block merges yet:
+  # firebase currently pulls in an old @grpc/grpc-js with a high advisory that only affects Node, not the browser.
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-yarn
+      - run: yarn npm audit --recursive --environment production --severity high
 
   # Deploys the site, Firestore rules and indexes after a PR is merged into main and the checks pass.
   deploy:
-    needs: check
+    needs: [check, rules]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # Shows each deploy under Deployments on GitHub. Protection rules (for example a required approval)
+    # can be added to this environment in the repository settings without changing this file.
+    environment:
+      name: production
+      url: https://terrain-forge.web.app
     concurrency:
       group: deploy
       cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version-file: .nvmrc
-      - run: corepack enable
-      - uses: actions/setup-node@v4
-        with:
-          node-version-file: .nvmrc
-          cache: yarn
-      - run: yarn install --immutable
+      - uses: ./.github/actions/setup-yarn
       - run: yarn build
         env:
           VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
@@ -60,7 +88,10 @@ jobs:
         run: printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$RUNNER_TEMP/service-account.json"
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-      - run: npm install --global firebase-tools
+      - run: npm install --global "firebase-tools@$FIREBASE_TOOLS_VERSION"
       - run: firebase deploy --only hosting,firestore --project terrain-forge --non-interactive
         env:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/service-account.json
+      - name: Remove service account key
+        if: always()
+        run: rm -f "$RUNNER_TEMP/service-account.json"

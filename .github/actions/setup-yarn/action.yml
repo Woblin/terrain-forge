@@ -1,0 +1,20 @@
+name: Set up Node and Yarn
+description: Installs Node from .nvmrc, enables Corepack (Yarn 4 from packageManager), restores the Yarn cache and installs dependencies from yarn.lock.
+
+runs:
+  using: composite
+  steps:
+    # The first setup-node puts the right Node on PATH so that Corepack can provide Yarn 4.
+    # The second one can then use Yarn to find and restore the Yarn cache.
+    - uses: actions/setup-node@v4
+      with:
+        node-version-file: .nvmrc
+    - run: corepack enable
+      shell: bash
+    - uses: actions/setup-node@v4
+      with:
+        node-version-file: .nvmrc
+        cache: yarn
+    # --immutable fails if yarn.lock would change, so CI always installs exactly the locked versions.
+    - run: yarn install --immutable
+      shell: bash
