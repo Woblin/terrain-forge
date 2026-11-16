@@ -1,0 +1,13 @@
+# Opens a PR once a week when a GitHub Action used in .github/ has a new version.
+# Only actions are watched; npm packages are updated by hand (dependency changes are reviewed by hand).
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directories:
+      - /
+      - /.github/actions/*
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ['*']

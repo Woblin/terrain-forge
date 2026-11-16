@@ -70,7 +70,9 @@ Other commands:
 | `yarn lint`, `yarn typecheck`, `yarn format:check` | ESLint, TypeScript without output, Prettier check |
 | `yarn validate` | Type check, lint, format check and tests (what CI runs) |
 
-**Deploy:** every merge into `main` deploys automatically. The `deploy` job in `.github/workflows/ci.yml` runs after the checks pass, builds with the Firebase values from GitHub secrets (`VITE_FIREBASE_*` and `FIREBASE_SERVICE_ACCOUNT`) and runs `firebase deploy --only hosting,firestore`, so the site, `firestore.rules` and indexes go live together. To deploy by hand: make sure `.env.local` holds the real values and does not set `VITE_USE_EMULATORS=true` (the values are baked into the build), then run `yarn build` and `firebase deploy`.
+**CI:** `.github/workflows/ci.yml` runs on every pull request and every push to `main`. The `check` job runs the type check, lint, format check, unit tests and a build; the `rules` job runs the Firestore rules tests against the emulator; the `audit` job reports known vulnerabilities in production packages without blocking. Dependabot opens a weekly PR when a GitHub Action has a new version.
+
+**Deploy:** every merge into `main` deploys automatically. The `deploy` job in `.github/workflows/ci.yml` runs after `check` and `rules` pass, builds with the Firebase values from GitHub secrets (`VITE_FIREBASE_*` and `FIREBASE_SERVICE_ACCOUNT`) and runs `firebase deploy --only hosting,firestore`, so the site, `firestore.rules` and indexes go live together. To deploy by hand: make sure `.env.local` holds the real values and does not set `VITE_USE_EMULATORS=true` (the values are baked into the build), then run `yarn build` and `firebase deploy`.
 
 ## Architecture
 
