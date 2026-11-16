@@ -1,134 +1,125 @@
 # Terrain Forge
 
-Auto-generate tabletop wargame battlefields with balanced terrain placement.
+Terrain Forge generates terrain layouts for tabletop wargames (Warhammer Fantasy, Warhammer 40,000, Age of Sigmar, One Page Rules) from the player's own terrain, so setup is quick and both sides can accept the board as fair.
 
-Terrain Forge is a web app that generates a battlefield layout for tabletop wargames such as **Warhammer Fantasy**, **Warhammer 40,000**, **Age of Sigmar** and **One Page Rules**. The goal is a board that both players agree is fair and that is still fun to play on: no lopsided deployment zones and no empty shooting galleries, but enough variety to make every game feel different.
+**Live:** https://terrain-forge.web.app
 
-> **Status:** Early development. Features below describe the planned scope of the project.
+## What it does
 
-## Features
-
-### Battlefield generation
-- Generate a complete terrain layout with one click
-- Balanced placement, so neither player gets an advantage in deployment, cover or line of sight
-- Variety in each layout, so boards stay interesting from game to game
-- Support for common board sizes (e.g. 44" × 60", 6' × 4')
-
-### Board editor
-- **Drag and drop** terrain pieces to adjust the generated layout
-- **Rotate** pieces to fine-tune angles and firing lanes
-- **Add** new pieces from your terrain library
-- **Remove** pieces you don't want on the table
-
-### Terrain library
-- Build a library of the terrain you actually own
-- Define each piece's footprint, size and type (e.g. ruins, forest, obstacle, wall, building)
-- Generate battlefields using only the terrain in your collection
-
-### User accounts
-- Sign in with Google or with an email and password to keep your terrain library and photos
-- Email accounts save once the email address is verified
-- Use the app without an account; your terrain then lasts until you reload the page
-- Save boards to your account and open them again from **My boards**, hand edits included; a saved board keeps a copy of its terrain, so later library changes leave it as it was
-- A board made before signing in stays on screen, so it can be saved right after
-- Delete your account and everything saved with it from the account page
-- Access your terrain from any device
-
-## Tech stack
-
-| Area | Technology |
-| --- | --- |
-| Build tool | [Vite](https://vitejs.dev/) |
-| UI framework | [React](https://react.dev/) |
-| Language | [TypeScript](https://www.typescriptlang.org/) |
-| Styling | [Tailwind CSS](https://tailwindcss.com/) |
-| Authentication | Firebase Authentication |
-| Database | Cloud Firestore (terrain library, saved battlefields) |
-| Hosting | Firebase Hosting |
+The user picks a game system, a deployment and which balance rules apply, and the app places terrain pieces on the board from a seed, so the same board can be generated again. The result can be adjusted by hand: drag, rotate, add and remove pieces, measure distances to the board edge and change the mat, while a fairness panel shows how well the board meets the balance rules. With an account (Google or email) users keep their own terrain library, with size and a photo for each piece, and save boards to open again later; without an account the app still works, but everything is lost when the page reloads.
 
 ## Getting started
 
-### Prerequisites
-- [Node.js](https://nodejs.org/) 22.12 or newer (24 LTS recommended, see `.nvmrc`)
-- [Yarn](https://yarnpkg.com/) 4, through Corepack (bundled with Node 22 and 24): run `corepack enable` once. The exact Yarn version is pinned in `package.json`.
-- For local emulators: [Firebase CLI](https://firebase.google.com/docs/cli) (`npm install -g firebase-tools`) and Java 21 or newer
-- For a real backend: a [Firebase](https://firebase.google.com/) project with Authentication and Firestore enabled
+### Requirements
 
-### Setup
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/Woblin/terrain-forge.git
-   cd terrain-forge
-   ```
-2. Install dependencies:
-   ```bash
-   yarn install
-   ```
-3. Copy the example environment file:
-   ```bash
-   cp .env.example .env.local
-   ```
-   The example values work with the local emulators, no Firebase project needed. To use a real project, replace them with the config from the Firebase console under *Project settings → Your apps* and set `VITE_USE_EMULATORS=false`. Never commit `.env.local`.
-4. Start the emulators (Auth, Firestore, and the Emulator UI on http://127.0.0.1:4000) in one terminal. The Auth emulator signs in with made-up Google and email accounts; verification and password reset links are printed in its log and listed in the Emulator UI.
-   ```bash
-   yarn emulators
-   ```
-5. Start the development server in another:
-   ```bash
-   yarn dev
-   ```
+- Node.js 22.12 or newer (24 LTS recommended, see `.nvmrc`)
+- Yarn 4 through Corepack (bundled with Node): run `corepack enable` once. The exact version is pinned in `package.json`.
+- For local development with emulators: the [Firebase CLI](https://firebase.google.com/docs/cli) and Java 21 or newer
+- For a real backend: a Firebase project with Authentication (Google and email/password) and Firestore enabled
 
-### Scripts
+### Installation
 
-| Script | What it does |
+```bash
+git clone https://github.com/Woblin/terrain-forge.git
+cd terrain-forge
+yarn install
+```
+
+### Configuration
+
+Create a `.env.local` file in the project root (Vite reads it; git ignores it, and it must never be committed). The easiest way is to copy the example:
+
+```bash
+cp .env.example .env.local
+```
+
+```
+VITE_FIREBASE_API_KEY=your-value
+VITE_FIREBASE_AUTH_DOMAIN=your-value
+VITE_FIREBASE_PROJECT_ID=your-value
+VITE_FIREBASE_STORAGE_BUCKET=your-value
+VITE_FIREBASE_MESSAGING_SENDER_ID=your-value
+VITE_FIREBASE_APP_ID=your-value
+VITE_USE_EMULATORS=true
+```
+
+All required variables are listed in `.env.example`. Its example values work as they are with the local emulators, no Firebase project needed. For a real project, take the values from the Firebase console under _Project settings → Your apps_ and set `VITE_USE_EMULATORS=false`.
+
+### Running the project
+
+Start the emulators (Auth, Firestore and the Emulator UI at http://127.0.0.1:4000) in one terminal:
+
+```bash
+yarn emulators
+```
+
+Start the dev server in another (http://localhost:5180):
+
+```bash
+yarn dev
+```
+
+Other commands:
+
+| Command | What it does |
 | --- | --- |
-| `yarn dev` | Start the Vite dev server |
-| `yarn build` | Type-check and build to `dist/` |
+| `yarn build` | Type-check and build for production to `dist/` |
 | `yarn preview` | Serve the production build locally |
-| `yarn typecheck` | Run the TypeScript compiler without emitting |
-| `yarn lint` | Run ESLint |
-| `yarn format` / `format:check` | Format with Prettier / check formatting |
-| `yarn test` / `test:watch` | Run Vitest once / in watch mode |
+| `yarn test` / `yarn test:watch` | Run Vitest once / in watch mode |
 | `yarn test:rules` | Test `firestore.rules` against the Firestore emulator (needs the Firebase CLI and Java) |
-| `yarn emulators` | Start the Firebase emulators, saving data to `.emulator-data/` |
-| `yarn validate` | Typecheck, lint, format check and tests (what CI runs) |
+| `yarn lint`, `yarn typecheck`, `yarn format:check` | ESLint, TypeScript without output, Prettier check |
+| `yarn validate` | Type check, lint, format check and tests (what CI runs) |
 
-### Deploy
-Every merge into `main` deploys automatically. The `deploy` job in `.github/workflows/ci.yml` runs after the checks pass, builds with the Firebase values stored as GitHub secrets, and runs `firebase deploy --only hosting,firestore`. That publishes the site, `firestore.rules` and `firestore.indexes.json` together, so a rules change goes live when its PR is merged.
+**Deploy:** every merge into `main` deploys automatically. The `deploy` job in `.github/workflows/ci.yml` runs after the checks pass, builds with the Firebase values from GitHub secrets (`VITE_FIREBASE_*` and `FIREBASE_SERVICE_ACCOUNT`) and runs `firebase deploy --only hosting,firestore`, so the site, `firestore.rules` and indexes go live together. To deploy by hand: make sure `.env.local` holds the real values and does not set `VITE_USE_EMULATORS=true` (the values are baked into the build), then run `yarn build` and `firebase deploy`.
 
-The app is live at `https://terrain-forge.web.app` (and `https://terrain-forge.firebaseapp.com`). Both domains are on the Firebase Auth authorized domains list by default; a custom domain has to be added there before sign-in works on it.
+## Architecture
 
-#### One-time setup
-The deploy job needs these repository secrets (GitHub, Settings, Secrets and variables, Actions):
+Terrain Forge is a client-only app (a React SPA) with no backend of its own; Firebase handles sign-in, the database and hosting. The code is split into layers that depend in one direction: `pages` and `components` get data through `hooks`, which use `services` and `domain`. All generation and balance logic lives in `domain/`, which is plain TypeScript with no React or Firebase: the same input and seed always give the same board, which makes it easy to test. All Firebase I/O happens in `services/`, which also validates Firestore data with zod before it reaches the rest of the app. Board coordinates are always stored in inches; inches or centimeters is only a display setting, converted in the UI.
 
-| Secret | Value |
-| --- | --- |
-| `VITE_FIREBASE_API_KEY`, `VITE_FIREBASE_AUTH_DOMAIN`, `VITE_FIREBASE_PROJECT_ID`, `VITE_FIREBASE_STORAGE_BUCKET`, `VITE_FIREBASE_MESSAGING_SENDER_ID`, `VITE_FIREBASE_APP_ID` | The same values as in `.env.local` (Firebase console, Project settings, Your apps) |
-| `FIREBASE_SERVICE_ACCOUNT` | The full JSON key of a Google Cloud service account with the **Firebase Admin** and **Service Usage Consumer** roles on the `terrain-forge` project |
+```
+terrain-forge/
+├── src/
+│   ├── domain/          # Pure logic: types, geometry, generator, balance rules, line of sight, share links (with tests)
+│   ├── services/        # All Firebase I/O (auth, Firestore), schema validation, image encoding, generation web worker
+│   ├── hooks/           # Connect React to services and domain (e.g. useAuth, useTerrainLibrary)
+│   ├── components/      # UI components, get data through props or hooks
+│   ├── pages/           # Views: home, board, saved boards, library, sign-in, account, not found
+│   └── assets/mats/     # Board mat images
+├── tests/rules/         # Tests of firestore.rules against the emulator
+├── public/              # Static files (favicon)
+├── .github/workflows/   # CI checks and automatic deploy to Firebase Hosting
+├── firestore.rules      # Security rules: each user can only reach their own documents
+├── firebase.json        # Hosting, Firestore and emulator settings
+├── .env.example         # Template for environment variables
+└── CLAUDE.md            # Conventions and rules for agent-driven development
+```
 
-#### Manual deploy
-To deploy by hand instead, from a machine with the Firebase CLI and a `.env.local` that holds the real Firebase values (`yarn build` bakes them into `dist/`):
+## Tech stack
 
-1. Check that `.env.local` does **not** set `VITE_USE_EMULATORS=true`, or the live site will try to reach emulators on `localhost`.
-2. Build and deploy:
-   ```bash
-   yarn build
-   firebase login
-   firebase deploy
-   ```
-   `.firebaserc` already points at the `terrain-forge` project, so `firebase use` is not needed. Use `firebase deploy --only hosting` to update just the site.
+| Component | Choice | Reason |
+| --- | --- | --- |
+| Build tool | Vite | Fast dev server and builds with minimal configuration |
+| UI | React | The component model fits an interactive editor with many independent parts |
+| Language | TypeScript (strict) | Geometry and Firestore documents have exact shapes; types catch mistakes in coordinates, units and data models early |
+| Styling | Tailwind CSS | Fast to style directly in components without separate CSS files |
+| Routing | React Router | Established routing for a single-page app with several views |
+| Validation | zod | Validates Firestore data on read so broken documents never reach the app |
+| Sign-in | Firebase Authentication | Google and email/password without a server of our own |
+| Database | Cloud Firestore | Per-user terrain library, photos and saved boards, protected by security rules |
+| Hosting | Firebase Hosting | Same service as the rest, deployed automatically from GitHub Actions |
+| Tests | Vitest | Same config and transform pipeline as Vite; tests the generator and balance rules |
+| Package manager | Yarn 4 (Corepack) | Version pinned through `packageManager` in `package.json` |
 
-## Roadmap
-- [x] Battlefield generation algorithm with balance rules
-- [x] Board editor (drag and drop, rotate, add, remove)
-- [x] Terrain library
-- [x] Firebase Authentication (Google and email, verified email needed to save)
-- [x] Save and load battlefields
-- [ ] Presets for popular game systems
-- [ ] Export or share a battlefield (image / link)
+## Limitations
 
-## Contributing
-Contributions, ideas and bug reports are welcome. Open an issue to discuss what you'd like to change.
+- **No guarantee of fairness.** The balance rules measure deployment zones, coverage and line of sight in two dimensions. Height, the terrain rules of each game and how pieces are actually used at the table are not taken into account. When the terrain cannot meet every rule, the app shows the closest board it found and marks which rules failed.
+- **Offline changes live only in the open tab.** Firestore uses a memory cache, so a change made without a connection is only saved if the tab stays open until the connection returns. The app warns before the tab closes with unsent changes, but a crash or a closed browser still loses them.
+- **No limit on documents per user.** The security rules cap the size of each document but not how many a user can create, which at worst could drive up the cost of the Firebase project. The site also lacks security headers such as a Content-Security-Policy.
+- **Nothing is saved without an account.** Terrain and boards only last until the page reloads. Email accounts must be verified before anything is saved, and the app asks before signing out would lose unsaved pieces or board edits.
+- **Share links only recreate the generated board.** A link carries the seed, terrain and rules, but not pieces moved by hand.
+- **Photos are stored at low resolution** directly in Firestore (no Cloud Storage), to keep size and cost down.
+- **Other:** only four preset game systems, and no export to image.
 
-## License
-TBD
+## Built with
+
+Claude Code (agent-driven development) as part of the course Next-Generation Software Development with AI.
