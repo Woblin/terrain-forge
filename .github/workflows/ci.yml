@@ -25,7 +25,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: ./.github/actions/setup-yarn
       - run: yarn typecheck
       - run: yarn lint
@@ -38,9 +38,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: ./.github/actions/setup-yarn
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: 21
@@ -53,11 +53,15 @@ jobs:
   audit:
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    continue-on-error: true
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: ./.github/actions/setup-yarn
-      - run: yarn npm audit --recursive --environment production --severity high
+      # The step may fail without failing the job, so the PR shows a warning instead of a red check.
+      - id: audit
+        run: yarn npm audit --recursive --environment production --severity high
+        continue-on-error: true
+      - if: steps.audit.outcome == 'failure'
+        run: echo "::warning title=Dependency audit::High severity advisories found. See the audit step log."
 
   # Deploys the site, Firestore rules and indexes after a PR is merged into main and the checks pass.
   deploy:
@@ -74,7 +78,7 @@ jobs:
       group: deploy
       cancel-in-progress: false
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: ./.github/actions/setup-yarn
       - run: yarn build
         env:
