@@ -1,134 +1,126 @@
 # Terrain Forge
 
-Auto-generate tabletop wargame battlefields with balanced terrain placement.
+Terrain Forge genererar terränguppställningar för bordskrigsspel (Warhammer Fantasy, Warhammer 40,000, Age of Sigmar, One Page Rules) av spelarens egen terräng, så att uppställningen går snabbt och båda sidor kan godta brädet som rättvist.
 
-Terrain Forge is a web app that generates a battlefield layout for tabletop wargames such as **Warhammer Fantasy**, **Warhammer 40,000**, **Age of Sigmar** and **One Page Rules**. The goal is a board that both players agree is fair and that is still fun to play on: no lopsided deployment zones and no empty shooting galleries, but enough variety to make every game feel different.
+**Live:** https://terrain-forge.web.app
 
-> **Status:** Early development. Features below describe the planned scope of the project.
+## Vad det gör
 
-## Features
+Användaren väljer spelsystem, deployment och vilka balansregler som ska gälla, och appen placerar ut terrängbitar på brädet med ett frö (seed) så att samma bräde kan återskapas. Resultatet går att justera för hand: dra, rotera, lägga till och ta bort bitar, mäta avstånd till brädkanten och byta underlag (mat), medan en rättvisepanel visar hur väl brädet håller balansreglerna. Med ett konto (Google eller e-post) sparas ett eget terrängbibliotek med mått och foto för varje bit, samt brädor som går att öppna igen; utan konto fungerar appen men allt försvinner när sidan laddas om.
 
-### Battlefield generation
-- Generate a complete terrain layout with one click
-- Balanced placement, so neither player gets an advantage in deployment, cover or line of sight
-- Variety in each layout, so boards stay interesting from game to game
-- Support for common board sizes (e.g. 44" × 60", 6' × 4')
+## Kom igång
 
-### Board editor
-- **Drag and drop** terrain pieces to adjust the generated layout
-- **Rotate** pieces to fine-tune angles and firing lanes
-- **Add** new pieces from your terrain library
-- **Remove** pieces you don't want on the table
+### Krav
 
-### Terrain library
-- Build a library of the terrain you actually own
-- Define each piece's footprint, size and type (e.g. ruins, forest, obstacle, wall, building)
-- Generate battlefields using only the terrain in your collection
+- Node.js 22.12 eller senare (24 LTS rekommenderas, se `.nvmrc`)
+- Yarn 4 via Corepack (följer med Node): kör `corepack enable` en gång. Exakt version är låst i `package.json`.
+- För lokal utveckling med emulatorer: [Firebase CLI](https://firebase.google.com/docs/cli) och Java 21 eller senare
+- För riktig backend: ett Firebase-projekt med Authentication (Google och e-post/lösenord) och Firestore aktiverat
 
-### User accounts
-- Sign in with Google or with an email and password to keep your terrain library and photos
-- Email accounts save once the email address is verified
-- Use the app without an account; your terrain then lasts until you reload the page
-- Save boards to your account and open them again from **My boards**, hand edits included; a saved board keeps a copy of its terrain, so later library changes leave it as it was
-- A board made before signing in stays on screen, so it can be saved right after
-- Delete your account and everything saved with it from the account page
-- Access your terrain from any device
+### Installation
 
-## Tech stack
+```bash
+git clone https://github.com/Woblin/terrain-forge.git
+cd terrain-forge
+yarn install
+```
 
-| Area | Technology |
+### Konfiguration
+
+Skapa en `.env.local`-fil i projektets rot (Vite läser den; den är ignorerad av git och ska aldrig committas). Enklast är att kopiera exemplet:
+
+```bash
+cp .env.example .env.local
+```
+
+```
+VITE_FIREBASE_API_KEY=ditt-värde
+VITE_FIREBASE_AUTH_DOMAIN=ditt-värde
+VITE_FIREBASE_PROJECT_ID=ditt-värde
+VITE_FIREBASE_STORAGE_BUCKET=ditt-värde
+VITE_FIREBASE_MESSAGING_SENDER_ID=ditt-värde
+VITE_FIREBASE_APP_ID=ditt-värde
+VITE_USE_EMULATORS=true
+```
+
+Alla nödvändiga variabler finns listade i `.env.example`. Exempelvärdena där fungerar direkt mot de lokala emulatorerna utan något Firebase-projekt. För ett riktigt projekt hämtar du värdena i Firebase-konsolen under *Project settings → Your apps* och sätter `VITE_USE_EMULATORS=false`.
+
+### Kör projektet
+
+Starta emulatorerna (Auth, Firestore och Emulator UI på http://127.0.0.1:4000) i en terminal:
+
+```bash
+yarn emulators
+```
+
+Starta utvecklingsservern i en annan (http://localhost:5180):
+
+```bash
+yarn dev
+```
+
+Övriga kommandon:
+
+| Kommando | Vad det gör |
 | --- | --- |
-| Build tool | [Vite](https://vitejs.dev/) |
-| UI framework | [React](https://react.dev/) |
-| Language | [TypeScript](https://www.typescriptlang.org/) |
-| Styling | [Tailwind CSS](https://tailwindcss.com/) |
-| Authentication | Firebase Authentication |
-| Database | Cloud Firestore (terrain library, saved battlefields) |
-| Hosting | Firebase Hosting |
+| `yarn build` | Typkontroll och produktionsbygge till `dist/` |
+| `yarn preview` | Servera produktionsbygget lokalt |
+| `yarn test` / `yarn test:watch` | Kör Vitest en gång / i watch-läge |
+| `yarn test:rules` | Testa `firestore.rules` mot Firestore-emulatorn (kräver Firebase CLI och Java) |
+| `yarn lint`, `yarn typecheck`, `yarn format:check` | ESLint, TypeScript utan utdata, Prettier-kontroll |
+| `yarn validate` | Typkontroll, lint, formatkontroll och tester (det som CI kör) |
 
-## Getting started
+**Driftsättning:** varje merge till `main` driftsätts automatiskt. Jobbet `deploy` i `.github/workflows/ci.yml` körs när kontrollerna gått igenom, bygger med Firebase-värdena från GitHub-secrets (`VITE_FIREBASE_*` och `FIREBASE_SERVICE_ACCOUNT`) och kör `firebase deploy --only hosting,firestore`, så sajten, `firestore.rules` och index publiceras tillsammans. Vid manuell driftsättning: se till att `.env.local` har riktiga värden och inte `VITE_USE_EMULATORS=true` (värdena bakas in i bygget), kör sedan `yarn build` och `firebase deploy`.
 
-### Prerequisites
-- [Node.js](https://nodejs.org/) 22.12 or newer (24 LTS recommended, see `.nvmrc`)
-- [Yarn](https://yarnpkg.com/) 4, through Corepack (bundled with Node 22 and 24): run `corepack enable` once. The exact Yarn version is pinned in `package.json`.
-- For local emulators: [Firebase CLI](https://firebase.google.com/docs/cli) (`npm install -g firebase-tools`) and Java 21 or newer
-- For a real backend: a [Firebase](https://firebase.google.com/) project with Authentication and Firestore enabled
+## Arkitektur
 
-### Setup
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/Woblin/terrain-forge.git
-   cd terrain-forge
-   ```
-2. Install dependencies:
-   ```bash
-   yarn install
-   ```
-3. Copy the example environment file:
-   ```bash
-   cp .env.example .env.local
-   ```
-   The example values work with the local emulators, no Firebase project needed. To use a real project, replace them with the config from the Firebase console under *Project settings → Your apps* and set `VITE_USE_EMULATORS=false`. Never commit `.env.local`.
-4. Start the emulators (Auth, Firestore, and the Emulator UI on http://127.0.0.1:4000) in one terminal. The Auth emulator signs in with made-up Google and email accounts; verification and password reset links are printed in its log and listed in the Emulator UI.
-   ```bash
-   yarn emulators
-   ```
-5. Start the development server in another:
-   ```bash
-   yarn dev
-   ```
+Terrain Forge är en ren klientapp (React-SPA) utan egen backend; Firebase sköter inloggning, databas och hosting. Koden är uppdelad i lager med en riktning: `pages` och `components` hämtar data via `hooks`, som i sin tur använder `services` och `domain`. All logik för generering och balans ligger i `domain/`, som är ren TypeScript utan React eller Firebase: samma indata och samma frö ger alltid samma bräde, vilket gör den lätt att testa. All I/O mot Firebase sker i `services/`, som också validerar Firestore-data med zod innan den når resten av appen. Brädets koordinater lagras alltid i tum; tum/cm är bara en visningsinställning som räknas om i gränssnittet.
 
-### Scripts
+```
+terrain-forge/
+├── src/
+│   ├── domain/          # Ren logik: typer, geometri, generatorn, balansregler, siktlinjer, delningslänkar (med tester)
+│   ├── services/        # All Firebase-I/O (auth, Firestore), schemavalidering, bildkodning, web worker för generering
+│   ├── hooks/           # Kopplar React till services och domain (t.ex. useAuth, useTerrainLibrary)
+│   ├── components/      # UI-komponenter, får data via props eller hooks
+│   ├── pages/           # Vyer: start, bräde, sparade brädor, bibliotek, inloggning, konto
+│   └── assets/mats/     # Bilder för brädunderlag
+├── tests/rules/         # Tester av firestore.rules mot emulatorn
+├── public/              # Statiska filer (favicon)
+├── .github/workflows/   # CI (kontroller) och automatisk driftsättning till Firebase Hosting
+├── firestore.rules      # Säkerhetsregler: varje användare når bara sina egna dokument
+├── firebase.json        # Hosting-, Firestore- och emulatorinställningar
+├── .env.example         # Mall för miljövariabler
+└── CLAUDE.md            # Konventioner och regler för agentdriven utveckling
+```
 
-| Script | What it does |
-| --- | --- |
-| `yarn dev` | Start the Vite dev server |
-| `yarn build` | Type-check and build to `dist/` |
-| `yarn preview` | Serve the production build locally |
-| `yarn typecheck` | Run the TypeScript compiler without emitting |
-| `yarn lint` | Run ESLint |
-| `yarn format` / `format:check` | Format with Prettier / check formatting |
-| `yarn test` / `test:watch` | Run Vitest once / in watch mode |
-| `yarn test:rules` | Test `firestore.rules` against the Firestore emulator (needs the Firebase CLI and Java) |
-| `yarn emulators` | Start the Firebase emulators, saving data to `.emulator-data/` |
-| `yarn validate` | Typecheck, lint, format check and tests (what CI runs) |
+## Teknisk stack
 
-### Deploy
-Every merge into `main` deploys automatically. The `deploy` job in `.github/workflows/ci.yml` runs after the checks pass, builds with the Firebase values stored as GitHub secrets, and runs `firebase deploy --only hosting,firestore`. That publishes the site, `firestore.rules` and `firestore.indexes.json` together, so a rules change goes live when its PR is merged.
+| Komponent | Val | Anledning |
+| --- | --- | --- |
+| Byggverktyg | Vite | Snabb utvecklingsserver och bygge med minimal konfiguration |
+| Gränssnitt | React | Komponentmodellen passar en interaktiv editor med många oberoende delar |
+| Språk | TypeScript (strict) | Geometri och Firestore-dokument har exakta former; typerna fångar fel i koordinater, enheter och datamodeller tidigt |
+| Styling | Tailwind CSS | Snabbt att styla direkt i komponenterna utan separata CSS-filer |
+| Routing | React Router | Etablerad routing för en SPA med flera vyer |
+| Validering | zod | Validerar Firestore-data vid läsning så att trasiga dokument inte når appen |
+| Inloggning | Firebase Authentication | Google och e-post/lösenord utan egen server |
+| Databas | Cloud Firestore | Terrängbibliotek, foton och sparade brädor per användare, skyddat med säkerhetsregler |
+| Hosting | Firebase Hosting | Samma tjänst som resten, automatisk driftsättning från GitHub Actions |
+| Tester | Vitest | Samma konfiguration och transformering som Vite; testar generatorn och balansreglerna |
+| Pakethanterare | Yarn 4 (Corepack) | Låst version via `packageManager` i `package.json` |
 
-The app is live at `https://terrain-forge.web.app` (and `https://terrain-forge.firebaseapp.com`). Both domains are on the Firebase Auth authorized domains list by default; a custom domain has to be added there before sign-in works on it.
+## Begränsningar
 
-#### One-time setup
-The deploy job needs these repository secrets (GitHub, Settings, Secrets and variables, Actions):
+- **Ingen garanti för rättvisa.** Balansreglerna mäter deployment-zoner, täckning och siktlinjer i två dimensioner. Höjd, terrängregler i det enskilda spelet och hur bitarna faktiskt används vid bordet ingår inte. När terrängen inte räcker för att uppfylla alla regler visas det närmaste brädet som gick att hitta, med en markering om vilka regler som inte höll.
+- **Offlineändringar kan gå förlorade.** Firestore använder minnescache, så en ändring som görs utan nätverk sparas bara om fliken är öppen tills anslutningen kommer tillbaka. Stänger man fliken innan dess försvinner ändringen, trots att appen säger att den sparas senare.
+- **Felmeddelanden är ibland för allmänna eller för tekniska.** Alla nekade skrivningar visas som ett anslutningsproblem, och fel vid inläsning av data kan visa interna Firestore-id:n och fältnamn.
+- **Ingen gräns för antal dokument per användare.** Säkerhetsreglerna begränsar storleken på varje dokument men inte hur många en användare kan skapa, vilket i värsta fall kan driva upp kostnaden för Firebase-projektet. Sajten saknar också säkerhetshuvuden som Content-Security-Policy.
+- **Utan konto sparas inget.** Terräng och brädor finns bara kvar tills sidan laddas om. E-postkonton måste verifieras innan något sparas, och den som loggar ut får ingen varning om osparade ändringar.
+- **Delningslänkar återskapar bara det genererade brädet.** En länk innehåller seed, terräng och regler men inte handgjorda flyttningar av bitar.
+- **Foton lagras i låg upplösning** direkt i Firestore (ingen Cloud Storage), för att hålla nere storlek och kostnad.
+- **Övrigt:** ingen 404-sida för okända adresser, bara fyra förinställda spelsystem, ingen export till bild.
 
-| Secret | Value |
-| --- | --- |
-| `VITE_FIREBASE_API_KEY`, `VITE_FIREBASE_AUTH_DOMAIN`, `VITE_FIREBASE_PROJECT_ID`, `VITE_FIREBASE_STORAGE_BUCKET`, `VITE_FIREBASE_MESSAGING_SENDER_ID`, `VITE_FIREBASE_APP_ID` | The same values as in `.env.local` (Firebase console, Project settings, Your apps) |
-| `FIREBASE_SERVICE_ACCOUNT` | The full JSON key of a Google Cloud service account with the **Firebase Admin** and **Service Usage Consumer** roles on the `terrain-forge` project |
+## Utvecklat med
 
-#### Manual deploy
-To deploy by hand instead, from a machine with the Firebase CLI and a `.env.local` that holds the real Firebase values (`yarn build` bakes them into `dist/`):
-
-1. Check that `.env.local` does **not** set `VITE_USE_EMULATORS=true`, or the live site will try to reach emulators on `localhost`.
-2. Build and deploy:
-   ```bash
-   yarn build
-   firebase login
-   firebase deploy
-   ```
-   `.firebaserc` already points at the `terrain-forge` project, so `firebase use` is not needed. Use `firebase deploy --only hosting` to update just the site.
-
-## Roadmap
-- [x] Battlefield generation algorithm with balance rules
-- [x] Board editor (drag and drop, rotate, add, remove)
-- [x] Terrain library
-- [x] Firebase Authentication (Google and email, verified email needed to save)
-- [x] Save and load battlefields
-- [ ] Presets for popular game systems
-- [ ] Export or share a battlefield (image / link)
-
-## Contributing
-Contributions, ideas and bug reports are welcome. Open an issue to discuss what you'd like to change.
-
-## License
-TBD
+Claude Code (agentdriven utveckling) som del av kursen Next-Generation Software Development with AI.
