@@ -83,7 +83,7 @@ terrain-forge/
 │   ├── services/        # All Firebase I/O (auth, Firestore), schema validation, image encoding, generation web worker
 │   ├── hooks/           # Connect React to services and domain (e.g. useAuth, useTerrainLibrary)
 │   ├── components/      # UI components, get data through props or hooks
-│   ├── pages/           # Views: home, board, saved boards, library, sign-in, account
+│   ├── pages/           # Views: home, board, saved boards, library, sign-in, account, not found
 │   └── assets/mats/     # Board mat images
 ├── tests/rules/         # Tests of firestore.rules against the emulator
 ├── public/              # Static files (favicon)
@@ -113,13 +113,12 @@ terrain-forge/
 ## Limitations
 
 - **No guarantee of fairness.** The balance rules measure deployment zones, coverage and line of sight in two dimensions. Height, the terrain rules of each game and how pieces are actually used at the table are not taken into account. When the terrain cannot meet every rule, the app shows the closest board it found and marks which rules failed.
-- **Offline changes can be lost.** Firestore uses a memory cache, so a change made without a connection is only saved if the tab stays open until the connection returns. Closing the tab before then loses the change, even though the app says it will save later.
-- **Error messages are sometimes too generic or too technical.** Every refused write is shown as a connection problem, and errors when reading data can show internal Firestore ids and field names.
+- **Offline changes live only in the open tab.** Firestore uses a memory cache, so a change made without a connection is only saved if the tab stays open until the connection returns. The app warns before the tab closes with unsent changes, but a crash or a closed browser still loses them.
 - **No limit on documents per user.** The security rules cap the size of each document but not how many a user can create, which at worst could drive up the cost of the Firebase project. The site also lacks security headers such as a Content-Security-Policy.
-- **Nothing is saved without an account.** Terrain and boards only last until the page reloads. Email accounts must be verified before anything is saved, and signing out gives no warning about unsaved changes.
+- **Nothing is saved without an account.** Terrain and boards only last until the page reloads. Email accounts must be verified before anything is saved, and the app asks before signing out would lose unsaved pieces or board edits.
 - **Share links only recreate the generated board.** A link carries the seed, terrain and rules, but not pieces moved by hand.
 - **Photos are stored at low resolution** directly in Firestore (no Cloud Storage), to keep size and cost down.
-- **Other:** no 404 page for unknown addresses, only four preset game systems, no export to image.
+- **Other:** only four preset game systems, and no export to image.
 
 ## Built with
 
